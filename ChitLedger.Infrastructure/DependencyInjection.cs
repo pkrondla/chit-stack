@@ -25,7 +25,8 @@ public static class DependencyInjection
         services.AddScoped<ITenantService, TenantService>();
         
         // Identity / Auth Services
-        // services.AddTransient<IIdentityService, IdentityService>();
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<TenantDbContext>());
+        services.AddScoped<ITokenService, TokenService>();
         
         return services;
     }

@@ -44,7 +44,6 @@ C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Hangfire.NetCore.dll
 C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Hangfire.SqlServer.dll
 C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\MediatR.dll
 C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\MediatR.Contracts.dll
-C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Microsoft.AspNetCore.OpenApi.dll
 C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Microsoft.Bcl.AsyncInterfaces.dll
 C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Microsoft.Data.SqlClient.dll
 C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Microsoft.EntityFrameworkCore.dll
@@ -172,3 +171,5 @@ C:\PK\Source\chit-ledger\ChitLedger.API\obj\Debug\net9.0\refint\ChitLedger.API.d
 C:\PK\Source\chit-ledger\ChitLedger.API\obj\Debug\net9.0\ChitLedger.API.pdb
 C:\PK\Source\chit-ledger\ChitLedger.API\obj\Debug\net9.0\ChitLedger.API.genruntimeconfig.cache
 C:\PK\Source\chit-ledger\ChitLedger.API\obj\Debug\net9.0\ref\ChitLedger.API.dll
+C:\PK\Source\chit-ledger\ChitLedger.API\obj\Debug\net9.0\ChitLedger.API.sourcelink.json
+C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

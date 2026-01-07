@@ -13,3 +13,4 @@ C:\PK\Source\chit-ledger\ChitLedger.Application\obj\Debug\net9.0\ChitLedger.Appl
 C:\PK\Source\chit-ledger\ChitLedger.Application\obj\Debug\net9.0\refint\ChitLedger.Application.dll
 C:\PK\Source\chit-ledger\ChitLedger.Application\obj\Debug\net9.0\ChitLedger.Application.pdb
 C:\PK\Source\chit-ledger\ChitLedger.Application\obj\Debug\net9.0\ref\ChitLedger.Application.dll
+C:\PK\Source\chit-ledger\ChitLedger.Application\obj\Debug\net9.0\ChitLedger.Application.sourcelink.json

@@ -34,3 +34,4 @@ C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\obj\Debug\net9.0\ChitLedger.I
 C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\obj\Debug\net9.0\refint\ChitLedger.Infrastructure.dll
 C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\obj\Debug\net9.0\ChitLedger.Infrastructure.pdb
 C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\obj\Debug\net9.0\ref\ChitLedger.Infrastructure.dll
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\obj\Debug\net9.0\ChitLedger.Infrastructure.sourcelink.json

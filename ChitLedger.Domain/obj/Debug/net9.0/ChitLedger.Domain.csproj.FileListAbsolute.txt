@@ -9,3 +9,4 @@ C:\PK\Source\chit-ledger\ChitLedger.Domain\obj\Debug\net9.0\ChitLedger.Domain.dl
 C:\PK\Source\chit-ledger\ChitLedger.Domain\obj\Debug\net9.0\refint\ChitLedger.Domain.dll
 C:\PK\Source\chit-ledger\ChitLedger.Domain\obj\Debug\net9.0\ChitLedger.Domain.pdb
 C:\PK\Source\chit-ledger\ChitLedger.Domain\obj\Debug\net9.0\ref\ChitLedger.Domain.dll
+C:\PK\Source\chit-ledger\ChitLedger.Domain\obj\Debug\net9.0\ChitLedger.Domain.sourcelink.json

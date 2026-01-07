@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChitLedger.Infrastructure.Data;
 
-public class TenantDbContext : DbContext
+public class TenantDbContext : DbContext, IApplicationDbContext
 {
     private readonly ITenantService _tenantService;
 
@@ -25,6 +25,7 @@ public class TenantDbContext : DbContext
     public DbSet<AccountHead> AccountHeads => Set<AccountHead>();
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<JournalEntryLine> JournalEntryLines => Set<JournalEntryLine>();
+    public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
