@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  ChitLedger.Domain -> C:\PK\Source\chit-ledger\ChitLedger.Domain\bin\Debug\net9.0\ChitLedger.Domain.dll
+  ChitLedger.Application -> C:\PK\Source\chit-ledger\ChitLedger.Application\bin\Debug\net9.0\ChitLedger.Application.dll
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\Data\TenantDbContext.cs(79,16): error CS4016: Since this is an async method, the return expression must be of type 'int' rather than 'Task<int>' [C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\Data\TenantDbContext.cs(70,37): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj]
+
+Build FAILED.
+
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\Data\TenantDbContext.cs(70,37): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\Data\TenantDbContext.cs(79,16): error CS4016: Since this is an async method, the return expression must be of type 'int' rather than 'Task<int>' [C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj]
+    1 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:01.52

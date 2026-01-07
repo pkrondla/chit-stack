@@ -14,6 +14,7 @@ public interface IApplicationDbContext
     DbSet<JournalEntry> JournalEntries { get; }
     DbSet<JournalEntryLine> JournalEntryLines { get; }
     DbSet<User> Users { get; }
+    DbSet<Demand> Demands { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -13,17 +13,21 @@ public class CloseAuctionCommand : IRequest<Result<int>>
 public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IGSTService _gstService;
+    private readonly IJournalService _journalService;
 
-    public CloseAuctionHandler(IApplicationDbContext context)
+    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService)
     {
         _context = context;
+        _gstService = gstService;
+        _journalService = journalService;
     }
 
     public async Task<Result<int>> Handle(CloseAuctionCommand request, CancellationToken cancellationToken)
     {
         var auction = await _context.Auctions
             .Include(a => a.ChitGroup)
-            .ThenInclude(g => g.Tickets) // Need count for dividend
+            .ThenInclude(g => g.Tickets) 
             .FirstOrDefaultAsync(a => a.Id == request.AuctionId, cancellationToken);
             
         if (auction == null) return Result<int>.Failure("Auction not found.");
@@ -32,22 +36,29 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             return Result<int>.Failure("Cannot close auction without a winner.");
 
         // Calculate Dividend
-        // Dividend = (WinningBid - ForemanCommission) / TotalTickets
-        var commissionAmount = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+        var commissionBase = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
         
-        // Wait, WinningBidAmount IS the discount usually.
-        // Net Payable to Winner = ChitValue - WinningBidAmount
-        // Distributable Surplus = WinningBidAmount - ForemanCommission
+        // Calculate GST on Commission
+        var (cgst, sgst) = _gstService.CalculateSplitGST(commissionBase);
+        var totalGst = cgst + sgst;
         
-        var distributableSurplus = auction.WinningBidAmount - commissionAmount;
-        if (distributableSurplus < 0) distributableSurplus = 0; // Should not happen if min bid validated
+        // Distributable Surplus = WinningBid - (Commission + GST is typically NOT deducted from dividend pool, but collected from winner or paid by foreman? 
+        // Chit Act: 5% Commission is max. GST is extra. "Foreman shall be entitled to ... commission not exceeding 5%".
+        // GST is typically explicitly collected or inclusive. Let's assume GST is EXTRA liability for the company, but here we record it as liability.
+        // Usually: Winning Bid is the "Discount".
+        // Commission = 5% of Chit Value.
+        // Distributed Dividend = Discount - Commission.
+        // GST is calculated on Commission.
+        
+        var distributableSurplus = auction.WinningBidAmount - commissionBase;
+        if (distributableSurplus < 0) distributableSurplus = 0;
 
         var totalTickets = auction.ChitGroup.Tickets.Count;
         if (totalTickets == 0) return Result<int>.Failure("No tickets in group to distribute dividend.");
 
         var dividendPerTicket = distributableSurplus / totalTickets;
 
-        auction.ForemanCommissionAmount = commissionAmount;
+        auction.ForemanCommissionAmount = commissionBase;
         auction.DividendAmount = dividendPerTicket;
         auction.NetPayableAmount = auction.ChitGroup.ChitValue - auction.WinningBidAmount;
         auction.AuctionStatus = "Closed";
@@ -56,6 +67,32 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         var winningTicket = auction.ChitGroup.Tickets.First(t => t.Id == auction.WinningTicketId);
         winningTicket.IsPrized = true;
         winningTicket.PrizedInstallment = auction.InstallmentNumber;
+        
+        // Journal Entry: Accrue Commission Income
+        // Debit: Foreman Commission Receivable (Asset) or adjust from Payout
+        // Credit: Commission Income (Revenue)
+        // Credit: Output CGST (Liability)
+        // Credit: Output SGST (Liability)
+        
+        // In simple terms: The winner receives (ChitValue - Discount). The Company earns Commission. The Members earn Dividend.
+        // We will just record the Income recognition here.
+        
+        var journalLines = new List<(string, decimal, decimal)>
+        {
+            ("RECEIVABLE-COMMISSION", commissionBase + totalGst, 0), // Pending receipt from Payout adjustment
+            ("INCOME-COMMISSION", 0, commissionBase),
+            ("LIABILITY-CGST", 0, cgst),
+            ("LIABILITY-SGST", 0, sgst)
+        };
+        
+        await _journalService.CreateEntryAsync(
+            "Auction-Close", 
+            DateTime.Now, 
+            $"Commission for Auction {auction.Id}", 
+            auction.Id, 
+            "Auction", 
+            journalLines, 
+            cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

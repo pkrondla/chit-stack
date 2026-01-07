@@ -1,9 +1,8 @@
 using ChitLedger.Application;
 using ChitLedger.Infrastructure;
 using ChitLedger.API.Middleware;
-using ChitLedger.API.Middleware;
 using Serilog;
-// using Microsoft.OpenApi.Models; // Removed due to build error
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +45,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-/*
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -70,7 +68,6 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
-*/
 });
 
 var app = builder.Build();

@@ -845,18 +845,15 @@
           }
         }
       },
-      "Microsoft.OpenApi/3.1.2": {
+      "Microsoft.OpenApi/1.2.3": {
         "type": "package",
-        "dependencies": {
-          "System.Text.Json": "8.0.5"
-        },
         "compile": {
-          "lib/net8.0/Microsoft.OpenApi.dll": {
+          "lib/netstandard2.0/Microsoft.OpenApi.dll": {
             "related": ".pdb;.xml"
           }
         },
         "runtime": {
-          "lib/net8.0/Microsoft.OpenApi.dll": {
+          "lib/netstandard2.0/Microsoft.OpenApi.dll": {
             "related": ".pdb;.xml"
           }
         }
@@ -3116,21 +3113,20 @@
         "microsoft.identitymodel.tokens.nuspec"
       ]
     },
-    "Microsoft.OpenApi/3.1.2": {
-      "sha512": "cwQu2ptITG6G+ZEzNP6n0p/IBoAMc5n4V2aKdixuZkdh3A5nOQ0BTn3t1RYL/fPEny3wbzEAchAbWVWlQNf7Fw==",
+    "Microsoft.OpenApi/1.2.3": {
+      "sha512": "Nug3rO+7Kl5/SBAadzSMAVgqDlfGjJZ0GenQrLywJ84XGKO0uRqkunz5Wyl0SDwcR71bAATXvSdbdzPrYRYKGw==",
       "type": "package",
-      "path": "microsoft.openapi/3.1.2",
+      "path": "microsoft.openapi/1.2.3",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
-        "README.md",
-        "lib/net8.0/Microsoft.OpenApi.dll",
-        "lib/net8.0/Microsoft.OpenApi.pdb",
-        "lib/net8.0/Microsoft.OpenApi.xml",
+        "lib/net46/Microsoft.OpenApi.dll",
+        "lib/net46/Microsoft.OpenApi.pdb",
+        "lib/net46/Microsoft.OpenApi.xml",
         "lib/netstandard2.0/Microsoft.OpenApi.dll",
         "lib/netstandard2.0/Microsoft.OpenApi.pdb",
         "lib/netstandard2.0/Microsoft.OpenApi.xml",
-        "microsoft.openapi.3.1.2.nupkg.sha512",
+        "microsoft.openapi.1.2.3.nupkg.sha512",
         "microsoft.openapi.nuspec"
       ]
     },
@@ -4404,7 +4400,6 @@
       "ChitLedger.Infrastructure >= 1.0.0",
       "MediatR >= 14.0.0",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 9.0.0",
-      "Microsoft.OpenApi >= 3.1.2",
       "Serilog.AspNetCore >= 10.0.0",
       "Swashbuckle.AspNetCore >= 6.5.0"
     ]
@@ -4473,10 +4468,6 @@
           "Microsoft.AspNetCore.Authentication.JwtBearer": {
             "target": "Package",
             "version": "[9.0.0, )"
-          },
-          "Microsoft.OpenApi": {
-            "target": "Package",
-            "version": "[3.1.2, )"
           },
           "Serilog.AspNetCore": {
             "target": "Package",

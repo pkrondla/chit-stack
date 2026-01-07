@@ -5,6 +5,7 @@ namespace ChitLedger.Domain.Entities;
 public class JournalEntry : TenantEntity
 {
     public DateTime EntryDate { get; set; }
+    public string EntryType { get; set; } = string.Empty; // Receipt, Auction, General
     public string Description { get; set; } = string.Empty;
     public int? ReferenceId { get; set; } // Link to ReceiptId or AuctionId
     public string ReferenceType { get; set; } = string.Empty; // "Receipt", "Auction"
@@ -20,6 +21,7 @@ public class JournalEntryLine : TenantEntity
     public int AccountHeadId { get; set; }
     public AccountHead AccountHead { get; set; } = null!;
     
-    public decimal Debit { get; set; }
-    public decimal Credit { get; set; }
+    public decimal DebitAmount { get; set; }
+    public decimal CreditAmount { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

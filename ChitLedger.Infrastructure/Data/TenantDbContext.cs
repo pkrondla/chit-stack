@@ -26,6 +26,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<JournalEntryLine> JournalEntryLines => Set<JournalEntryLine>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Demand> Demands => Set<Demand>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -48,11 +49,25 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         // Actually, if physical separation, TenantId is constant for that DB.
         
         builder.Entity<ChitGroup>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
-        builder.Entity<Member>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        builder.Entity<JournalEntryLine>()
+            .HasOne(l => l.JournalEntry)
+            .WithMany(j => j.Lines)
+            .HasForeignKey(l => l.JournalEntryId);
+
+        // Seed Default Accounts
+        // TEMPORARILY DISABLED: HasData conflicts with BaseEntity inheritance in EF Core 9.0 strict mode without full column mapping.
+        // Will implement via a SeederService on app startup instead.
+        /*
+        builder.Entity<AccountHead>().HasData(
+            new { Id = 1, TenantId = 1, AccountName = "Cash on Hand", AccountCode = "ASSET-CASH", AccountType = AccountType.Asset, IsSystemAccount = true, Created = DateTime.MinValue },
+            ...
+        ); 
+        */
         // ... apply to all TenantEntity
     }
     
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    // Override SaveChangesAsync to set TenantId
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         foreach (var entry in ChangeTracker.Entries<TenantEntity>())
         {
@@ -61,6 +76,6 @@ public class TenantDbContext : DbContext, IApplicationDbContext
                 entry.Entity.TenantId = _tenantService.TenantId;
             }
         }
-        return base.SaveChangesAsync(cancellationToken);
+        return await base.SaveChangesAsync(cancellationToken);
     }
 }

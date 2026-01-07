@@ -4,6 +4,7 @@ using ChitLedger.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuestPDF.Infrastructure;
 
 namespace ChitLedger.Infrastructure;
 
@@ -27,7 +28,14 @@ public static class DependencyInjection
         // Identity / Auth Services
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<TenantDbContext>());
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IGSTService, GSTService>();
+        services.AddScoped<IJournalService, JournalService>();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IPdfService, PdfService>();
         
+        // QuestPDF License
+        QuestPDF.Settings.License = LicenseType.Community;
+
         return services;
     }
 }
