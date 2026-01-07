@@ -9,13 +9,13 @@ public class Auction : TenantEntity
     
     public int InstallmentNumber { get; set; }
     public DateTime AuctionDate { get; set; }
+    public string AuctionStatus { get; set; } = "Scheduled"; // Scheduled, Open, Closed
+
+    public int? WinningTicketId { get; set; }
+    public Ticket? WinningTicket { get; set; }
     
-    public int? WinnerTicketId { get; set; }
-    public Ticket? WinnerTicket { get; set; }
-    
-    public decimal BidAmount { get; set; }
-    public decimal ForemanCommission { get; set; }
-    public decimal TotalDividend { get; set; }
-    public decimal DividendPerMember { get; set; }
-    public decimal NetPayable { get; set; } // Installment - Dividend
+    public decimal WinningBidAmount { get; set; } // The Discount
+    public decimal ForemanCommissionAmount { get; set; }
+    public decimal DividendAmount { get; set; } // Per ticket
+    public decimal NetPayableAmount { get; set; } // To the winner
 }

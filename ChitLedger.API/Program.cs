@@ -1,7 +1,7 @@
 using ChitLedger.Application;
 using ChitLedger.Infrastructure;
 using ChitLedger.API.Middleware;
-using Serilog;
+using ChitLedger.API.Middleware;
 using Serilog;
 // using Microsoft.OpenApi.Models; // Removed due to build error
 
