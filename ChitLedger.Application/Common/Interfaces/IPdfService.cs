@@ -5,5 +5,8 @@ namespace ChitLedger.Application.Common.Interfaces;
 public interface IPdfService
 {
     byte[] GenerateSanctionForm(ChitGroup group);
-    // Add other forms later
+    byte[] GenerateMinutesForm(Auction auction);
+    byte[] GenerateDemandNotice(Demand demand, Member member, ChitGroup group);
+    byte[] GenerateAgreementForm(ChitGroup group);
+    byte[] GenerateBalanceSheet(List<AccountHead> accounts);
 }
