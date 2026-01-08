@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ChitLedger.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2fd748e157ee2c853925de3f2b6116498f9df241")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cb3a2127b25cbd2159bc01af694cd1e7f8d54180")]
 [assembly: System.Reflection.AssemblyProductAttribute("ChitLedger.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ChitLedger.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

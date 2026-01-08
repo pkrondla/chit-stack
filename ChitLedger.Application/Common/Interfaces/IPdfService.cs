@@ -9,4 +9,5 @@ public interface IPdfService
     byte[] GenerateDemandNotice(Demand demand, Member member, ChitGroup group);
     byte[] GenerateAgreementForm(ChitGroup group);
     byte[] GenerateBalanceSheet(List<AccountHead> accounts);
+    byte[] GenerateReceipt(Receipt receipt, Member member, ChitGroup group);
 }

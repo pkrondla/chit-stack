@@ -347,4 +347,91 @@ public class PdfService : IPdfService
         
         return document.GeneratePdf();
     }
+
+    public byte[] GenerateReceipt(Receipt receipt, Member member, ChitGroup group)
+    {
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A5.Landscape());
+                page.Margin(1, Unit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Header().Row(row =>
+                {
+                    row.RelativeItem().Column(col =>
+                    {
+                        col.Item().Text("CHIT FUND COMPANY").FontSize(16).Bold().FontColor(Colors.Blue.Medium);
+                        col.Item().Text("Regd Office: 123, Financial District, City - 560001").FontSize(8);
+                        col.Item().Text("Phone: 9876543210 | Email: accounts@chitfund.com").FontSize(8);
+                    });
+
+                    row.ConstantItem(100).AlignRight().Column(col =>
+                    {
+                         col.Item().Text("PAYMENT RECEIPT").FontSize(14).Bold().Underline();
+                         col.Item().Text($"No: {receipt.Id}").Bold();
+                         col.Item().Text($"Date: {receipt.ReceiptDate:dd-MMM-yyyy}");
+                    });
+                });
+
+                page.Content().PaddingVertical(10).Column(col =>
+                {
+                    col.Item().Row(row =>
+                    {
+                         row.RelativeItem().Column(c =>
+                         {
+                             c.Item().Text($"Received with thanks from Mr/Ms/M/s. {member.FullName}").Bold();
+                             c.Item().Text($"Ticket No: {receipt.Ticket.TicketNumber} | Group: {group.GroupName}");
+                         });
+                    });
+
+                    col.Item().PaddingVertical(5).LineHorizontal(1);
+
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().Text("Particulars").Bold();
+                        row.ConstantItem(100).AlignRight().Text("Amount (Rs.)").Bold();
+                    });
+
+                    col.Item().PaddingVertical(2).LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().Text($"Subscription towards Installment for the month of {receipt.ReceiptDate:MMMM yyyy}");
+                        row.ConstantItem(100).AlignRight().Text($"{receipt.AmountReceived:N2}");
+                    });
+                    
+                    if (receipt.PaymentMode != "Cash")
+                    {
+                         col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Text($"Mode: {receipt.PaymentMode} | Ref: {receipt.ReferenceNumber}").FontSize(8).Italic();
+                        });
+                    }
+
+                    col.Item().PaddingVertical(5).LineHorizontal(1);
+
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().AlignRight().Text("Total Received:").Bold();
+                        row.ConstantItem(100).AlignRight().Text($"{receipt.AmountReceived:N2}").Bold();
+                    });
+                     
+                    col.Item().PaddingTop(10).Text($"Amount in words: {ConvertAmountToWords(receipt.AmountReceived)} Only").Italic();
+                });
+
+                page.Footer().Row(row =>
+                {
+                    row.RelativeItem().Text("Computer Generated Receipt. No Signature Required.").FontSize(8).FontColor(Colors.Grey.Medium);
+                    row.RelativeItem().AlignRight().Text("Authorized Signatory").Bold();
+                });
+            });
+        }).GeneratePdf();
+    }
+
+    private string ConvertAmountToWords(decimal amount)
+    {
+        return $"{amount}"; 
+    }
 }

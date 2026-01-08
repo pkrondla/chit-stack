@@ -75,6 +75,22 @@ public class FormsController : ControllerBase
         return File(pdfBytes, "application/pdf", $"Form_II_{group.GroupName}.pdf");
     }
 
+    [HttpGet("receipt/{receiptId}")]
+    public async Task<IActionResult> GetReceipt(int receiptId)
+    {
+        var receipt = await _context.Receipts
+            .Include(r => r.Ticket)
+            .ThenInclude(t => t.ChitGroup)
+            .Include(r => r.Ticket)
+            .ThenInclude(t => t.Member)
+            .FirstOrDefaultAsync(r => r.Id == receiptId);
+
+        if (receipt == null) return NotFound("Receipt not found");
+
+        var pdfBytes = _pdfService.GenerateReceipt(receipt, receipt.Ticket.Member, receipt.Ticket.ChitGroup);
+        return File(pdfBytes, "application/pdf", $"Receipt_{receiptId}.pdf");
+    }
+
     [HttpGet("balancesheet")]
     public async Task<IActionResult> GetBalanceSheet()
     {

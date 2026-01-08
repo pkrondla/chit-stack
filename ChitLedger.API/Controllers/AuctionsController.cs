@@ -1,6 +1,7 @@
 using ChitLedger.Application.Features.Auctions.Commands.CloseAuction;
 using ChitLedger.Application.Features.Auctions.Commands.PlaceBid;
 using ChitLedger.Application.Features.Auctions.Commands.ScheduleAuction;
+using ChitLedger.Application.Features.Auctions.Queries.GetAuctions;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -18,6 +19,12 @@ public class AuctionsController : ControllerBase
     public AuctionsController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<Result<List<AuctionDto>>>> Get([FromQuery] int? groupId)
+    {
+        return Ok(await _mediator.Send(new GetAuctionsQuery { ChitGroupId = groupId }));
     }
 
     [HttpPost("schedule")]
