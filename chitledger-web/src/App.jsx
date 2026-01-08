@@ -6,11 +6,14 @@ import Layout from './components/Layout';
 import Groups from './pages/Groups/GroupList';
 import CreateGroup from './pages/Groups/CreateGroup';
 import EnrollMember from './pages/Groups/EnrollMember';
+import GroupTickets from './pages/Groups/GroupTickets';
 import Members from './pages/Members/MemberList';
 import RegisterMember from './pages/Members/RegisterMember';
 import Auctions from './pages/Auctions/AuctionList';
 import AuctionConsole from './pages/Auctions/AuctionConsole';
 import CollectionEntry from './pages/Finance/CollectionEntry';
+import Payouts from './pages/Finance/Payouts';
+import FinancialReports from './pages/Reports/FinancialReports';
 import PortalDashboard from './pages/Portal/PortalDashboard';
 
 // Placeholder Pages
@@ -36,11 +39,14 @@ function App() {
             <Route path="groups" element={<Groups />} />
             <Route path="groups/new" element={<CreateGroup />} />
             <Route path="groups/enroll" element={<EnrollMember />} />
+            <Route path="groups/:groupId/tickets" element={<GroupTickets />} />
             <Route path="members" element={<Members />} />
             <Route path="members/new" element={<RegisterMember />} />
             <Route path="auctions" element={<Auctions />} />
             <Route path="auctions/console/:auctionId" element={<AuctionConsole />} />
             <Route path="finance" element={<CollectionEntry />} />
+            <Route path="finance/payouts" element={<Payouts />} />
+            <Route path="reports" element={<FinancialReports />} />
             <Route path="portal" element={<PortalDashboard />} />
             {/* Add more routes here */}
           </Route>

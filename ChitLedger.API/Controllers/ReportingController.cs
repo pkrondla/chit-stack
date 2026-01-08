@@ -1,3 +1,4 @@
+using ChitLedger.Application.Features.Reporting.Queries.GetAccountHeads;
 using ChitLedger.Application.Features.Reporting.Queries.GetDayBook;
 using ChitLedger.Application.Features.Reporting.Queries.GetLedger;
 using ChitLedger.Domain.Common;
@@ -34,5 +35,11 @@ public class ReportingController : ControllerBase
             StartDate = startDate, 
             EndDate = endDate 
         }));
+    }
+
+    [HttpGet("accounts")]
+    public async Task<ActionResult<Result<List<AccountHeadDto>>>> GetAccountHeads()
+    {
+        return Ok(await _mediator.Send(new GetAccountHeadsQuery()));
     }
 }

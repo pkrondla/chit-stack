@@ -21,6 +21,8 @@ public class AuctionDto
     public decimal DividendAmount { get; set; }
     public decimal NetPayableAmount { get; set; }
     public int? WinningTicketId { get; set; }
+    public bool IsPaid { get; set; }
+    public DateTime? PaymentDate { get; set; }
 }
 
 public class GetAuctionsQuery : IRequest<Result<List<AuctionDto>>>

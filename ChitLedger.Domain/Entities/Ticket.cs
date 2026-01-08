@@ -13,4 +13,13 @@ public class Ticket : TenantEntity
     public int TicketNumber { get; set; }
     public bool IsPrized { get; set; } = false; // Has verified prize money?
     public int? PrizedInstallment { get; set; }
+    public TicketStatus Status { get; set; } = TicketStatus.Active;
+    public DateTime? RemovalDate { get; set; }
+}
+
+public enum TicketStatus
+{
+    Active,
+    Removed,
+    Vacant
 }

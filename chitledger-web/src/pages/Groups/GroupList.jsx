@@ -76,7 +76,11 @@ const Groups = () => {
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>
+                                <button
+                                    onClick={() => navigate(`/groups/${group.id}/tickets`)}
+                                    title="Manage Members & Vacancies"
+                                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}
+                                >
                                     Members
                                 </button>
                                 <button style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>

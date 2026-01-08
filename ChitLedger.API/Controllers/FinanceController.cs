@@ -1,3 +1,4 @@
+using ChitLedger.Application.Features.Financials.Commands.DisbursePayment;
 using ChitLedger.Application.Features.Financials.Commands.GenerateDemands;
 using ChitLedger.Application.Features.Financials.Commands.RecordPayment;
 using ChitLedger.Domain.Common;
@@ -29,6 +30,14 @@ public class FinanceController : ControllerBase
 
     [HttpPost("pay")]
     public async Task<ActionResult<Result<int>>> Pay(RecordPaymentCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpPost("payout")]
+    public async Task<ActionResult<Result<int>>> Payout(DisbursePaymentCommand command)
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);

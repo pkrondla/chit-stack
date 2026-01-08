@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, Gavel, LogOut, FileText, ScrollText } from 'lucide-react';
+import { LayoutDashboard, Users, Gavel, LogOut, FileText, ScrollText, IndianRupee } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, active }) => (
     <Link to={to} style={{
@@ -45,7 +45,8 @@ const Layout = () => {
                             <SidebarItem to="/groups" icon={Users} label="Chit Groups" active={location.pathname.startsWith('/groups')} />
                             <SidebarItem to="/auctions" icon={Gavel} label="Auctions" active={location.pathname.startsWith('/auctions')} />
                             <SidebarItem to="/members" icon={Users} label="Members" active={location.pathname.startsWith('/members')} />
-                            <SidebarItem to="/finance" icon={FileText} label="Finance" active={location.pathname.startsWith('/finance')} />
+                            <SidebarItem to="/finance" icon={FileText} label="Collections" active={location.pathname === '/finance'} />
+                            <SidebarItem to="/finance/payouts" icon={IndianRupee} label="Payouts" active={location.pathname === '/finance/payouts'} />
                             <SidebarItem to="/reports" icon={ScrollText} label="Reports" active={location.pathname.startsWith('/reports')} />
                         </>
                     ) : (
