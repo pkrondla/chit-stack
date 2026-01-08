@@ -1,0 +1,8 @@
+This folder contains versioned database objects such as:
+- Stored Procedures
+- Views
+- Functions
+- Triggers
+
+File naming convention: {Schema}.{ObjectName}.sql
+Example: dbo.uspGetMemberDetails.sql

@@ -1,0 +1,8 @@
+CREATE TABLE [dbo].[Tenants] (
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [TenantKey] NVARCHAR(100) NOT NULL UNIQUE,
+    [Name] NVARCHAR(200) NOT NULL,
+    [SubscriptionStatus] NVARCHAR(50) DEFAULT 'Active',
+    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+GO
