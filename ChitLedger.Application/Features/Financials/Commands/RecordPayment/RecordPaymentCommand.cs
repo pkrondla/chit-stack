@@ -50,7 +50,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         {
             if (amountRemaining <= 0) break;
 
-            var pendingOnDemand = demand.NetAmount - demand.CollectedAmount;
+            var pendingOnDemand = (demand.NetAmount + demand.PenaltyAmount) - demand.CollectedAmount;
             
             if (amountRemaining >= pendingOnDemand)
             {

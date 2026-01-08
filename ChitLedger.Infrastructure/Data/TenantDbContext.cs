@@ -20,6 +20,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<ChitGroup> ChitGroups => Set<ChitGroup>();
     public DbSet<Member> Members => Set<Member>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<Guarantor> Guarantors => Set<Guarantor>();
     public DbSet<Auction> Auctions => Set<Auction>();
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<AccountHead> AccountHeads => Set<AccountHead>();

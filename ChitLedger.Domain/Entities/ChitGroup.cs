@@ -12,6 +12,10 @@ public class ChitGroup : TenantEntity
     public DateTime? LaunchDate { get; set; }
     public GroupStatus Status { get; set; } = GroupStatus.Proposed;
     
+    // Late Fee Config
+    public decimal LateFeePercent { get; set; } = 2.0m; // Monthly
+    public int GracePeriodDays { get; set; } = 5; // Days before penalty kicks in
+    
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     public ICollection<Auction> Auctions { get; set; } = new List<Auction>();
 }

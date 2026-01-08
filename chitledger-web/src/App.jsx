@@ -14,6 +14,7 @@ import AuctionConsole from './pages/Auctions/AuctionConsole';
 import CollectionEntry from './pages/Finance/CollectionEntry';
 import Payouts from './pages/Finance/Payouts';
 import FinancialReports from './pages/Reports/FinancialReports';
+import UserManagement from './pages/Admin/UserManagement';
 import PortalDashboard from './pages/Portal/PortalDashboard';
 
 // Placeholder Pages
@@ -47,6 +48,8 @@ function App() {
             <Route path="finance" element={<CollectionEntry />} />
             <Route path="finance/payouts" element={<Payouts />} />
             <Route path="reports" element={<FinancialReports />} />
+            {/* Admin */}
+            <Route path="admin/users" element={<UserManagement />} />
             <Route path="portal" element={<PortalDashboard />} />
             {/* Add more routes here */}
           </Route>

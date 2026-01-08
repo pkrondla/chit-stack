@@ -18,6 +18,7 @@ public class Demand : TenantEntity
     
     public decimal CollectedAmount { get; set; } // Amount paid so far
     public string Status { get; set; } = "Pending"; // Pending, Partial, Paid
+    public decimal PenaltyAmount { get; set; }
     
     public DateTime DueDate { get; set; }
 }

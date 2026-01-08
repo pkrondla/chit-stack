@@ -1,5 +1,6 @@
 using ChitLedger.Application.Features.Tickets.Commands.AssignVacancy;
 using ChitLedger.Application.Features.Tickets.Commands.RemoveSubscriber;
+using ChitLedger.Application.Features.Tickets.Queries.GetTicketDues;
 using ChitLedger.Application.Features.Tickets.Queries.GetTickets;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -40,5 +41,11 @@ public class TicketsController : ControllerBase
     public async Task<ActionResult<Result<List<TicketDto>>>> GetTickets(int groupId)
     {
         return Ok(await _mediator.Send(new GetTicketsQuery { ChitGroupId = groupId }));
+    }
+
+    [HttpGet("dues/{ticketId}")]
+    public async Task<ActionResult<Result<TicketDuesDto>>> GetDues(int ticketId)
+    {
+        return Ok(await _mediator.Send(new GetTicketDuesQuery { TicketId = ticketId }));
     }
 }

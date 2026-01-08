@@ -27,6 +27,45 @@ const Payouts = () => {
         fetchAuctions();
     }, []);
 
+    // Guarantor State
+    const [guarantors, setGuarantors] = useState([]);
+    const [showGuarantorForm, setShowGuarantorForm] = useState(false);
+    const [newGuarantor, setNewGuarantor] = useState({ name: '', phoneNumber: '', aadhaarNumber: '', annualIncome: 0, occupation: '' });
+
+    const fetchGuarantors = async (ticketId) => {
+        try {
+            const res = await api.get(`/Guarantors/${ticketId}`);
+            setGuarantors(res.data);
+        } catch (e) {
+            console.error("Failed to load guarantors", e);
+        }
+    };
+
+    const handleAddGuarantor = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/Guarantors', {
+                ticketId: selectedAuction.winningTicketId,
+                ...newGuarantor
+            });
+            alert("Guarantor Added");
+            setNewGuarantor({ name: '', phoneNumber: '', aadhaarNumber: '', annualIncome: 0, occupation: '' });
+            setShowGuarantorForm(false);
+            fetchGuarantors(selectedAuction.winningTicketId);
+        } catch (e) {
+            alert(e.response?.data?.error || e.message);
+        }
+    };
+
+    // Effect to load guarantors when auction selected
+    useEffect(() => {
+        if (selectedAuction?.winningTicketId) {
+            fetchGuarantors(selectedAuction.winningTicketId);
+        } else {
+            setGuarantors([]);
+        }
+    }, [selectedAuction]);
+
     const handleDisburse = async (e) => {
         e.preventDefault();
         try {
@@ -113,6 +152,46 @@ const Payouts = () => {
                         <p style={{ marginBottom: '1.5rem', color: '#64748b' }}>
                             Disburse <strong>₹{selectedAuction.netPayableAmount.toLocaleString()}</strong> for {selectedAuction.groupName}?
                         </p>
+
+                        {/* Guarantors Section */}
+                        <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <label style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#334155' }}>Security / Guarantors</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGuarantorForm(!showGuarantorForm)}
+                                    style={{ fontSize: '0.8rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                                >
+                                    + Add Guarantor
+                                </button>
+                            </div>
+
+                            {showGuarantorForm && (
+                                <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                                    <input placeholder="Name" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
+                                        value={newGuarantor.name} onChange={e => setNewGuarantor({ ...newGuarantor, name: e.target.value })} />
+                                    <input placeholder="Phone" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
+                                        value={newGuarantor.phoneNumber} onChange={e => setNewGuarantor({ ...newGuarantor, phoneNumber: e.target.value })} />
+                                    <input placeholder="Aadhaar" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
+                                        value={newGuarantor.aadhaarNumber} onChange={e => setNewGuarantor({ ...newGuarantor, aadhaarNumber: e.target.value })} />
+                                    <input placeholder="Annual Income" type="number" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
+                                        value={newGuarantor.annualIncome} onChange={e => setNewGuarantor({ ...newGuarantor, annualIncome: e.target.value })} />
+                                    <button type="button" onClick={handleAddGuarantor} style={{ width: '100%', padding: '0.25rem', backgroundColor: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer' }}>Save Guarantor</button>
+                                </div>
+                            )}
+
+                            {guarantors.length === 0 ? (
+                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No guarantors added. Risk Check Recommended.</div>
+                            ) : (
+                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                    {guarantors.map(g => (
+                                        <li key={g.id} style={{ fontSize: '0.85rem', padding: '0.25rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                                            <strong>{g.name}</strong> ({g.relationship}) - Ph: {g.phoneNumber}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
 
                         <form onSubmit={handleDisburse}>
                             <div style={{ marginBottom: '1rem' }}>

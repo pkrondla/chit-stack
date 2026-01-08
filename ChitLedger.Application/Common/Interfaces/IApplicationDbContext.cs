@@ -8,6 +8,7 @@ public interface IApplicationDbContext
     DbSet<ChitGroup> ChitGroups { get; }
     DbSet<Member> Members { get; }
     DbSet<Ticket> Tickets { get; }
+    DbSet<Guarantor> Guarantors { get; }
     DbSet<Auction> Auctions { get; }
     DbSet<Receipt> Receipts { get; }
     DbSet<AccountHead> AccountHeads { get; }

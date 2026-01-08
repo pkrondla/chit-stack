@@ -1,3 +1,4 @@
+using ChitLedger.Application.Features.Financials.Commands.CalculatePenalties;
 using ChitLedger.Application.Features.Financials.Commands.DisbursePayment;
 using ChitLedger.Application.Features.Financials.Commands.GenerateDemands;
 using ChitLedger.Application.Features.Financials.Commands.RecordPayment;
@@ -42,5 +43,11 @@ public class FinanceController : ControllerBase
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
+    }
+
+    [HttpPost("calc-penalties")]
+    public async Task<ActionResult<Result<int>>> CalculatePenalties()
+    {
+        return Ok(await _mediator.Send(new CalculatePenaltiesCommand()));
     }
 }

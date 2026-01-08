@@ -13,6 +13,24 @@ const CollectionEntry = () => {
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [referenceNumber, setReferenceNumber] = useState('');
 
+    // Dues State
+    const [duesInfo, setDuesInfo] = useState(null);
+
+    const handleCheckDues = async () => {
+        if (!ticketId) return;
+        try {
+            // Run Penalty Calc first to be fresh?
+            // await api.post('/Finance/calc-penalties'); // Optional: Too slow?
+
+            const res = await api.get(`/Tickets/dues/${ticketId}`);
+            setDuesInfo(res.data);
+            setAmount(res.data.totalDue); // Auto-fill amount
+        } catch (e) {
+            alert("Ticket not found or error fetching dues.");
+            setDuesInfo(null);
+        }
+    };
+
     // Receipt State
     const [lastReceiptId, setLastReceiptId] = useState(null);
 
@@ -133,7 +151,18 @@ const CollectionEntry = () => {
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '2rem' }}>Collection Entry</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '600', margin: 0 }}>Collection Entry</h2>
+                <button
+                    onClick={async () => {
+                        try { await api.post('/Finance/calc-penalties'); alert('Penalties Updated'); }
+                        catch (e) { alert('Failed'); }
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.5rem', backgroundColor: '#fcd34d', border: 'none', borderRadius: '4px', cursor: 'pointer', color: '#78350f', fontWeight: 'bold' }}
+                >
+                    Run Late Fee Calc
+                </button>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 {/* Form */}
@@ -150,11 +179,28 @@ const CollectionEntry = () => {
                                     required
                                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
                                 />
-                                {/* Optional: Lookup Button */}
+                                <button
+                                    type="button"
+                                    onClick={handleCheckDues}
+                                    style={{ padding: '0.5rem 1rem', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                >
+                                    Check Dues
+                                </button>
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                Unique ID for the Member's Subscription
-                            </div>
+                            {duesInfo && (
+                                <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '4px' }}>
+                                    <div style={{ fontWeight: 'bold', color: '#9a3412' }}>{duesInfo.memberName} ({duesInfo.groupName})</div>
+                                    <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                                        <span>Principal:</span> <span>₹{duesInfo.pendingPrincipal.toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#c2410c' }}>
+                                        <span>Penalty:</span> <span>₹{duesInfo.pendingPenalty.toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px dashed #fdba74', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                        <span>Total Due:</span> <span>₹{duesInfo.totalDue.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div style={{ marginBottom: '1.5rem' }}>
