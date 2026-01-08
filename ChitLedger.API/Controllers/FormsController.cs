@@ -1,5 +1,7 @@
 using ChitLedger.Application.Common.Interfaces;
+using ChitLedger.Application.Features.Forms.Queries.GetSubscriberAgreement;
 using ChitLedger.Domain.Common;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +15,13 @@ public class FormsController : ControllerBase
 {
     private readonly IPdfService _pdfService;
     private readonly IApplicationDbContext _context;
+    private readonly IMediator _mediator;
 
-    public FormsController(IPdfService pdfService, IApplicationDbContext context)
+    public FormsController(IPdfService pdfService, IApplicationDbContext context, IMediator mediator)
     {
         _pdfService = pdfService;
         _context = context;
+        _mediator = mediator;
     }
 
     [HttpGet("sanction/{groupId}")]
@@ -100,5 +104,14 @@ public class FormsController : ControllerBase
         
         var pdfBytes = _pdfService.GenerateBalanceSheet(accounts);
         return File(pdfBytes, "application/pdf", $"Form_XI_BalanceSheet.pdf");
+    }
+    [HttpGet("subscriber-agreement/{ticketId}")]
+    public async Task<IActionResult> GetAgreement(int ticketId)
+    {
+        var query = new GetSubscriberAgreementQuery { TicketId = ticketId };
+        var result = await _mediator.Send(query);
+
+        if (!result.Succeeded || result.Data == null) return BadRequest(result.Errors.FirstOrDefault() ?? "Unknown Error");
+        return File(result.Data, "application/pdf", $"Agreement_{ticketId}.pdf");
     }
 }

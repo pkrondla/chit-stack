@@ -1,6 +1,7 @@
 using ChitLedger.Application.Features.Financials.Commands.CalculatePenalties;
 using ChitLedger.Application.Features.Financials.Commands.DisbursePayment;
 using ChitLedger.Application.Features.Financials.Commands.GenerateDemands;
+using ChitLedger.Application.Features.Finance.Queries.GetGstr1Report;
 using ChitLedger.Application.Features.Financials.Commands.RecordPayment;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -49,5 +50,14 @@ public class FinanceController : ControllerBase
     public async Task<ActionResult<Result<int>>> CalculatePenalties()
     {
         return Ok(await _mediator.Send(new CalculatePenaltiesCommand()));
+    }
+
+    [HttpGet("gstr1")]
+    public async Task<IActionResult> GetGstr1([FromQuery] DateTime from, [FromQuery] DateTime to)
+    {
+        var result = await _mediator.Send(new GetGstr1ReportQuery { FromDate = from, ToDate = to });
+        if (!result.Succeeded) return BadRequest(result);
+        
+        return File(result.Data, "text/csv", $"GSTR1_{from:yyyyMMdd}_{to:yyyyMMdd}.csv");
     }
 }

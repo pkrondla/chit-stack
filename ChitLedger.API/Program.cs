@@ -40,6 +40,21 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// SignalR
+builder.Services.AddSignalR();
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 // Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -85,8 +100,11 @@ app.UseSerilogRequestLogging();
 
 app.UseMiddleware<TenantMiddleware>();
 
+app.UseCors("AllowClient");
+
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ChitLedger.API.Hubs.AuctionHub>("/auctionHub");
 
 app.Run();

@@ -94,6 +94,26 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             journalLines, 
             cancellationToken);
 
+        // Schedule Next Auction or Close Group
+        if (auction.InstallmentNumber < auction.ChitGroup.DurationMonths)
+        {
+            var nextAuction = new Domain.Entities.Auction
+            {
+                ChitGroupId = auction.ChitGroupId,
+                InstallmentNumber = auction.InstallmentNumber + 1,
+                AuctionDate = auction.AuctionDate.AddMonths(1),
+                AuctionStatus = "Scheduled",
+                WinningBidAmount = 0,
+                DividendAmount = 0,
+                NetPayableAmount = 0
+            };
+            _context.Auctions.Add(nextAuction);
+        }
+        else
+        {
+            auction.ChitGroup.Status = Domain.Entities.GroupStatus.Completed;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<int>.Success(auction.Id);

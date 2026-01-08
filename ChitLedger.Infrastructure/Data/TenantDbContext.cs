@@ -21,6 +21,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<Member> Members => Set<Member>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<Guarantor> Guarantors => Set<Guarantor>();
+    public DbSet<Nominee> Nominees => Set<Nominee>();
     public DbSet<Auction> Auctions => Set<Auction>();
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<AccountHead> AccountHeads => Set<AccountHead>();
@@ -28,6 +29,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<JournalEntryLine> JournalEntryLines => Set<JournalEntryLine>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Demand> Demands => Set<Demand>();
+    public DbSet<Tenant> Tenants => Set<Tenant>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

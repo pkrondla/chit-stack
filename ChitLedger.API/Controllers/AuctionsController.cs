@@ -1,4 +1,5 @@
 using ChitLedger.Application.Features.Auctions.Commands.CloseAuction;
+using ChitLedger.Application.Features.Auctions.Commands.PlaceProxyBid;
 using ChitLedger.Application.Features.Auctions.Commands.PlaceBid;
 using ChitLedger.Application.Features.Auctions.Commands.ScheduleAuction;
 using ChitLedger.Application.Features.Auctions.Queries.GetAuctions;

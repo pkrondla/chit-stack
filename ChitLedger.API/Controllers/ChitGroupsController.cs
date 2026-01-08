@@ -1,3 +1,4 @@
+using ChitLedger.Application.Features.Groups.Commands.LaunchGroup;
 using ChitLedger.Application.Features.ChitGroups.Commands.CreateChitGroup;
 using ChitLedger.Application.Features.ChitGroups.Queries.GetChitGroups;
 using ChitLedger.Domain.Common;
@@ -33,6 +34,14 @@ public class ChitGroupsController : ControllerBase
         {
             return BadRequest(result);
         }
+        return Ok(result);
+    }
+
+    [HttpPost("{id}/launch")]
+    public async Task<ActionResult<Result<int>>> Launch(int id)
+    {
+        var result = await _mediator.Send(new LaunchGroupCommand { GroupId = id });
+        if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
     }
 }

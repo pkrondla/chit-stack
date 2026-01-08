@@ -1,4 +1,27 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import LiveAuction from './pages/Auctions/LiveAuction';
+
+// ... (existing imports)
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            {/* ... existing routes ... */}
+            <Route path="auctions" element={<Auctions />} />
+            <Route path="auctions/console/:auctionId" element={<AuctionConsole />} />
+            <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
+            <Route path="finance" element={<CollectionEntry />} />
+            {/* ... */}
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Layout from './components/Layout';
@@ -11,10 +34,12 @@ import Members from './pages/Members/MemberList';
 import RegisterMember from './pages/Members/RegisterMember';
 import Auctions from './pages/Auctions/AuctionList';
 import AuctionConsole from './pages/Auctions/AuctionConsole';
+import LiveAuction from './pages/Auctions/LiveAuction';
 import CollectionEntry from './pages/Finance/CollectionEntry';
 import Payouts from './pages/Finance/Payouts';
 import FinancialReports from './pages/Reports/FinancialReports';
 import UserManagement from './pages/Admin/UserManagement';
+import Tenants from './pages/Admin/Tenants';
 import PortalDashboard from './pages/Portal/PortalDashboard';
 
 // Placeholder Pages
@@ -45,11 +70,13 @@ function App() {
             <Route path="members/new" element={<RegisterMember />} />
             <Route path="auctions" element={<Auctions />} />
             <Route path="auctions/console/:auctionId" element={<AuctionConsole />} />
+            <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
             <Route path="finance" element={<CollectionEntry />} />
             <Route path="finance/payouts" element={<Payouts />} />
             <Route path="reports" element={<FinancialReports />} />
             {/* Admin */}
             <Route path="admin/users" element={<UserManagement />} />
+            <Route path="admin/tenants" element={<Tenants />} />
             <Route path="portal" element={<PortalDashboard />} />
             {/* Add more routes here */}
           </Route>

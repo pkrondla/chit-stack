@@ -55,6 +55,29 @@ const FinancialReports = () => {
         }
     };
 
+    // GSTR State
+    const [gstrStart, setGstrStart] = useState(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
+    const [gstrEnd, setGstrEnd] = useState(new Date().toISOString().split('T')[0]);
+
+    const downloadGstr1 = () => {
+        // Trigger download via window.open or fetch blob
+        // Using window.open is simplest for GET request download
+        // But we need Authentication header if API is protected. 
+        // Window.open won't send Bearer.
+        // We must use axios with blob response type.
+
+        api.get(`/Finance/gstr1?from=${gstrStart}&to=${gstrEnd}`, { responseType: 'blob' })
+            .then((response) => {
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `GSTR1_${gstrStart}_${gstrEnd}.csv`);
+                document.body.appendChild(link);
+                link.click();
+            })
+            .catch(e => alert("GSTR Download Failed: " + e.message));
+    };
+
     return (
         <div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Financial Reports</h2>
@@ -81,10 +104,22 @@ const FinancialReports = () => {
                 >
                     General Ledger
                 </button>
+                <button
+                    onClick={() => setActiveTab('GSTR')}
+                    style={{
+                        padding: '0.75rem 1.5rem', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold',
+                        color: activeTab === 'GSTR' ? '#0f172a' : '#64748b',
+                        borderBottom: activeTab === 'GSTR' ? '2px solid #0f172a' : 'none'
+                    }}
+                >
+                    GSTR-1
+                </button>
             </div>
 
+            {/* Existing DayBook... */}
             {activeTab === 'DayBook' && (
                 <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    {/* ... Existing DayBook Logic (Keep same logic by using orig file context) ... */}
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', marginBottom: '1.5rem' }}>
                         <div>
                             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Select Date</label>
@@ -141,6 +176,7 @@ const FinancialReports = () => {
 
             {activeTab === 'Ledger' && (
                 <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    {/* ... Keep Existing Ledger Logic ... */}
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '200px' }}>
                             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Select Account</label>
@@ -208,6 +244,41 @@ const FinancialReports = () => {
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {activeTab === 'GSTR' && (
+                <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <h3 style={{ marginBottom: '1rem', fontWeight: 'bold' }}>GSTR-1 Export (B2C)</h3>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', marginBottom: '1.5rem' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Start Date</label>
+                            <input
+                                type="date"
+                                value={gstrStart}
+                                onChange={(e) => setGstrStart(e.target.value)}
+                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Date</label>
+                            <input
+                                type="date"
+                                value={gstrEnd}
+                                onChange={(e) => setGstrEnd(e.target.value)}
+                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                        </div>
+                        <button
+                            onClick={downloadGstr1}
+                            style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+                        >
+                            <FileText size={18} /> Download CSV
+                        </button>
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                        Exports Commission & Fee entries in standard GSTR-1 CSV format.
+                    </div>
                 </div>
             )}
         </div>

@@ -267,6 +267,79 @@ public class PdfService : IPdfService
         return document.GeneratePdf();
     }
 
+    public byte[] GenerateSubscriberAgreement(ChitGroup group, Ticket ticket)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2, Unit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+
+                page.Header().Text("CHIT AGREEMENT").SemiBold().FontSize(18).AlignCenter();
+
+                page.Content().PaddingVertical(1, Unit.Centimetre).Column(col =>
+                {
+                    col.Item().Text($"AGREEMENT made on {DateTime.Now:dd-MMM-yyyy} between:").FontSize(10);
+                    
+                    // Foreman
+                    col.Item().PaddingTop(10).Text("1. THE FOREMAN").SemiBold();
+                    col.Item().Text("M/s. CHIT FUND COMPANY PVT LTD").Bold();
+                    col.Item().Text("Regd Office: 123, Financial District, Bangalore.");
+                    col.Item().Text("Represented by Authorized Signatory.");
+
+                    col.Item().PaddingTop(10).Text("AND");
+
+                    // Subscriber
+                    col.Item().PaddingTop(10).Text("2. THE SUBSCRIBER").SemiBold();
+                    col.Item().Text($"Name: {ticket.Member?.FullName ?? "N/A"}").Bold();
+                    col.Item().Text($"Address: {ticket.Member?.Address ?? "N/A"}");
+                    col.Item().Text($"Ticket Number: {ticket.TicketNumber} / {group.GroupName}");
+
+                    col.Item().PaddingTop(20).Text("Chit Details").FontSize(14).Underline().Bold();
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
+                        table.Cell().Text("Chit Value"); table.Cell().Text($"{group.ChitValue:C}");
+                        table.Cell().Text("Monthly Subscription"); table.Cell().Text($"{group.InstallmentAmount:C}");
+                        table.Cell().Text("Duration"); table.Cell().Text($"{group.DurationMonths} Months");
+                        table.Cell().Text("Auction Date"); table.Cell().Text("20th of every month");
+                    });
+
+                    col.Item().PaddingTop(20).Text("Terms & Conditions").FontSize(14).Underline().Bold();
+                    col.Item().PaddingTop(5).Text("1. The Subscriber agrees to pay the subscription amount on or before the due date.");
+                    col.Item().PaddingTop(5).Text("2. The Foreman is entitled to a commission of 5% of the Chit Value.");
+                    col.Item().PaddingTop(5).Text("3. Late payments will attract a penalty of 2% per month.");
+                    col.Item().PaddingTop(5).Text("4. The Subscriber must provide sufficient security (Guarantors/Property) before claiming the prize money.");
+
+                    col.Item().PaddingTop(40).Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("Signed by Foreman").SemiBold();
+                            c.Item().PaddingTop(40).LineHorizontal(1);
+                        });
+                        row.ConstantItem(50);
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("Signed by Subscriber").SemiBold();
+                            c.Item().PaddingTop(40).LineHorizontal(1);
+                        });
+                    });
+                    
+                    col.Item().PaddingTop(30).Text("Witnesses:");
+                    col.Item().PaddingTop(25).Text("1. __________________________");
+                    col.Item().PaddingTop(15).Text("2. __________________________");
+                });
+
+                page.Footer().AlignCenter().Text(x => { x.Span("Page "); x.CurrentPageNumber(); });
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
     public byte[] GenerateBalanceSheet(List<AccountHead> accounts)
     {
         // Simple Balance Sheet Logic: 

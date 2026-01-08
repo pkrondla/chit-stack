@@ -9,6 +9,7 @@ public interface IApplicationDbContext
     DbSet<Member> Members { get; }
     DbSet<Ticket> Tickets { get; }
     DbSet<Guarantor> Guarantors { get; }
+    DbSet<Nominee> Nominees { get; }
     DbSet<Auction> Auctions { get; }
     DbSet<Receipt> Receipts { get; }
     DbSet<AccountHead> AccountHeads { get; }
@@ -16,6 +17,7 @@ public interface IApplicationDbContext
     DbSet<JournalEntryLine> JournalEntryLines { get; }
     DbSet<User> Users { get; }
     DbSet<Demand> Demands { get; }
+    DbSet<Tenant> Tenants { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

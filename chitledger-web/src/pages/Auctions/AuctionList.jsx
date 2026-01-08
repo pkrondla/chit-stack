@@ -80,9 +80,23 @@ const Auctions = () => {
                                 {auction.auctionStatus === 'Closed' ? (
                                     <><Eye size={18} style={{ marginRight: '0.5rem' }} /> View Details</>
                                 ) : (
-                                    <><Play size={18} style={{ marginRight: '0.5rem' }} /> Start Auction</>
+                                    <><Play size={18} style={{ marginRight: '0.5rem' }} /> Start Console</>
                                 )}
                             </button>
+
+                            {auction.auctionStatus !== 'Closed' && (
+                                <button
+                                    onClick={() => navigate(`/auctions/live/${auction.id}`)}
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%',
+                                        padding: '0.75rem', borderRadius: '4px', cursor: 'pointer',
+                                        backgroundColor: '#ef4444', color: 'white', border: 'none'
+                                    }}
+                                >
+                                    <Gavel size={18} style={{ marginRight: '0.5rem' }} /> Enter Live Room
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>

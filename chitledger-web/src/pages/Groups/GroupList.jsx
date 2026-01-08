@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, FileText } from 'lucide-react';
+import { Plus, Search, FileText, Play } from 'lucide-react';
 import api from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,17 @@ const Groups = () => {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const handleLaunch = async (groupId) => {
+        if (!window.confirm("Are you sure? This will Activate the group and schedule the first auction. Ensure all tickets are subscribed.")) return;
+        try {
+            await api.post(`/ChitGroups/${groupId}/launch`);
+            alert("Group Launched Successfully!");
+            fetchGroups();
+        } catch (e) {
+            alert("Launch Failed: " + (e.response?.data?.error || e.message));
+        }
+    };
 
     useEffect(() => {
         fetchGroups();
@@ -101,6 +112,20 @@ const Groups = () => {
                                     <FileText size={18} />
                                 </button>
                             </div>
+
+                            {group.status === 'Proposed' && (
+                                <button
+                                    onClick={() => handleLaunch(group.id)}
+                                    style={{
+                                        marginTop: '1rem',
+                                        width: '100%', padding: '0.75rem', borderRadius: '4px', cursor: 'pointer',
+                                        backgroundColor: '#0f172a', color: 'white', border: 'none',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}
+                                >
+                                    <Play size={16} style={{ marginRight: '0.5rem' }} /> Launch Group
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>

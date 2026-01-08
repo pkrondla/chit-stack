@@ -78,11 +78,11 @@ const AuctionConsole = () => {
         const totalMembers = 20; // Placeholder
         const commissionRate = 0.05;
 
-        const bid = parseFloat(bidAmount) || 0;
+        const currentBid = parseFloat(bidAmount) || (auction ? auction.winningBidAmount : 0) || 0;
         const commission = chitValue * commissionRate;
-        const distributable = bid - commission;
+        const distributable = currentBid - commission;
         const dividend = distributable > 0 ? (distributable / totalMembers) : 0;
-        const payable = chitValue - bid;
+        const payable = chitValue - currentBid;
 
         setCalculations({ commission, distributable, dividend, payable });
     };
@@ -145,50 +145,88 @@ const AuctionConsole = () => {
                         {/* Input Section */}
                         <div>
                             <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
-                                <Calculator size={20} style={{ marginRight: '0.5rem' }} /> Bid Calculator
+                                <Calculator size={20} style={{ marginRight: '0.5rem' }} /> Proxy Bidding & Closing
                             </h3>
 
-                            <form onSubmit={handleSubmit}>
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Winning Bid Amount (Discount)</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <span style={{ position: 'absolute', left: '10px', top: '10px', color: '#64748b' }}>₹</span>
-                                        <input
-                                            type="number"
-                                            value={bidAmount}
-                                            onChange={(e) => setBidAmount(e.target.value)}
-                                            style={{ width: '100%', padding: '0.65rem 0.65rem 0.65rem 2rem', fontSize: '1.25rem', fontWeight: 'bold', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>Enter the total discount offered by the winner.</div>
-                                </div>
-
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Winning Ticket #</label>
+                            {/* Proxy Bid Form */}
+                            <div style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                <h4 style={{ marginBottom: '1rem', fontWeight: 'bold' }}>Place Proxy Bid</h4>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Ticket #</label>
                                     <input
                                         type="number"
+                                        value={winningTicketId} // reusing state variable
+                                        onChange={(e) => setWinningTicketId(e.target.value)}
                                         style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
                                         placeholder="Enter Ticket Number"
                                     />
                                 </div>
-
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Bid Amount (Discount)</label>
+                                    <input
+                                        type="number"
+                                        value={bidAmount}
+                                        onChange={(e) => setBidAmount(e.target.value)}
+                                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                        placeholder="0.00"
+                                    />
+                                </div>
                                 <button
-                                    type="submit"
-                                    disabled={!bidAmount}
+                                    onClick={async () => {
+                                        try {
+                                            await api.post('/Auctions/proxy-bid', {
+                                                auctionId: parseInt(auctionId),
+                                                ticketId: parseInt(winningTicketId), // In real app, map Ticket# to ID
+                                                bidAmount: parseFloat(bidAmount)
+                                            });
+                                            alert("Bid Placed!");
+                                            fetchAuctionDetails(); // Refresh to see update
+                                        } catch (e) { alert("Bid Failed: " + (e.response?.data?.error || e.message)); }
+                                    }}
+                                    disabled={!bidAmount || !winningTicketId}
+                                    style={{ width: '100%', padding: '0.75rem', backgroundColor: 'white', color: '#0f172a', border: '1px solid #0f172a', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+                                >
+                                    Place Proxy Bid
+                                </button>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+                                <h4 style={{ marginBottom: '1rem', fontWeight: 'bold', color: '#b91c1c' }}>Close Auction</h4>
+                                <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' }}>
+                                    Finalizes the auction with the <strong>Current Winner</strong>. Ensure all bids are in.
+                                </p>
+                                <button
+                                    onClick={handleSubmit}
                                     style={{
-                                        width: '100%', padding: '1rem', backgroundColor: bidAmount ? '#0f172a' : '#cbd5e1', color: 'white',
-                                        border: 'none', borderRadius: '4px', fontSize: '1rem', fontWeight: 'bold', cursor: bidAmount ? 'pointer' : 'not-allowed'
+                                        width: '100%', padding: '1rem', backgroundColor: '#b91c1c', color: 'white',
+                                        border: 'none', borderRadius: '4px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer'
                                     }}
                                 >
                                     Confirm & Close Auction
                                 </button>
-                            </form>
+                            </div>
                         </div>
 
                         {/* Results Section */}
                         <div style={{ backgroundColor: '#f1f5f9', padding: '1.5rem', borderRadius: '8px' }}>
-                            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem', color: '#334155' }}>Projected Outcome</h3>
+                            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem', color: '#334155' }}>Current Status</h3>
+
+                            <div style={{ marginBottom: '2rem', textAlign: 'center', padding: '1rem', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Current Highest Bid</div>
+                                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a', lineHeight: 1 }}>
+                                    ₹{auction.winningBidAmount?.toLocaleString() || '0'}
+                                </div>
+                                <div style={{ fontSize: '0.875rem', color: '#166534', marginTop: '0.5rem' }}>
+                                    Held by Ticket #{auction.winningTicketId || '-'}
+                                </div>
+                            </div>
+
+                            <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>Projected Settlement</h4>
+
+                            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>
+                                <span style={{ color: '#64748b' }}>Bid Amount (Discount)</span>
+                                <span>₹{(parseFloat(bidAmount) || auction.winningBidAmount || 0).toLocaleString()}</span>
+                            </div>
 
                             <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>
                                 <span style={{ color: '#64748b' }}>Foreman Commission (5%)</span>
