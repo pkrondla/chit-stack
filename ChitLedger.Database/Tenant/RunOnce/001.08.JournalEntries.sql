@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[JournalEntries] (
     [ReferenceType] NVARCHAR(50) NULL,
     [TenantId] INT NOT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

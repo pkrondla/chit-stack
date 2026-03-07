@@ -9,6 +9,7 @@ CREATE TABLE [dbo].[JournalEntryLines] (
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([JournalEntryId]) REFERENCES [dbo].[JournalEntries]([Id]),
     FOREIGN KEY ([AccountHeadId]) REFERENCES [dbo].[AccountHeads]([Id]),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

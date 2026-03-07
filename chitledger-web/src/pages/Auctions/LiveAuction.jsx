@@ -1,39 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
-import api from '../../api/axios';
-import { Gavel, Send, Users, AlertOctagon } from 'lucide-react';
+import { Card, Typography, Input, Button, Spin, Tag, message } from 'antd';
+import { Gavel, Send } from 'lucide-react';
+import useAuthStore from '../../store/useAuthStore';
+
+const { Title, Text } = Typography;
 
 const LiveAuction = () => {
     const { auctionId } = useParams();
+    const userStore = useAuthStore(state => state.user);
+    const username = userStore?.fullName || `Bidder_${Math.floor(Math.random() * 1000)}`;
+
     const [connection, setConnection] = useState(null);
     const [bids, setBids] = useState([]);
     const [currentBid, setCurrentBid] = useState(0);
     const [inputBid, setInputBid] = useState('');
-    const [auctionData, setAuctionData] = useState(null);
     const [participants, setParticipants] = useState(0); // Mock participant count
     const [timer, setTimer] = useState(300); // 5 minutes mock timer
-
-    // Mock User for now (In real app, get from Context/Token)
-    const [username, setUsername] = useState(`Bidder_${Math.floor(Math.random() * 1000)}`);
+    const [isConnecting, setIsConnecting] = useState(true);
 
     useEffect(() => {
-        const fetchAuction = async () => {
-            try {
-                // Fetch basic auction details (assuming backend has this endpoint)
-                // For demo, we might fail if endpoint doesn't return exactly what we need, 
-                // but let's try grabbing the specific auction.
-                // const res = await api.get(`/Auctions/upcoming`); 
-                // Assuming we passed auctionId, we can get it via standard endpoint
-                // Real implementation might need a specific GetAuctionById
-                setAuctionData({ id: auctionId, chitValue: 500000, currentBid: 0 }); // Placeholder
-            } catch (e) { console.error(e); }
-        };
-        fetchAuction();
-
         // SignalR Connection
         const newConnection = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:7191/auctionHub")
+            .withUrl("http://localhost:5045/auctionHub")
             .withAutomaticReconnect()
             .build();
 
@@ -46,9 +36,9 @@ const LiveAuction = () => {
                 .then(() => {
                     console.log('Connected to Auction Hub');
                     connection.invoke("JoinAuction", auctionId);
+                    setIsConnecting(false);
 
                     connection.on("ReceiveBid", (user, amount) => {
-                        console.log("Bid Received", user, amount);
                         setBids(prev => [{ user, amount, time: new Date() }, ...prev]);
                         setCurrentBid(amount);
                     });
@@ -61,7 +51,11 @@ const LiveAuction = () => {
                         setParticipants(p => p > 0 ? p - 1 : 0);
                     });
                 })
-                .catch(e => console.log('Connection failed: ', e));
+                .catch(e => {
+                    console.log('Connection failed: ', e);
+                    setIsConnecting(false);
+                    message.error("Failed to connect to Live Auction server.");
+                });
         }
 
         return () => {
@@ -82,19 +76,20 @@ const LiveAuction = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleBid = async (e) => {
-        e.preventDefault();
+    const handleBid = async () => {
         const amount = parseInt(inputBid);
         if (!amount || amount <= currentBid) {
-            alert("Bid must be higher than current bid");
+            message.warning("Bid must be higher than the current bid");
             return;
         }
 
-        // Invoke Hub Method
         try {
             await connection.invoke("PlaceBid", auctionId, amount, username);
             setInputBid('');
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            message.error("Failed to place bid");
+        }
     };
 
     const formatTime = (seconds) => {
@@ -104,73 +99,93 @@ const LiveAuction = () => {
     };
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+        <div className="max-w-6xl mx-auto p-4 md:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Main Auction Area */}
-                <div>
-                    <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: '2rem', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1e293b' }}>Live Auction Room</h2>
-                        <p style={{ color: '#64748b' }}>Auction ID: {auctionId}</p>
+                <div className="lg:col-span-2">
+                    <Card className="shadow-lg rounded-2xl border-0 mb-8 text-center" styles={{ body: { padding: '3rem' } }}>
+                        <Title level={2} className="!mb-2 text-slate-800">Live Auction Room</Title>
+                        <Text className="text-slate-500 block mb-12">Auction ID: {auctionId}</Text>
 
-                        <div style={{ margin: '3rem 0' }}>
-                            <div style={{ fontSize: '1rem', color: '#64748b', marginBottom: '0.5rem' }}>Current Highest Bid</div>
-                            <div style={{ fontSize: '4rem', fontWeight: 'bold', color: '#166534' }}>
+                        <div className="mb-16">
+                            <Text className="text-slate-500 font-semibold mb-2 block text-lg">Current Highest Bid</Text>
+                            <div className="text-6xl md:text-7xl font-bold text-green-700 font-mono tracking-tight">
                                 ₹{currentBid.toLocaleString()}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', color: '#ef4444', fontWeight: 'bold', fontSize: '1.5rem' }}>
-                            <span>Closing in: {formatTime(timer)}</span>
+                        <div className="flex justify-center items-center gap-4 text-red-600 font-bold text-2xl mb-8">
+                            <span className="animate-pulse">⏳ Closing in: {formatTime(timer)}</span>
                         </div>
-                    </div>
+                    </Card>
 
                     {/* Bidding Controls */}
-                    <form onSubmit={handleBid} style={{ display: 'flex', gap: '1rem' }}>
-                        <input
+                    <div className="flex gap-4">
+                        <Input
                             type="number"
                             value={inputBid}
                             onChange={(e) => setInputBid(e.target.value)}
+                            onPressEnter={handleBid}
                             placeholder="Enter Bid Amount..."
-                            style={{ flex: 1, padding: '1rem', fontSize: '1.25rem', borderRadius: '8px', border: '2px solid #e2e8f0' }}
+                            size="large"
+                            className="text-xl h-16 rounded-xl shadow-sm border-2 border-slate-200 focus:border-slate-800"
                         />
-                        <button
-                            type="submit"
-                            style={{ padding: '0 2rem', backgroundColor: '#0f172a', color: 'white', fontWeight: 'bold', borderRadius: '8px', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        <Button
+                            type="primary"
+                            onClick={handleBid}
+                            className="h-16 px-10 text-xl font-bold bg-slate-900 border-none rounded-xl hover:bg-slate-800 flex items-center shadow-lg"
+                            icon={<Gavel size={24} />}
+                            disabled={isConnecting}
                         >
-                            <Gavel /> PLACE BID
-                        </button>
-                    </form>
+                            PLACE BID
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Sidebar: Bids Log */}
-                <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', padding: '1.5rem', height: '600px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
-                        <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>Live Activity</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#22c55e', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                            <div style={{ width: '8px', height: '8px', backgroundColor: '#22c55e', borderRadius: '50%' }}></div>
-                            {participants} Online
-                        </div>
+                <Card
+                    className="shadow-lg rounded-2xl border-0 h-[600px] flex flex-col relative"
+                    styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
+                >
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10 rounded-t-2xl">
+                        <Title level={4} className="!mb-0 text-slate-800">Live Activity</Title>
+                        <Tag color={isConnecting ? 'warning' : 'success'} className="flex items-center gap-2 rounded-full px-3 py-1 font-bold m-0 border-0">
+                            <span className={`w-2 h-2 rounded-full ${isConnecting ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+                            {isConnecting ? 'Connecting...' : `${participants} Online`}
+                        </Tag>
                     </div>
 
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {bids.map((bid, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.5rem', backgroundColor: i === 0 ? '#f0fdf4' : 'transparent', borderRadius: '6px' }}>
-                                <div style={{ width: '40px', height: '40px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: '#64748b' }}>
-                                    {bid.user.substring(0, 2).toUpperCase()}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{bid.user}</div>
-                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{bid.time.toLocaleTimeString()}</div>
-                                </div>
-                                <div style={{ fontWeight: 'bold', color: '#166534' }}>
-                                    ₹{bid.amount.toLocaleString()}
-                                </div>
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-slate-50">
+                        {isConnecting ? (
+                            <div className="flex-1 flex justify-center items-center">
+                                <Spin size="large" />
                             </div>
-                        ))}
-                        {bids.length === 0 && <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>No bids yet</div>}
+                        ) : bids.length === 0 ? (
+                            <div className="flex-1 flex justify-center items-center text-slate-400 italic">
+                                Waiting for first bid...
+                            </div>
+                        ) : (
+                            bids.map((bid, i) => (
+                                <div
+                                    key={i}
+                                    className={`flex items-center gap-4 p-4 rounded-xl shadow-sm transition-all ${i === 0 ? 'bg-green-50 border border-green-200' : 'bg-white border border-slate-100'}`}
+                                >
+                                    <div className={`w-12 h-12 rounded-full flex justify-center items-center font-bold text-lg ${i === 0 ? 'bg-green-200 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
+                                        {bid.user.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-slate-800 text-base">{bid.user}</div>
+                                        <div className="text-xs text-slate-400 font-mono mt-1">{bid.time.toLocaleTimeString()}</div>
+                                    </div>
+                                    <div className={`font-bold text-lg tracking-tight ${i === 0 ? 'text-green-700' : 'text-slate-600'}`}>
+                                        ₹{bid.amount.toLocaleString()}
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
-                </div>
+                </Card>
 
             </div>
         </div>

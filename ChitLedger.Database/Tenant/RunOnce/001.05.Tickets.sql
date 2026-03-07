@@ -10,6 +10,7 @@ CREATE TABLE [dbo].[Tickets] (
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([ChitGroupId]) REFERENCES [dbo].[ChitGroups]([Id]),
     FOREIGN KEY ([MemberId]) REFERENCES [dbo].[Members]([Id]),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

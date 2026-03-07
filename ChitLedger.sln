@@ -21,6 +21,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tenant", "Tenant", "{5C0FC6
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "ChitLedger.Database.Tenant", "ChitLedger.Database\Tenant\ChitLedger.Database.Tenant.sqlproj", "{B2C3D4E5-6789-0123-4567-890123456789}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChitLedger.Global.API", "ChitLedger.Global.API\ChitLedger.Global.API.csproj", "{F541F19D-0068-4FCC-8659-8DCC7F3316DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,18 @@ Global
 		{B2C3D4E5-6789-0123-4567-890123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B2C3D4E5-6789-0123-4567-890123456789}.Release|x64.ActiveCfg = Release|Any CPU
 		{B2C3D4E5-6789-0123-4567-890123456789}.Release|x86.ActiveCfg = Release|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Debug|x64.Build.0 = Debug|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Debug|x86.Build.0 = Debug|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Release|x64.ActiveCfg = Release|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Release|x64.Build.0 = Release|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Release|x86.ActiveCfg = Release|Any CPU
+		{F541F19D-0068-4FCC-8659-8DCC7F3316DD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

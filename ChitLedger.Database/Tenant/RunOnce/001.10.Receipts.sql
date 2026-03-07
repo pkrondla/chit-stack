@@ -12,6 +12,7 @@ CREATE TABLE [dbo].[Receipts] (
     FOREIGN KEY ([MemberId]) REFERENCES [dbo].[Members]([Id]),
     FOREIGN KEY ([ChitGroupId]) REFERENCES [dbo].[ChitGroups]([Id]),
     FOREIGN KEY ([TicketId]) REFERENCES [dbo].[Tickets]([Id]),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

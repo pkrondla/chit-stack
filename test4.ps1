@@ -1,0 +1,1 @@
+$body = @{username="admin"; password="admin123"} | ConvertTo-Json; $res = Invoke-RestMethod -Uri http://localhost:5045/api/Auth/login -Method Post -ContentType "application/json" -Body $body; $token = $res.data; Invoke-RestMethod -Uri http://localhost:5045/api/Members/test-claims -Method Get -Headers @{Authorization="Bearer $token"} | ConvertTo-Json -Depth 5

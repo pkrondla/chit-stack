@@ -13,6 +13,7 @@ CREATE TABLE [dbo].[Auctions] (
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([ChitGroupId]) REFERENCES [dbo].[ChitGroups]([Id]),
     FOREIGN KEY ([WinningTicketId]) REFERENCES [dbo].[Tickets]([Id]),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

@@ -6,6 +6,7 @@ CREATE TABLE [dbo].[AccountHeads] (
     [IsSystemAccount] BIT NOT NULL DEFAULT 0,
     [TenantId] INT NOT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

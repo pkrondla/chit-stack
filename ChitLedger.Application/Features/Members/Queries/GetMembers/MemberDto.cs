@@ -8,16 +8,28 @@ public class MemberDto
     public int Id { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string? PanNumber { get; set; }
+    public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
+    public string? AadhaarDocumentUrl { get; set; }
     public int TicketCount { get; set; }
+    public DateTime JoinedDate { get; set; }
+    public List<MemberTicketDto> Tickets { get; set; } = new();
 
     private class Mapping : Profile
     {
         public Mapping()
         {
             CreateMap<Member, MemberDto>()
-                .ForMember(d => d.TicketCount, opt => opt.MapFrom(s => s.Tickets.Count));
+                .ForMember(d => d.TicketCount, opt => opt.MapFrom(s => s.Tickets.Count))
+                .ForMember(d => d.JoinedDate, opt => opt.MapFrom(s => s.CreatedAt))
+                .ForMember(d => d.Tickets, opt => opt.MapFrom(s => s.Tickets));
+
+            CreateMap<Ticket, MemberTicketDto>()
+                .ForMember(d => d.GroupName, opt => opt.MapFrom(s => s.ChitGroup.GroupName))
+                .ForMember(d => d.ChitValue, opt => opt.MapFrom(s => s.ChitGroup.ChitValue))
+                .ForMember(d => d.TotalMonths, opt => opt.MapFrom(s => s.ChitGroup.DurationMonths));
         }
     }
 }

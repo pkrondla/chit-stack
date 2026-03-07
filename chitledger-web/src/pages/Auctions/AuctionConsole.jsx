@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../api/axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Typography, Button, Form, InputNumber, Tag, message, Spin, Divider } from 'antd';
 import { Calculator, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
+import api from '../../api/axios';
+import { downloadFile } from '../../utils/downloadHelper';
+
+const { Title, Text } = Typography;
 
 const AuctionConsole = () => {
     const { auctionId } = useParams();
     const navigate = useNavigate();
-    const [auction, setAuction] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const [form] = Form.useForm();
 
-    // Form State
-    const [bidAmount, setBidAmount] = useState('');
-    const [winningTicketId, setWinningTicketId] = useState('');
-    const [tickets, setTickets] = useState([]); // List of eligible tickets for dropdown
-
-    // Calculated Values
     const [calculations, setCalculations] = useState({
         commission: 0,
         distributable: 0,
@@ -22,59 +21,46 @@ const AuctionConsole = () => {
         payable: 0
     });
 
-    useEffect(() => {
-        fetchAuctionDetails();
-    }, [auctionId]);
-
-    useEffect(() => {
-        if (auction && bidAmount) {
-            calculate();
-        }
-    }, [bidAmount, auction]);
-
-    const fetchAuctionDetails = async () => {
-        try {
-            // Optimization: In a real app, we might need a specific GetAuctionById endpoint.
-            // For now, filtering from list or assuming we modify backend later.
-            // Let's assume we fetch list and find it, OR add GetById.
-            // Quick hack for prototype: Fetch list.
+    const { data: auction, isLoading } = useQuery({
+        queryKey: ['auction', auctionId],
+        queryFn: async () => {
             const response = await api.get('/Auctions');
-            const found = response.data.find(a => a.id === parseInt(auctionId));
-
-            if (found) {
-                setAuction(found);
-                // Also fetch tickets for this group to populate winner dropdown
-                // Assuming we have an endpoint or filter.
-                // For MVP, letting user enter Ticket Number manually or fetching Group Tickets.
-                // Let's fetch Group details for tickets.
-                // const groupRes = await api.get(`/ChitGroups/${found.chitGroupId}`); // Not implemented yet
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
+            return response.data.find(a => a.id === parseInt(auctionId));
         }
-    };
+    });
 
-    const calculate = () => {
-        // Logic should match Backend: 
-        // ForemanCommission = 5% of Chit Value (Fixed? or on Bid? Usually on Chit Value)
-        // Actually, logic varies. Let's assume:
-        // ForemanCommission = 5% of Chit Value.
-        // Auction Discount = Bid Amount.
-        // Distributable = Bid Amount - Foreman Commission.
-        // Dividend = Distributable / TotalTickets (e.g. 50).
-        // Payable = ChitValue - BidAmount.
+    const closeMutation = useMutation({
+        mutationFn: async (payload) => {
+            const res = await api.post('/Auctions/close', payload);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success('Auction Closed Successfully!');
+            queryClient.invalidateQueries({ queryKey: ['auctions'] });
+            queryClient.invalidateQueries({ queryKey: ['auction', auctionId] });
+            navigate('/auctions');
+        },
+        onError: () => {
+            message.error('Failed to close auction');
+        }
+    });
 
-        // Wait, standard logic:
-        // Winner takes: (ChitValue - BidAmount).
-        // BidAmount is the "Discount".
-        // Commission = 5% of ChitValue.
-        // Distributable Dividend = BidAmount - Commission.
-        // Dividend per member = Distributable / TotalMembers.
+    const bidMutation = useMutation({
+        mutationFn: async (payload) => {
+            const res = await api.post('/Auctions/proxy-bid', payload);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success("Bid Placed!");
+            queryClient.invalidateQueries({ queryKey: ['auction', auctionId] });
+        },
+        onError: (error) => {
+            message.error("Bid Failed: " + (error.response?.data?.error || error.message));
+        }
+    });
 
-        // Use default if missing
-        const chitValue = 100000; // Placeholder, need from Group data
+    const calculate = (bidAmount) => {
+        const chitValue = 100000; // Placeholder
         const totalMembers = 20; // Placeholder
         const commissionRate = 0.05;
 
@@ -87,174 +73,199 @@ const AuctionConsole = () => {
         setCalculations({ commission, distributable, dividend, payable });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/Auctions/close', {
-                auctionId: parseInt(auctionId),
-                winningTicketId: 1, // Placeholder, need to resolve from Ticket Number input
-                winningBidAmount: parseFloat(bidAmount)
-            });
-            alert('Auction Closed Successfully!');
-            navigate('/auctions');
-        } catch (error) {
-            alert('Failed to close auction');
+    useEffect(() => {
+        if (auction) {
+            calculate(form.getFieldValue('bidAmount'));
+        }
+    }, [auction, form]);
+
+    const handleValuesChange = (changedValues, allValues) => {
+        if ('bidAmount' in changedValues) {
+            calculate(allValues.bidAmount);
         }
     };
 
-    if (loading || !auction) return <div>Loading...</div>;
+    const handleProxyBid = () => {
+        form.validateFields(['winningTicketId', 'bidAmount']).then(values => {
+            bidMutation.mutate({
+                auctionId: parseInt(auctionId),
+                ticketId: parseInt(values.winningTicketId),
+                bidAmount: parseFloat(values.bidAmount)
+            });
+        });
+    };
+
+    const handleCloseAuction = () => {
+        form.validateFields(['winningTicketId', 'bidAmount']).then(values => {
+            closeMutation.mutate({
+                auctionId: parseInt(auctionId),
+                winningTicketId: parseInt(values.winningTicketId) || 1, // Fallback placeholder
+                winningBidAmount: parseFloat(values.bidAmount) || (auction ? auction.winningBidAmount : 0)
+            });
+        });
+    };
+
+    if (isLoading) return <div className="flex justify-center p-12"><Spin size="large" /></div>;
+    if (!auction) return <div className="text-center p-12 text-slate-500">Auction not found</div>;
 
     const isClosed = auction.auctionStatus === 'Closed';
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <button onClick={() => navigate('/auctions')} style={{ display: 'flex', alignItems: 'center', border: 'none', background: 'none', marginBottom: '1rem', cursor: 'pointer', color: '#64748b' }}>
-                <ArrowLeft size={18} style={{ marginRight: '0.5rem' }} /> Back to Board
-            </button>
+        <div className="max-w-5xl mx-auto pb-12">
+            <Button
+                type="text"
+                icon={<ArrowLeft size={18} />}
+                onClick={() => navigate('/auctions')}
+                className="mb-4 text-slate-500 hover:text-slate-800 flex items-center"
+            >
+                Back to Board
+            </Button>
 
-            <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '2rem' }}>
+            <Card className="shadow-md border-0 rounded-xl" styles={{ body: { padding: '2rem' } }}>
+                <div className="flex justify-between items-start mb-8">
                     <div>
-                        <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: '#0f172a' }}>{auction.groupName}</h1>
-                        <div style={{ color: '#64748b' }}>Installment #{auction.installmentNumber} • {new Date(auction.auctionDate).toLocaleDateString()}</div>
+                        <Title level={2} className="!mb-1 text-slate-800">{auction.groupName}</Title>
+                        <Text className="text-slate-500 text-base">
+                            Installment #{auction.installmentNumber} • {new Date(auction.auctionDate).toLocaleDateString()}
+                        </Text>
                     </div>
-                    <span style={{
-                        padding: '0.5rem 1rem', borderRadius: '999px', fontWeight: 'bold',
-                        backgroundColor: isClosed ? '#dcfce7' : '#fef9c3',
-                        color: isClosed ? '#166534' : '#854d0e'
-                    }}>
+                    <Tag
+                        color={isClosed ? 'success' : 'warning'}
+                        className="px-4 py-2 rounded-full font-bold text-sm m-0"
+                    >
                         {auction.auctionStatus}
-                    </span>
+                    </Tag>
                 </div>
 
                 {isClosed ? (
-                    <div style={{ textAlign: 'center', padding: '2rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                        <CheckCircle size={48} color="#166534" style={{ marginBottom: '1rem' }} />
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Auction Completed</h3>
-                        <p>Winning Bid: ₹{auction.winningBidAmount.toLocaleString()}</p>
-                        <button
-                            onClick={() => window.open(`https://localhost:7191/api/forms/minutes/${auction.id}`, '_blank')}
-                            style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                    <div className="text-center p-12 bg-slate-50 rounded-xl">
+                        <CheckCircle size={56} className="text-green-700 mx-auto mb-4" />
+                        <Title level={3} className="!mb-2">Auction Completed</Title>
+                        <Text className="text-lg block mb-6">Winning Bid: ₹{auction.winningBidAmount?.toLocaleString()}</Text>
+                        <Button
+                            icon={<FileText size={18} />}
+                            size="large"
+                            onClick={() => downloadFile(`/forms/minutes/${auction.id}`, `Form_VIII_Auction_${auction.id}.pdf`)}
                         >
-                            <FileText size={18} style={{ marginRight: '0.5rem' }} />
                             Download Minutes (Form VIII)
-                        </button>
+                        </Button>
                     </div>
                 ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         {/* Input Section */}
                         <div>
-                            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', display: 'flex', alignItems: 'center' }}>
-                                <Calculator size={20} style={{ marginRight: '0.5rem' }} /> Proxy Bidding & Closing
-                            </h3>
+                            <Title level={4} className="flex items-center gap-2 !mb-6 text-slate-700">
+                                <Calculator size={22} /> Proxy Bidding & Closing
+                            </Title>
 
-                            {/* Proxy Bid Form */}
-                            <div style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                <h4 style={{ marginBottom: '1rem', fontWeight: 'bold' }}>Place Proxy Bid</h4>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Ticket #</label>
-                                    <input
-                                        type="number"
-                                        value={winningTicketId} // reusing state variable
-                                        onChange={(e) => setWinningTicketId(e.target.value)}
-                                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                                        placeholder="Enter Ticket Number"
-                                    />
-                                </div>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Bid Amount (Discount)</label>
-                                    <input
-                                        type="number"
-                                        value={bidAmount}
-                                        onChange={(e) => setBidAmount(e.target.value)}
-                                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            await api.post('/Auctions/proxy-bid', {
-                                                auctionId: parseInt(auctionId),
-                                                ticketId: parseInt(winningTicketId), // In real app, map Ticket# to ID
-                                                bidAmount: parseFloat(bidAmount)
-                                            });
-                                            alert("Bid Placed!");
-                                            fetchAuctionDetails(); // Refresh to see update
-                                        } catch (e) { alert("Bid Failed: " + (e.response?.data?.error || e.message)); }
-                                    }}
-                                    disabled={!bidAmount || !winningTicketId}
-                                    style={{ width: '100%', padding: '0.75rem', backgroundColor: 'white', color: '#0f172a', border: '1px solid #0f172a', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+                            <Card className="bg-slate-50 border-slate-200 mb-8 shadow-none" styles={{ body: { padding: '1.5rem' } }}>
+                                <Title level={5} className="!mb-4">Place Proxy Bid</Title>
+                                <Form
+                                    form={form}
+                                    layout="vertical"
+                                    onValuesChange={handleValuesChange}
                                 >
-                                    Place Proxy Bid
-                                </button>
-                            </div>
+                                    <Form.Item
+                                        name="winningTicketId"
+                                        label="Ticket #"
+                                        rules={[{ required: true, message: 'Required' }]}
+                                    >
+                                        <InputNumber className="w-full" size="large" placeholder="Enter Ticket Number" />
+                                    </Form.Item>
+                                    <Form.Item
+                                        name="bidAmount"
+                                        label="Bid Amount (Discount)"
+                                        rules={[{ required: true, message: 'Required' }]}
+                                    >
+                                        <InputNumber
+                                            className="w-full"
+                                            size="large"
+                                            placeholder="0.00"
+                                            formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                            parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                        />
+                                    </Form.Item>
+                                    <Button
+                                        block
+                                        size="large"
+                                        onClick={handleProxyBid}
+                                        loading={bidMutation.isPending}
+                                        className="font-semibold text-slate-800 border-slate-800"
+                                    >
+                                        Place Proxy Bid
+                                    </Button>
+                                </Form>
+                            </Card>
 
-                            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-                                <h4 style={{ marginBottom: '1rem', fontWeight: 'bold', color: '#b91c1c' }}>Close Auction</h4>
-                                <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' }}>
+                            <div>
+                                <Title level={5} className="!mb-2 text-red-700">Close Auction</Title>
+                                <Text className="text-slate-500 block mb-6">
                                     Finalizes the auction with the <strong>Current Winner</strong>. Ensure all bids are in.
-                                </p>
-                                <button
-                                    onClick={handleSubmit}
-                                    style={{
-                                        width: '100%', padding: '1rem', backgroundColor: '#b91c1c', color: 'white',
-                                        border: 'none', borderRadius: '4px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer'
-                                    }}
+                                </Text>
+                                <Button
+                                    type="primary"
+                                    danger
+                                    block
+                                    size="large"
+                                    onClick={handleCloseAuction}
+                                    loading={closeMutation.isPending}
+                                    className="font-bold h-12 text-lg"
                                 >
                                     Confirm & Close Auction
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
                         {/* Results Section */}
-                        <div style={{ backgroundColor: '#f1f5f9', padding: '1.5rem', borderRadius: '8px' }}>
-                            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem', color: '#334155' }}>Current Status</h3>
+                        <div className="bg-slate-100 p-8 rounded-xl border border-slate-200">
+                            <Title level={4} className="!mb-6 text-slate-700">Current Status</Title>
 
-                            <div style={{ marginBottom: '2rem', textAlign: 'center', padding: '1rem', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Current Highest Bid</div>
-                                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#0f172a', lineHeight: 1 }}>
+                            <div className="text-center p-6 bg-white rounded-xl shadow-sm mb-8">
+                                <Text className="text-slate-500 block mb-2">Current Highest Bid</Text>
+                                <div className="text-5xl font-bold text-slate-800 mb-2">
                                     ₹{auction.winningBidAmount?.toLocaleString() || '0'}
                                 </div>
-                                <div style={{ fontSize: '0.875rem', color: '#166534', marginTop: '0.5rem' }}>
+                                <Text className="text-green-700 font-semibold">
                                     Held by Ticket #{auction.winningTicketId || '-'}
-                                </div>
+                                </Text>
                             </div>
 
-                            <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>Projected Settlement</h4>
+                            <Title level={5} className="!mb-4">Projected Settlement</Title>
 
-                            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>
-                                <span style={{ color: '#64748b' }}>Bid Amount (Discount)</span>
-                                <span>₹{(parseFloat(bidAmount) || auction.winningBidAmount || 0).toLocaleString()}</span>
+                            <div className="flex justify-between py-2 border-b border-slate-200">
+                                <Text className="text-slate-500">Bid Amount (Discount)</Text>
+                                <Text strong>₹{(form.getFieldValue('bidAmount') || auction.winningBidAmount || 0).toLocaleString()}</Text>
                             </div>
 
-                            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>
-                                <span style={{ color: '#64748b' }}>Foreman Commission (5%)</span>
-                                <span>₹{calculations.commission.toLocaleString()}</span>
+                            <div className="flex justify-between py-2 border-b border-slate-200">
+                                <Text className="text-slate-500">Foreman Commission (5%)</Text>
+                                <Text strong>₹{calculations.commission.toLocaleString()}</Text>
                             </div>
 
-                            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>
-                                <span style={{ color: '#64748b' }}>Distributable Dividend</span>
-                                <span style={{ fontWeight: 'bold', color: '#166534' }}>₹{calculations.distributable.toLocaleString()}</span>
+                            <div className="flex justify-between py-2 border-b border-slate-200">
+                                <Text className="text-slate-500">Distributable Dividend</Text>
+                                <Text strong className="text-green-700">₹{calculations.distributable.toLocaleString()}</Text>
                             </div>
 
-                            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: '#64748b' }}>Dividend / Member</span>
-                                <span style={{ fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                            <div className="flex justify-between py-4">
+                                <Text className="text-slate-500">Dividend / Member</Text>
+                                <Tag color="success" className="m-0 text-base py-1 px-3 font-bold rounded-lg">
                                     ₹{calculations.dividend.toLocaleString()}
-                                </span>
+                                </Tag>
                             </div>
 
-                            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Net Amount Payable to Winner</div>
-                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0f172a' }}>
+                            <Divider className="my-4 border-slate-300" />
+
+                            <div className="text-center mt-6">
+                                <Text className="text-slate-500 block mb-2">Net Amount Payable to Winner</Text>
+                                <div className="text-4xl font-bold text-slate-800">
                                     ₹{calculations.payable.toLocaleString()}
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
-            </div>
+            </Card>
         </div>
     );
 };

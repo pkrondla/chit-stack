@@ -18,7 +18,7 @@ public class TenantService : ITenantService
         get
         {
             var context = _httpContextAccessor.HttpContext;
-            if (context == null) return 0;
+            if (context == null) return 1; // Default to 1 for local testing
 
             var tenantClaim = context.User.FindFirst("TenantId");
             if (tenantClaim != null && int.TryParse(tenantClaim.Value, out int tenantId))
@@ -35,7 +35,7 @@ public class TenantService : ITenantService
                 }
             }
 
-            return 0; // Or throw exception
+            return 1; // Default to 1 for local testing instead of 0
         }
     }
 

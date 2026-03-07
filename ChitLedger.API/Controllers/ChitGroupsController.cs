@@ -1,6 +1,7 @@
 using ChitLedger.Application.Features.Groups.Commands.LaunchGroup;
 using ChitLedger.Application.Features.ChitGroups.Commands.CreateChitGroup;
 using ChitLedger.Application.Features.ChitGroups.Queries.GetChitGroups;
+using ChitLedger.Application.Features.Tickets.Queries.GetTickets;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -43,5 +44,11 @@ public class ChitGroupsController : ControllerBase
         var result = await _mediator.Send(new LaunchGroupCommand { GroupId = id });
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
+    }
+
+    [HttpGet("{id}/tickets")]
+    public async Task<ActionResult<Result<List<TicketDto>>>> GetTickets(int id)
+    {
+        return Ok(await _mediator.Send(new GetTicketsQuery { ChitGroupId = id }));
     }
 }

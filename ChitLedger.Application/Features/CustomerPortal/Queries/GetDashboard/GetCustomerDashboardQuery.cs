@@ -11,7 +11,7 @@ public class CustomerDashboardDto
     public decimal TotalLiability { get; set; } // Pending Demands
     public decimal TotalSavings { get; set; } // Total Dividends earned
     public List<MyTicketDto> MyTickets { get; set; } = new();
-    public List<AuctionDto> UpcomingAuctions { get; set; } = new();
+    public List<DashboardAuctionDto> UpcomingAuctions { get; set; } = new();
 }
 
 public class MyTicketDto
@@ -23,7 +23,7 @@ public class MyTicketDto
     public bool IsPrized { get; set; }
 }
 
-public class AuctionDto
+public class DashboardAuctionDto
 {
     public int AuctionId { get; set; }
     public string GroupName { get; set; } = string.Empty;
@@ -90,7 +90,7 @@ public class GetCustomerDashboardHandler : IRequestHandler<GetCustomerDashboardQ
             .Take(5)
             .ToListAsync(cancellationToken);
 
-        dashboard.UpcomingAuctions = auctions.Select(a => new AuctionDto
+        dashboard.UpcomingAuctions = auctions.Select(a => new DashboardAuctionDto
         {
             AuctionId = a.Id,
             GroupName = a.ChitGroup.GroupName,

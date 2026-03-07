@@ -1,74 +1,117 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Typography, Button, Form, Input, InputNumber, DatePicker, message } from 'antd';
 import api from '../../api/axios';
+
+const { Title } = Typography;
 
 const CreateGroup = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        groupName: '',
-        chitValue: '',
-        durationMonths: 20,
-        commissionPercentage: 5,
-        startDate: ''
+    const queryClient = useQueryClient();
+    const [form] = Form.useForm();
+
+    const createMutation = useMutation({
+        mutationFn: async (payload) => {
+            const res = await api.post('/ChitGroups', payload);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success('Chit Group Created Successfully!');
+            queryClient.invalidateQueries({ queryKey: ['groups'] });
+            navigate('/groups');
+        },
+        onError: (error) => {
+            message.error('Failed to create group: ' + (error.response?.data?.error || error.message));
+        }
     });
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/ChitGroups', {
-                groupName: formData.groupName,
-                chitValue: parseFloat(formData.chitValue),
-                durationMonths: parseInt(formData.durationMonths),
-                commissionPercentage: parseFloat(formData.commissionPercentage),
-                startDate: formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString()
-            });
-            navigate('/groups');
-        } catch (error) {
-            alert('Failed to create group');
-        }
+    const handleFinish = (values) => {
+        createMutation.mutate({
+            groupName: values.groupName,
+            chitValue: parseFloat(values.chitValue),
+            durationMonths: parseInt(values.durationMonths),
+            commissionPercentage: parseFloat(values.commissionPercentage),
+            startDate: values.startDate ? values.startDate.toISOString() : new Date().toISOString()
+        });
     };
 
     return (
-        <div style={{ maxWidth: '600px', backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>Create New Chit Group</h2>
+        <div className="max-w-3xl mx-auto pb-12">
+            <Title level={2} className="!mb-8 text-slate-800">Create New Chit Group</Title>
 
-            <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Group Name</label>
-                    <input name="groupName" onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                </div>
+            <Card className="shadow-sm border-0 rounded-xl" styles={{ body: { padding: '2rem' } }}>
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleFinish}
+                    initialValues={{ commissionPercentage: 5, durationMonths: 20 }}
+                >
+                    <Form.Item
+                        name="groupName"
+                        label={<span className="font-semibold text-slate-700">Group Name</span>}
+                        rules={[{ required: true, message: 'Please enter a group name' }]}
+                    >
+                        <Input size="large" placeholder="e.g. Gold Saver 2026" className="w-full" />
+                    </Form.Item>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Chit Value (₹)</label>
-                        <input name="chitValue" type="number" onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Duration (Months)</label>
-                        <input name="durationMonths" type="number" onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                    </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Form.Item
+                            name="chitValue"
+                            label={<span className="font-semibold text-slate-700">Chit Value (₹)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber
+                                size="large"
+                                className="w-full"
+                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                placeholder="100000"
+                            />
+                        </Form.Item>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Commission (%)</label>
-                        <input name="commissionPercentage" type="number" defaultValue="5" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                        <Form.Item
+                            name="durationMonths"
+                            label={<span className="font-semibold text-slate-700">Duration (Months)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber size="large" className="w-full" placeholder="20" min={1} />
+                        </Form.Item>
                     </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Start Date</label>
-                        <input name="startDate" type="date" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                    </div>
-                </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button type="button" onClick={() => navigate('/groups')} style={{ padding: '0.5rem 1rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancel</button>
-                    <button type="submit" style={{ padding: '0.5rem 1rem', border: 'none', backgroundColor: '#0f172a', color: 'white', borderRadius: '4px', cursor: 'pointer' }}>Create Group</button>
-                </div>
-            </form>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Form.Item
+                            name="commissionPercentage"
+                            label={<span className="font-semibold text-slate-700">Commission (%)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber size="large" className="w-full" placeholder="5.0" step={0.1} />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="startDate"
+                            label={<span className="font-semibold text-slate-700">Start Date</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <DatePicker size="large" className="w-full" />
+                        </Form.Item>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                        <Button size="large" onClick={() => navigate('/groups')} className="font-semibold">
+                            Cancel
+                        </Button>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            size="large"
+                            className="bg-slate-900 font-bold px-8 shadow-sm"
+                            loading={createMutation.isPending}
+                        >
+                            Create Group
+                        </Button>
+                    </div>
+                </Form>
+            </Card>
         </div>
     );
 };

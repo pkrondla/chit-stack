@@ -1,286 +1,280 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, Typography, Tabs, DatePicker, Button, Select, Table, Space, message, Spin } from 'antd';
+import { FileText, Download } from 'lucide-react';
+import dayjs from 'dayjs';
 import api from '../../api/axios';
-import { FileText, Calendar, Filter } from 'lucide-react';
+
+const { Title } = Typography;
+const { RangePicker } = DatePicker;
 
 const FinancialReports = () => {
     const [activeTab, setActiveTab] = useState('DayBook');
-    const [loading, setLoading] = useState(false);
 
     // Day Book State
-    const [dayBookDate, setDayBookDate] = useState(new Date().toISOString().split('T')[0]);
-    const [dayBookEntries, setDayBookEntries] = useState([]);
+    const [dayBookDate, setDayBookDate] = useState(dayjs());
+    const [dayBookTrigger, setDayBookTrigger] = useState(0);
 
     // Ledger State
-    const [accounts, setAccounts] = useState([]);
-    const [selectedAccount, setSelectedAccount] = useState('');
-    const [ledgerStartDate, setLedgerStartDate] = useState(new Date(new Date().setDate(1)).toISOString().split('T')[0]); // 1st of month
-    const [ledgerEndDate, setLedgerEndDate] = useState(new Date().toISOString().split('T')[0]);
-    const [ledgerEntries, setLedgerEntries] = useState([]);
-
-    // Fetch Accounts on Load
-    useEffect(() => {
-        const fetchAccounts = async () => {
-            try {
-                const res = await api.get('/Reporting/accounts');
-                setAccounts(res.data);
-            } catch (e) {
-                console.error("Failed to load accounts", e);
-            }
-        };
-        fetchAccounts();
-    }, []);
-
-    const fetchDayBook = async () => {
-        setLoading(true);
-        try {
-            const res = await api.get(`/Reporting/daybook?date=${dayBookDate}`);
-            setDayBookEntries(res.data);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchLedger = async () => {
-        if (!selectedAccount) return;
-        setLoading(true);
-        try {
-            const res = await api.get(`/Reporting/ledger/${selectedAccount}?startDate=${ledgerStartDate}&endDate=${ledgerEndDate}`);
-            setLedgerEntries(res.data);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [selectedAccount, setSelectedAccount] = useState(null);
+    const [ledgerDates, setLedgerDates] = useState([dayjs().startOf('month'), dayjs()]);
+    const [ledgerTrigger, setLedgerTrigger] = useState(0);
 
     // GSTR State
-    const [gstrStart, setGstrStart] = useState(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
-    const [gstrEnd, setGstrEnd] = useState(new Date().toISOString().split('T')[0]);
+    const [gstrDates, setGstrDates] = useState([dayjs().startOf('month'), dayjs()]);
 
-    const downloadGstr1 = () => {
-        // Trigger download via window.open or fetch blob
-        // Using window.open is simplest for GET request download
-        // But we need Authentication header if API is protected. 
-        // Window.open won't send Bearer.
-        // We must use axios with blob response type.
+    const { data: accounts = [] } = useQuery({
+        queryKey: ['accounts'],
+        queryFn: async () => {
+            const res = await api.get('/Reporting/accounts');
+            return res.data.data || res.data;
+        }
+    });
 
-        api.get(`/Finance/gstr1?from=${gstrStart}&to=${gstrEnd}`, { responseType: 'blob' })
-            .then((response) => {
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `GSTR1_${gstrStart}_${gstrEnd}.csv`);
-                document.body.appendChild(link);
-                link.click();
-            })
-            .catch(e => alert("GSTR Download Failed: " + e.message));
+    const { data: dayBookEntries = [], isFetching: isLoadingDayBook } = useQuery({
+        queryKey: ['daybook', dayBookDate.format('YYYY-MM-DD'), dayBookTrigger],
+        queryFn: async () => {
+            const res = await api.get(`/Reporting/daybook?date=${dayBookDate.format('YYYY-MM-DD')}`);
+            return res.data.data || res.data;
+        },
+        enabled: activeTab === 'DayBook'
+    });
+
+    const { data: ledgerEntries = [], isFetching: isLoadingLedger } = useQuery({
+        queryKey: ['ledger', selectedAccount, ledgerDates[0]?.format('YYYY-MM-DD'), ledgerDates[1]?.format('YYYY-MM-DD'), ledgerTrigger],
+        queryFn: async () => {
+            if (!selectedAccount) return [];
+            const res = await api.get(`/Reporting/ledger/${selectedAccount}?startDate=${ledgerDates[0].format('YYYY-MM-DD')}&endDate=${ledgerDates[1].format('YYYY-MM-DD')}`);
+            return res.data.data || res.data;
+        },
+        enabled: activeTab === 'Ledger' && !!selectedAccount && ledgerTrigger > 0
+    });
+
+    const downloadGstr1 = async () => {
+        if (!gstrDates || gstrDates.length !== 2) {
+            message.warning("Please select a valid date range");
+            return;
+        }
+        try {
+            const start = gstrDates[0].format('YYYY-MM-DD');
+            const end = gstrDates[1].format('YYYY-MM-DD');
+            const response = await api.get(`/Finance/gstr1?from=${start}&to=${end}`, { responseType: 'blob' });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `GSTR1_${start}_${end}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            message.success("GSTR-1 Data Exported Successfully");
+        } catch (e) {
+            message.error("GSTR Download Failed: " + e.message);
+        }
     };
 
-    return (
-        <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>Financial Reports</h2>
+    const dayBookColumns = [
+        { title: 'Voucher No', dataIndex: 'voucherNumber', key: 'voucherNumber' },
+        { title: 'Time', dataIndex: 'transactionDate', key: 'time', render: (date) => new Date(date).toLocaleTimeString() },
+        {
+            title: 'Particulars',
+            key: 'particulars',
+            render: (_, record) => (
+                <div>
+                    <div className="font-bold text-slate-800">{record.accountName}</div>
+                    <div className="text-xs text-slate-500">{record.narration}</div>
+                </div>
+            )
+        },
+        {
+            title: 'Debit',
+            dataIndex: 'debitAmount',
+            key: 'debitAmount',
+            align: 'right',
+            render: (val) => val > 0 ? <span className="text-red-600 font-semibold">{val.toLocaleString()}</span> : '-'
+        },
+        {
+            title: 'Credit',
+            dataIndex: 'creditAmount',
+            key: 'creditAmount',
+            align: 'right',
+            render: (val) => val > 0 ? <span className="text-green-700 font-semibold">{val.toLocaleString()}</span> : '-'
+        }
+    ];
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid #e2e8f0' }}>
-                <button
-                    onClick={() => setActiveTab('DayBook')}
-                    style={{
-                        padding: '0.75rem 1.5rem', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold',
-                        color: activeTab === 'DayBook' ? '#0f172a' : '#64748b',
-                        borderBottom: activeTab === 'DayBook' ? '2px solid #0f172a' : 'none'
-                    }}
-                >
-                    Day Book
-                </button>
-                <button
-                    onClick={() => setActiveTab('Ledger')}
-                    style={{
-                        padding: '0.75rem 1.5rem', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold',
-                        color: activeTab === 'Ledger' ? '#0f172a' : '#64748b',
-                        borderBottom: activeTab === 'Ledger' ? '2px solid #0f172a' : 'none'
-                    }}
-                >
-                    General Ledger
-                </button>
-                <button
-                    onClick={() => setActiveTab('GSTR')}
-                    style={{
-                        padding: '0.75rem 1.5rem', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold',
-                        color: activeTab === 'GSTR' ? '#0f172a' : '#64748b',
-                        borderBottom: activeTab === 'GSTR' ? '2px solid #0f172a' : 'none'
-                    }}
-                >
-                    GSTR-1
-                </button>
-            </div>
+    const ledgerColumns = [
+        { title: 'Date', dataIndex: 'transactionDate', key: 'date', render: (date) => new Date(date).toLocaleDateString() },
+        { title: 'Particulars (Narration)', dataIndex: 'narration', key: 'narration', render: (text) => <span className="text-slate-700">{text}</span> },
+        {
+            title: 'Debit',
+            dataIndex: 'debitAmount',
+            key: 'debitAmount',
+            align: 'right',
+            render: (val) => val > 0 ? val.toLocaleString() : '-'
+        },
+        {
+            title: 'Credit',
+            dataIndex: 'creditAmount',
+            key: 'creditAmount',
+            align: 'right',
+            render: (val) => val > 0 ? val.toLocaleString() : '-'
+        },
+        {
+            title: 'Balance',
+            dataIndex: 'runningBalance',
+            key: 'balance',
+            align: 'right',
+            render: (val) => <span className="font-bold text-slate-800">{val.toLocaleString()}</span>
+        }
+    ];
 
-            {/* Existing DayBook... */}
-            {activeTab === 'DayBook' && (
-                <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                    {/* ... Existing DayBook Logic (Keep same logic by using orig file context) ... */}
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', marginBottom: '1.5rem' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Select Date</label>
-                            <input
-                                type="date"
+    const tabItems = [
+        {
+            key: 'DayBook',
+            label: <span className="text-lg font-semibold px-4">Day Book</span>,
+            children: (
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                    <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <div className="flex-1">
+                            <div className="text-sm font-semibold text-slate-600 mb-2">Select Date</div>
+                            <DatePicker
+                                size="large"
                                 value={dayBookDate}
-                                onChange={(e) => setDayBookDate(e.target.value)}
-                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                                onChange={(date) => setDayBookDate(date)}
+                                className="w-full md:w-64"
                             />
                         </div>
-                        <button
-                            onClick={fetchDayBook}
-                            style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        <Button
+                            type="primary"
+                            size="large"
+                            onClick={() => setDayBookTrigger(t => t + 1)}
+                            className="bg-slate-900 font-bold px-8"
+                            loading={isLoadingDayBook}
                         >
                             View Report
-                        </button>
+                        </Button>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
-                                <th style={{ padding: '0.75rem' }}>Voucher No</th>
-                                <th style={{ padding: '0.75rem' }}>Time</th>
-                                <th style={{ padding: '0.75rem' }}>Particulars</th>
-                                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Debit</th>
-                                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Credit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {dayBookEntries.length === 0 ? (
-                                <tr><td colSpan="5" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No transactions found for this date.</td></tr>
-                            ) : (
-                                dayBookEntries.map((entry, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '0.75rem' }}>{entry.voucherNumber}</td>
-                                        <td style={{ padding: '0.75rem' }}>{new Date(entry.transactionDate).toLocaleTimeString()}</td>
-                                        <td style={{ padding: '0.75rem' }}>
-                                            <div style={{ fontWeight: 'bold' }}>{entry.accountName}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{entry.narration}</div>
-                                        </td>
-                                        <td style={{ padding: '0.75rem', textAlign: 'right', color: entry.debitAmount > 0 ? '#dc2626' : 'inherit' }}>
-                                            {entry.debitAmount > 0 ? entry.debitAmount.toLocaleString() : '-'}
-                                        </td>
-                                        <td style={{ padding: '0.75rem', textAlign: 'right', color: entry.creditAmount > 0 ? '#166534' : 'inherit' }}>
-                                            {entry.creditAmount > 0 ? entry.creditAmount.toLocaleString() : '-'}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                    <Table
+                        columns={dayBookColumns}
+                        dataSource={dayBookEntries}
+                        rowKey={(r, i) => `${r.voucherNumber}-${i}`}
+                        loading={{ indicator: <Spin />, spinning: isLoadingDayBook }}
+                        pagination={false}
+                        bordered
+                        size="middle"
+                        locale={{ emptyText: 'No transactions found for this date.' }}
+                    />
                 </div>
-            )}
-
-            {activeTab === 'Ledger' && (
-                <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                    {/* ... Keep Existing Ledger Logic ... */}
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Select Account</label>
-                            <select
+            )
+        },
+        {
+            key: 'Ledger',
+            label: <span className="text-lg font-semibold px-4">General Ledger</span>,
+            children: (
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                    <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <div className="flex-[2]">
+                            <div className="text-sm font-semibold text-slate-600 mb-2">Select Account</div>
+                            <Select
+                                size="large"
+                                className="w-full"
+                                placeholder="-- Select Account --"
                                 value={selectedAccount}
-                                onChange={(e) => setSelectedAccount(e.target.value)}
-                                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                                onChange={setSelectedAccount}
+                                showSearch
+                                optionFilterProp="children"
                             >
-                                <option value="">-- Select Account --</option>
                                 {accounts.map(acc => (
-                                    <option key={acc.id} value={acc.id}>{acc.accountName} ({acc.type})</option>
+                                    <Select.Option key={acc.id} value={acc.id}>
+                                        {acc.accountName} <span className="text-slate-400 text-xs ml-1">({acc.type})</span>
+                                    </Select.Option>
                                 ))}
-                            </select>
+                            </Select>
                         </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Start Date</label>
-                            <input
-                                type="date"
-                                value={ledgerStartDate}
-                                onChange={(e) => setLedgerStartDate(e.target.value)}
-                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                        <div className="flex-[2]">
+                            <div className="text-sm font-semibold text-slate-600 mb-2">Date Range</div>
+                            <RangePicker
+                                size="large"
+                                className="w-full"
+                                value={ledgerDates}
+                                onChange={setLedgerDates}
                             />
                         </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Date</label>
-                            <input
-                                type="date"
-                                value={ledgerEndDate}
-                                onChange={(e) => setLedgerEndDate(e.target.value)}
-                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                            />
-                        </div>
-                        <button
-                            onClick={fetchLedger}
-                            disabled={!selectedAccount}
-                            style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', opacity: !selectedAccount ? 0.5 : 1 }}
+                        <Button
+                            type="primary"
+                            size="large"
+                            onClick={() => setLedgerTrigger(t => t + 1)}
+                            disabled={!selectedAccount || !ledgerDates}
+                            loading={isLoadingLedger}
+                            className="bg-slate-900 font-bold px-8 flex-1 md:flex-none"
                         >
                             Generate Ledger
-                        </button>
+                        </Button>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
-                                <th style={{ padding: '0.75rem' }}>Date</th>
-                                <th style={{ padding: '0.75rem' }}>Particulars (Narration)</th>
-                                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Debit</th>
-                                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Credit</th>
-                                <th style={{ padding: '0.75rem', textAlign: 'right' }}>Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ledgerEntries.length === 0 ? (
-                                <tr><td colSpan="5" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No records found.</td></tr>
-                            ) : (
-                                ledgerEntries.map((entry, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '0.75rem' }}>{new Date(entry.transactionDate).toLocaleDateString()}</td>
-                                        <td style={{ padding: '0.75rem' }}>{entry.narration}</td>
-                                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>{entry.debitAmount > 0 ? entry.debitAmount.toLocaleString() : '-'}</td>
-                                        <td style={{ padding: '0.75rem', textAlign: 'right' }}>{entry.creditAmount > 0 ? entry.creditAmount.toLocaleString() : '-'}</td>
-                                        <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold' }}>{entry.runningBalance.toLocaleString()}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                    <Table
+                        columns={ledgerColumns}
+                        dataSource={ledgerEntries}
+                        rowKey={(r, i) => i}
+                        loading={{ indicator: <Spin />, spinning: isLoadingLedger }}
+                        pagination={false}
+                        bordered
+                        size="middle"
+                        locale={{ emptyText: 'No records found for the selected criteria.' }}
+                    />
                 </div>
-            )}
-
-            {activeTab === 'GSTR' && (
-                <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ marginBottom: '1rem', fontWeight: 'bold' }}>GSTR-1 Export (B2C)</h3>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'end', marginBottom: '1.5rem' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Start Date</label>
-                            <input
-                                type="date"
-                                value={gstrStart}
-                                onChange={(e) => setGstrStart(e.target.value)}
-                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Date</label>
-                            <input
-                                type="date"
-                                value={gstrEnd}
-                                onChange={(e) => setGstrEnd(e.target.value)}
-                                style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                            />
-                        </div>
-                        <button
-                            onClick={downloadGstr1}
-                            style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '0.5rem', alignItems: 'center' }}
-                        >
-                            <FileText size={18} /> Download CSV
-                        </button>
-                    </div>
-                    <div style={{ color: '#64748b', fontSize: '0.875rem' }}>
+            )
+        },
+        {
+            key: 'GSTR',
+            label: <span className="text-lg font-semibold px-4">GSTR-1</span>,
+            children: (
+                <Card className="border border-slate-200 shadow-sm" styles={{ body: { padding: '2rem' } }}>
+                    <Title level={3} className="!mb-2 text-slate-800">GSTR-1 Export (B2C)</Title>
+                    <div className="text-slate-500 mb-8 border-b border-slate-100 pb-4">
                         Exports Commission & Fee entries in standard GSTR-1 CSV format.
                     </div>
-                </div>
-            )}
+
+                    <div className="flex flex-col md:flex-row gap-6 items-end bg-slate-50 p-6 rounded-xl border border-slate-100">
+                        <div className="flex-1">
+                            <div className="text-sm font-semibold text-slate-600 mb-2">Select Filing Period</div>
+                            <RangePicker
+                                size="large"
+                                className="w-full"
+                                value={gstrDates}
+                                onChange={setGstrDates}
+                            />
+                        </div>
+                        <Button
+                            type="primary"
+                            size="large"
+                            icon={<Download size={18} />}
+                            onClick={downloadGstr1}
+                            className="bg-indigo-600 hover:bg-indigo-700 font-bold px-8 h-10 shadow-sm"
+                        >
+                            Download CSV
+                        </Button>
+                    </div>
+                </Card>
+            )
+        }
+    ];
+
+    return (
+        <div className="max-w-7xl mx-auto pb-12">
+            <Title level={2} className="!mb-8 text-slate-800 flex items-center gap-3">
+                <FileText size={32} className="text-slate-600" /> Financial Reports
+            </Title>
+
+            <Tabs
+                activeKey={activeTab}
+                onChange={setActiveTab}
+                items={tabItems}
+                className="custom-tabs"
+            />
         </div>
     );
 };

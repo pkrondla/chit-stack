@@ -1,137 +1,149 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Play } from 'lucide-react';
-import api from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Typography, Button, Tag, Space, Spin, message, Divider, Modal } from 'antd';
+import { Plus, Users, Play, FileText, Gavel } from 'lucide-react';
+import api from '../../api/axios';
+import { downloadFile } from '../../utils/downloadHelper';
+
+const { Title, Text } = Typography;
 
 const Groups = () => {
-    const [groups, setGroups] = useState([]);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    const handleLaunch = async (groupId) => {
-        if (!window.confirm("Are you sure? This will Activate the group and schedule the first auction. Ensure all tickets are subscribed.")) return;
-        try {
-            await api.post(`/ChitGroups/${groupId}/launch`);
-            alert("Group Launched Successfully!");
-            fetchGroups();
-        } catch (e) {
-            alert("Launch Failed: " + (e.response?.data?.error || e.message));
+    const { data: groups = [], isLoading } = useQuery({
+        queryKey: ['groups'],
+        queryFn: async () => {
+            const res = await api.get('/ChitGroups');
+            return res.data.data || [];
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchGroups();
-    }, []);
-
-    const fetchGroups = async () => {
-        try {
-            const response = await api.get('/ChitGroups'); // Ensure this matches Backend Route
-            setGroups(response.data);
-        } catch (error) {
-            console.error("Failed to fetch groups", error);
-        } finally {
-            setLoading(false);
+    const launchMutation = useMutation({
+        mutationFn: async (groupId) => {
+            const res = await api.post(`/ChitGroups/${groupId}/launch`);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success("Group Launched Successfully!");
+            queryClient.invalidateQueries({ queryKey: ['groups'] });
+        },
+        onError: (error) => {
+            message.error("Launch Failed: " + (error.response?.data?.error || error.message));
         }
+    });
+
+    const handleLaunch = (groupId, e) => {
+        e.stopPropagation();
+        Modal.confirm({
+            title: 'Launch Group',
+            content: 'Are you sure? This will Activate the group and schedule the first auction. Ensure all tickets are subscribed.',
+            okText: 'Yes, Launch',
+            cancelText: 'Cancel',
+            onOk: () => launchMutation.mutate(groupId)
+        });
     };
 
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Active Chit Groups</h2>
-                <button
+        <div className="max-w-7xl mx-auto pb-12">
+            <div className="flex justify-between items-center mb-8">
+                <Title level={2} className="!mb-0 text-slate-800">Active Chit Groups</Title>
+                <Button
+                    type="primary"
+                    size="large"
+                    icon={<Plus size={18} />}
                     onClick={() => navigate('/groups/new')}
-                    style={{
-                        display: 'flex', alignItems: 'center', backgroundColor: '#0f172a', color: 'white',
-                        padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', cursor: 'pointer'
-                    }}
+                    className="bg-slate-900 shadow-md font-bold"
                 >
-                    <Plus size={18} style={{ marginRight: '0.5rem' }} />
                     New Chit Group
-                </button>
+                </Button>
             </div>
 
-            {loading ? (
-                <div>Loading...</div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {isLoading ? <div className="flex justify-center p-12"><Spin size="large" /></div> : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {groups.map(group => (
-                        <div key={group.id} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{group.groupName}</h3>
-                                <span style={{
-                                    padding: '0.25rem 0.5rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold',
-                                    backgroundColor: group.status === 'Running' ? '#dcfce7' : '#f1f5f9',
-                                    color: group.status === 'Running' ? '#166534' : '#475569'
-                                }}>
-                                    {group.status}
-                                </span>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                        <Card
+                            key={group.id}
+                            className="shadow-sm border-0 rounded-xl hover:shadow-md transition-shadow"
+                            styles={{ body: { padding: '1.5rem' } }}
+                        >
+                            <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <div style={{ color: '#64748b' }}>Chit Value</div>
-                                    <div style={{ fontWeight: '600', fontSize: '1rem' }}>₹{group.chitValue.toLocaleString()}</div>
+                                    <Title level={4} className="!mb-1 text-slate-800">{group.groupName}</Title>
+                                    <Tag
+                                        color={group.status === 'Running' ? 'success' : 'default'}
+                                        className="rounded-full px-3 py-0.5 font-bold m-0"
+                                    >
+                                        {group.status}
+                                    </Tag>
                                 </div>
-                                <div>
-                                    <div style={{ color: '#64748b' }}>Duration</div>
-                                    <div style={{ fontWeight: '600', fontSize: '1rem' }}>{group.durationMonths} Months</div>
-                                </div>
-                                <div>
-                                    <div style={{ color: '#64748b' }}>Monthly Due</div>
-                                    <div style={{ fontWeight: '600' }}>₹{(group.chitValue / group.durationMonths).toLocaleString()}</div>
-                                </div>
-                                <div>
-                                    <div style={{ color: '#64748b' }}>Next Auction</div>
-                                    <div style={{ fontWeight: '600' }}>{new Date().toLocaleDateString()}</div>
+                                <div className="text-right">
+                                    <Text className="text-slate-500 block text-xs uppercase font-bold tracking-wider">Chit Value</Text>
+                                    <Text className="text-green-700 text-xl font-bold font-mono">
+                                        ₹{group.chitValue?.toLocaleString()}
+                                    </Text>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
+                            <div className="grid grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                <div>
+                                    <Text className="text-slate-500 block text-sm">Duration</Text>
+                                    <Text strong className="text-base text-slate-800">{group.durationMonths} Months</Text>
+                                </div>
+                                <div>
+                                    <Text className="text-slate-500 block text-sm">Monthly Due</Text>
+                                    <Text strong className="text-base text-slate-800">₹{(group.chitValue / group.durationMonths)?.toLocaleString()}</Text>
+                                </div>
+                            </div>
+
+                            <Space className="w-full flex" size="small">
+                                <Button
+                                    icon={<Users size={16} />}
                                     onClick={() => navigate(`/groups/${group.id}/tickets`)}
-                                    title="Manage Members & Vacancies"
-                                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}
+                                    className="flex-1 border-slate-300 font-semibold text-slate-700"
                                 >
                                     Members
-                                </button>
-                                <button style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}>
+                                </Button>
+                                <Button
+                                    icon={<Gavel size={16} />}
+                                    onClick={() => navigate(`/auctions`)}
+                                    className="flex-1 border-slate-300 font-semibold text-slate-700"
+                                >
                                     Auctions
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    icon={<Plus size={16} />}
                                     onClick={() => navigate(`/groups/enroll?groupId=${group.id}`)}
                                     title="Enroll Member"
-                                    style={{ padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}
-                                >
-                                    <Plus size={18} />
-                                </button>
-                                <button
-                                    onClick={() => window.open(`https://localhost:7191/api/forms/sanction/${group.id}`, '_blank')}
+                                    className="border-slate-300 text-slate-700"
+                                />
+                                <Button
+                                    icon={<FileText size={16} />}
+                                    onClick={() => downloadFile(`/forms/sanction/${group.id}`, `Form_I_${group.groupName.replace(/\s+/g, '_')}.pdf`)}
                                     title="Download Sanction Form"
-                                    style={{ padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px', backgroundColor: 'white', cursor: 'pointer' }}
-                                >
-                                    <FileText size={18} />
-                                </button>
-                            </div>
+                                    className="border-slate-300 text-slate-700"
+                                />
+                            </Space>
 
                             {group.status === 'Proposed' && (
-                                <button
-                                    onClick={() => handleLaunch(group.id)}
-                                    style={{
-                                        marginTop: '1rem',
-                                        width: '100%', padding: '0.75rem', borderRadius: '4px', cursor: 'pointer',
-                                        backgroundColor: '#0f172a', color: 'white', border: 'none',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}
-                                >
-                                    <Play size={16} style={{ marginRight: '0.5rem' }} /> Launch Group
-                                </button>
+                                <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+                                    <Button
+                                        type="primary"
+                                        block
+                                        icon={<Play size={16} />}
+                                        onClick={(e) => handleLaunch(group.id, e)}
+                                        className="bg-slate-900 font-bold shadow-sm"
+                                        loading={launchMutation.isPending && launchMutation.variables === group.id}
+                                    >
+                                        Launch Group
+                                    </Button>
+                                </div>
                             )}
-                        </div>
+                        </Card>
                     ))}
                 </div>
             )}
         </div>
     );
 };
-
 export default Groups;

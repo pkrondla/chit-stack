@@ -1,86 +1,180 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Typography, Button, Form, Input, Divider, message, Upload } from 'antd';
+import { UserPlus, ShieldCheck, Upload as UploadIcon } from 'lucide-react';
 import api from '../../api/axios';
+
+const { Title, Text } = Typography;
 
 const RegisterMember = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        fullName: '',
-        userId: '', // Should be linked to an existing User if applicable, or created new
-        phoneNumber: '',
-        email: '',
-        aadhaarNumber: '',
-        panNumber: '',
-        address: ''
+    const queryClient = useQueryClient();
+    const [form] = Form.useForm();
+
+    const registerMutation = useMutation({
+        mutationFn: async (payload) => {
+            const res = await api.post('/Members', payload, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success('Member Registered Successfully!');
+            queryClient.invalidateQueries({ queryKey: ['members'] });
+            navigate('/members');
+        },
+        onError: (error) => {
+            message.error('Failed to register member: ' + (error.response?.data?.error || error.message));
+        }
     });
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleFinish = (values) => {
+        const formData = new FormData();
+        Object.keys(values).forEach(key => {
+            if (values[key] !== undefined && values[key] !== null) {
+                if (key === 'panDocument' || key === 'aadhaarDocument') {
+                    if (values[key]?.file?.originFileObj) {
+                        formData.append(key, values[key].file.originFileObj);
+                    } else if (values[key]?.fileList?.[0]?.originFileObj) {
+                        formData.append(key, values[key].fileList[0].originFileObj);
+                    }
+                } else {
+                    formData.append(key, values[key]);
+                }
+            }
+        });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            // Note: The EnrollMember/CreateMember commands in implementation_plan.md differ slightly from this simple CRUD.
-            // We should ensure the backend supports a direct 'Create Member' or we treat this as 'Enrollment'.
-            // For now, assuming standard REST POST to /Members based on previous patterns.
-            await api.post('/Members', formData);
-            navigate('/members');
-        } catch (error) {
-            console.error(error);
-            alert('Failed to register member');
-        }
+        registerMutation.mutate(formData);
     };
 
     return (
-        <div style={{ maxWidth: '800px', backgroundColor: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>Register New Subscriber</h2>
+        <div className="max-w-4xl mx-auto pb-12">
+            <Title level={2} className="!mb-8 text-slate-800 flex items-center gap-2">
+                <UserPlus size={28} className="text-slate-600" /> Register New Subscriber
+            </Title>
 
-            <form onSubmit={handleSubmit}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Full Name</label>
-                        <input name="fullName" onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleFinish}
+                className="space-y-8"
+            >
+                <Card className="shadow-sm border-0 rounded-xl" styles={{ body: { padding: '2rem' } }}>
+                    <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-2">
+                        <UserPlus size={18} className="text-slate-500" />
+                        <Title level={4} className="!mb-0 text-slate-700">Basic Information</Title>
                     </div>
 
-                    <div>
-                        {/* Optional: User Linking for Login Access */}
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Linked User ID (Optional)</label>
-                        <input name="userId" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} placeholder="UUID if account exists" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Form.Item
+                            name="fullName"
+                            label={<span className="font-semibold text-slate-700">Full Name</span>}
+                            rules={[{ required: true, message: 'Full name is required' }]}
+                        >
+                            <Input size="large" placeholder="John Doe" />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="userId"
+                            label={<span className="font-semibold text-slate-700">Linked User ID (Optional)</span>}
+                            help={<Text className="text-xs text-slate-500">Provide UUID if linking to an existing system login.</Text>}
+                        >
+                            <Input size="large" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" />
+                        </Form.Item>
                     </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Phone Number</label>
-                        <input name="phoneNumber" onChange={handleChange} required style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                        <Form.Item
+                            name="phoneNumber"
+                            label={<span className="font-semibold text-slate-700">Phone Number</span>}
+                            rules={[{ required: true, message: 'Phone number is required' }]}
+                        >
+                            <Input size="large" placeholder="+91 98765 43210" />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="email"
+                            label={<span className="font-semibold text-slate-700">Email Address (Optional)</span>}
+                            rules={[{ type: 'email', message: 'Enter a valid email' }]}
+                        >
+                            <Input size="large" placeholder="john.doe@example.com" />
+                        </Form.Item>
+                    </div>
+                </Card>
+
+                <Card className="shadow-sm border-0 rounded-xl" styles={{ body: { padding: '2rem' } }}>
+                    <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-2">
+                        <ShieldCheck size={18} className="text-slate-500" />
+                        <Title level={4} className="!mb-0 text-slate-700">KYC & Address</Title>
                     </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Email</label>
-                        <input name="email" type="email" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Form.Item
+                            name="aadhaarNumber"
+                            label={<span className="font-semibold text-slate-700">Aadhaar Number</span>}
+                            rules={[{ len: 12, message: 'Aadhaar must be 12 digits' }]}
+                        >
+                            <Input size="large" placeholder="1234 5678 9012" maxLength={12} />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="panNumber"
+                            label={<span className="font-semibold text-slate-700">PAN Number</span>}
+                            rules={[
+                                { len: 10, message: 'PAN must be 10 characters' },
+                                { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: 'Invalid PAN format' }
+                            ]}
+                            normalize={value => (value || '').toUpperCase()}
+                        >
+                            <Input size="large" placeholder="ABCDE1234F" maxLength={10} />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="aadhaarDocument"
+                            label={<span className="font-semibold text-slate-700">Aadhaar Scanned Copy</span>}
+                        >
+                            <Upload beforeUpload={() => false} maxCount={1} accept="image/*,.pdf">
+                                <Button icon={<UploadIcon size={16} />}>Select File</Button>
+                            </Upload>
+                        </Form.Item>
+
+                        <Form.Item
+                            name="panDocument"
+                            label={<span className="font-semibold text-slate-700">PAN Scanned Copy</span>}
+                        >
+                            <Upload beforeUpload={() => false} maxCount={1} accept="image/*,.pdf">
+                                <Button icon={<UploadIcon size={16} />}>Select File</Button>
+                            </Upload>
+                        </Form.Item>
                     </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Aadhaar Number</label>
-                        <input name="aadhaarNumber" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                    </div>
+                    <Form.Item
+                        name="address"
+                        label={<span className="font-semibold text-slate-700">Residential Address</span>}
+                        rules={[{ required: true, message: 'Address is required' }]}
+                        className="mt-2"
+                    >
+                        <Input.TextArea size="large" rows={4} placeholder="Full street address, city, state, pin code" />
+                    </Form.Item>
+                </Card>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>PAN Number</label>
-                        <input name="panNumber" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }} />
-                    </div>
+                <div className="flex justify-end gap-4 mt-8">
+                    <Button size="large" onClick={() => navigate('/members')} className="font-semibold px-8 h-12">
+                        Cancel
+                    </Button>
+                    <Button
+                        type="primary"
+                        htmlType="submit"
+                        size="large"
+                        className="bg-slate-900 font-bold px-10 h-12 shadow-md text-lg"
+                        loading={registerMutation.isPending}
+                    >
+                        Register Subscriber
+                    </Button>
                 </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Residential Address</label>
-                    <textarea name="address" rows="3" onChange={handleChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', fontFamily: 'inherit' }}></textarea>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button type="button" onClick={() => navigate('/members')} style={{ padding: '0.5rem 1rem', border: 'none', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancel</button>
-                    <button type="submit" style={{ padding: '0.5rem 1rem', border: 'none', backgroundColor: '#0f172a', color: 'white', borderRadius: '4px', cursor: 'pointer' }}>Register Subscriber</button>
-                </div>
-            </form>
+            </Form>
         </div>
     );
 };

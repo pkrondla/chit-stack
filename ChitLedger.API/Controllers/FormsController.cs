@@ -114,4 +114,14 @@ public class FormsController : ControllerBase
         if (!result.Succeeded || result.Data == null) return BadRequest(result.Errors.FirstOrDefault() ?? "Unknown Error");
         return File(result.Data, "application/pdf", $"Agreement_{ticketId}.pdf");
     }
+
+    [HttpGet("kyc/{memberId}")]
+    public async Task<IActionResult> GetKycForm(int memberId)
+    {
+        var member = await _context.Members.FirstOrDefaultAsync(m => m.Id == memberId);
+        if (member == null) return NotFound("Member not found");
+
+        var pdfBytes = _pdfService.GenerateKycForm(member);
+        return File(pdfBytes, "application/pdf", $"KYC_Form_{member.FullName.Replace(" ", "_")}.pdf");
+    }
 }

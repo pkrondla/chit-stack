@@ -1,11 +1,11 @@
-using ChitLedger.Application.Features.Tenants.Commands.CreateTenant;
-using ChitLedger.Application.Features.Tenants.Queries.GetTenants;
+using ChitLedger.Application.Features.GlobalTenants.Commands.CreateGlobalTenant;
+using ChitLedger.Application.Features.GlobalTenants.Queries.GetGlobalTenants;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ChitLedger.API.Controllers;
+namespace ChitLedger.Global.API.Controllers;
 
 [Authorize(Roles = "Admin")]
 [ApiController]
@@ -20,13 +20,13 @@ public class TenantsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<Result<List<TenantDto>>>> Get()
+    public async Task<ActionResult<Result<List<GlobalTenantDto>>>> Get()
     {
-        return Ok(await _mediator.Send(new GetTenantsQuery()));
+        return Ok(await _mediator.Send(new GetGlobalTenantsQuery()));
     }
 
     [HttpPost]
-    public async Task<ActionResult<Result<int>>> Create(CreateTenantCommand command)
+    public async Task<ActionResult<Result<int>>> Create(CreateGlobalTenantCommand command)
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);

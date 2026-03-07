@@ -10,6 +10,7 @@ CREATE TABLE [dbo].[ChitGroups] (
     [Status] INT NOT NULL, -- Enum: 0=Proposed, 1=Active, 2=Completed, 3=Closed
     [TenantId] INT NOT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

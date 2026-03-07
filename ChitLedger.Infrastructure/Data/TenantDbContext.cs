@@ -8,13 +8,16 @@ namespace ChitLedger.Infrastructure.Data;
 public class TenantDbContext : DbContext, IApplicationDbContext
 {
     private readonly ITenantService _tenantService;
+    private readonly ICurrentUserService _currentUserService;
 
     public TenantDbContext(
         DbContextOptions<TenantDbContext> options,
-        ITenantService tenantService)
+        ITenantService tenantService,
+        ICurrentUserService currentUserService)
         : base(options)
     {
         _tenantService = tenantService;
+        _currentUserService = currentUserService;
     }
 
     public DbSet<ChitGroup> ChitGroups => Set<ChitGroup>();
@@ -51,11 +54,18 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         // Let's add the filter just in case of shared mode fallback, or just ignore TenantId column if physical separation.
         // Actually, if physical separation, TenantId is constant for that DB.
         
+        builder.Entity<Member>().Property(x => x.PhoneNumber).HasMaxLength(20);
+        builder.Entity<Member>().HasIndex(x => x.PhoneNumber).IsUnique();
         builder.Entity<ChitGroup>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<JournalEntryLine>()
             .HasOne(l => l.JournalEntry)
             .WithMany(j => j.Lines)
             .HasForeignKey(l => l.JournalEntryId);
+
+        foreach (var relationship in builder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.Restrict;
+        }
 
         // Seed Default Accounts
         // TEMPORARILY DISABLED: HasData conflicts with BaseEntity inheritance in EF Core 9.0 strict mode without full column mapping.
@@ -69,9 +79,26 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         // ... apply to all TenantEntity
     }
     
-    // Override SaveChangesAsync to set TenantId
+    // Override SaveChangesAsync to set TenantId and Audit fields
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        var currentUser = _currentUserService.UserId ?? "System";
+
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedBy = currentUser;
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.LastModifiedBy = currentUser;
+                    entry.Entity.LastModifiedAt = DateTime.UtcNow;
+                    break;
+            }
+        }
+
         foreach (var entry in ChangeTracker.Entries<TenantEntity>())
         {
             if (entry.State == EntityState.Added)

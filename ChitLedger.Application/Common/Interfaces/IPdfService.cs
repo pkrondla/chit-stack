@@ -12,4 +12,5 @@ public interface IPdfService
 
     byte[] GenerateBalanceSheet(List<AccountHead> accounts);
     byte[] GenerateReceipt(Receipt receipt, Member member, ChitGroup group);
+    byte[] GenerateKycForm(Member member);
 }

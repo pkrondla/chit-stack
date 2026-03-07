@@ -1,26 +1,18 @@
+import { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Layout as AntLayout, Menu, Button, Dropdown } from 'antd';
+import {
+    LayoutDashboard, Users, Gavel, LogOut, FileText,
+    ScrollText, IndianRupee, Settings, ChevronDown
+} from 'lucide-react';
+import useAuthStore from '../store/useAuthStore';
 
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, Gavel, LogOut, FileText, ScrollText, IndianRupee, Settings } from 'lucide-react';
-
-const SidebarItem = ({ to, icon: Icon, label, active }) => (
-    <Link to={to} style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0.75rem 1rem',
-        textDecoration: 'none',
-        color: active ? 'white' : '#cbd5e1',
-        backgroundColor: active ? '#334155' : 'transparent',
-        borderRadius: '0.375rem',
-        marginBottom: '0.25rem'
-    }}>
-        <Icon size={20} style={{ marginRight: '0.75rem' }} />
-        <span>{label}</span>
-    </Link>
-);
+const { Header, Sider, Content } = AntLayout;
 
 const Layout = () => {
-    const { user, logout } = useAuth();
+    const [collapsed, setCollapsed] = useState(false);
+    const user = useAuthStore(state => state.user);
+    const logout = useAuthStore(state => state.logout);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -31,66 +23,72 @@ const Layout = () => {
 
     if (!user) return null;
 
+    const adminItems = [
+        { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+        { key: '/groups', icon: <Users size={18} />, label: 'Chit Groups' },
+        { key: '/auctions', icon: <Gavel size={18} />, label: 'Auctions' },
+        { key: '/members', icon: <Users size={18} />, label: 'Members' },
+        { key: '/finance', icon: <FileText size={18} />, label: 'Collections' },
+        { key: '/finance/payouts', icon: <IndianRupee size={18} />, label: 'Payouts' },
+        { key: '/reports', icon: <ScrollText size={18} />, label: 'Reports' },
+        { type: 'divider' },
+        {
+            key: 'setupGrp', label: 'Setup', type: 'group', children: [
+                { key: '/settings', icon: <Settings size={18} />, label: 'Settings' },
+                { key: '/admin/users', icon: <Users size={18} />, label: 'Staff Users' },
+            ]
+        },
+    ];
+
+    const portalItems = [
+        { key: '/portal', icon: <LayoutDashboard size={18} />, label: 'My Dashboard' }
+    ];
+
+    const menuItems = (user.role === 'Admin' || user.role === 'Manager') ? adminItems : portalItems;
+
     return (
-        <div style={{ display: 'flex', height: '100vh', fontFamily: 'Arial, sans-serif' }}>
-            {/* Sidebar */}
-            <aside style={{ width: '250px', backgroundColor: '#1e293b', color: 'white', padding: '1rem', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '2rem', paddingLeft: '0.5rem' }}>
-                    ChitLedger
+        <AntLayout className="h-screen font-sans">
+            <Sider
+                collapsible
+                collapsed={collapsed}
+                onCollapse={(value) => setCollapsed(value)}
+                theme="dark"
+                className="overflow-y-auto"
+            >
+                <div className="flex items-center justify-center h-16 text-white text-xl font-bold bg-slate-900 shadow-md">
+                    {collapsed ? 'CL' : 'ChitLedger'}
                 </div>
-
-                <nav style={{ flex: 1 }}>
-                    {user.role === 'Admin' || user.role === 'Manager' ? (
-                        <>
-                            <SidebarItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" active={location.pathname === '/dashboard'} />
-                            <SidebarItem to="/groups" icon={Users} label="Chit Groups" active={location.pathname.startsWith('/groups')} />
-                            <SidebarItem to="/auctions" icon={Gavel} label="Auctions" active={location.pathname.startsWith('/auctions')} />
-                            <SidebarItem to="/members" icon={Users} label="Members" active={location.pathname.startsWith('/members')} />
-                            <SidebarItem to="/finance" icon={FileText} label="Collections" active={location.pathname === '/finance'} />
-                            <SidebarItem to="/finance/payouts" icon={IndianRupee} label="Payouts" active={location.pathname === '/finance/payouts'} />
-                            <SidebarItem to="/reports" icon={ScrollText} label="Reports" active={location.pathname.startsWith('/reports')} />
-
-                            {/* Admin Only */}
-                            <div style={{ marginTop: '1rem', paddingLeft: '1rem', fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase' }}>
-                                Setup
-                            </div>
-                            <SidebarItem to="/settings" icon={Settings} label="Settings" active={location.pathname === '/settings'} />
-                            <SidebarItem to="/admin/users" icon={Users} label="Users" active={location.pathname === '/admin/users'} />
-                        </>
-                    ) : (
-                        <SidebarItem to="/portal" icon={LayoutDashboard} label="My Dashboard" active={location.pathname === '/portal'} />
-                    )}
-                </nav>
-
-                <div style={{ paddingTop: '1rem', borderTop: '1px solid #334155' }}>
-                    <div style={{ marginBottom: '0.5rem', fontSize: '0.875rem', color: '#94a3b8' }}>
-                        {user.fullName} ({user.role})
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        style={{
-                            display: 'flex', alignItems: 'center', width: '100%', padding: '0.5rem',
-                            background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer'
-                        }}
-                    >
-                        <LogOut size={18} style={{ marginRight: '0.75rem' }} />
-                        Logout
-                    </button>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <main style={{ flex: 1, backgroundColor: '#f1f5f9', overflow: 'auto' }}>
-                <header style={{ backgroundColor: 'white', padding: '1rem 2rem', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#0f172a' }}>
-                        {location.pathname.split('/')[1].charAt(0).toUpperCase() + location.pathname.split('/')[1].slice(1) || 'Dashboard'}
+                <Menu
+                    theme="dark"
+                    mode="inline"
+                    selectedKeys={[location.pathname]}
+                    onClick={({ key }) => navigate(key)}
+                    items={menuItems}
+                    className="mt-4"
+                />
+            </Sider>
+            <AntLayout>
+                <Header className="bg-white px-6 py-0 shadow-sm flex items-center justify-between z-10">
+                    <h1 className="text-xl font-semibold text-slate-800 capitalize m-0">
+                        {location.pathname.split('/')[1] || 'Dashboard'}
                     </h1>
-                </header>
-                <div style={{ padding: '2rem' }}>
+                    <div className="flex items-center">
+                        <Dropdown menu={{
+                            items: [
+                                { key: 'logout', label: 'Logout', icon: <LogOut size={16} />, onClick: handleLogout, danger: true }
+                            ]
+                        }} trigger={['click']} placement="bottomRight">
+                            <span className="cursor-pointer text-slate-600 hover:text-slate-900 flex items-center gap-2">
+                                {user.fullName} ({user.role}) <ChevronDown size={16} />
+                            </span>
+                        </Dropdown>
+                    </div>
+                </Header>
+                <Content className="m-6 p-6 bg-white min-h-[280px] rounded-lg shadow-sm overflow-auto">
                     <Outlet />
-                </div>
-            </main>
-        </div>
+                </Content>
+            </AntLayout>
+        </AntLayout>
     );
 };
 

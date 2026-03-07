@@ -507,4 +507,81 @@ public class PdfService : IPdfService
     {
         return $"{amount}"; 
     }
+
+    public byte[] GenerateKycForm(Member member)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2, Unit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+
+                page.Header()
+                    .Text("KNOW YOUR CUSTOMER (KYC) FORM")
+                    .SemiBold().FontSize(16).AlignCenter();
+
+                page.Content()
+                    .PaddingVertical(1, Unit.Centimetre)
+                    .Column(x =>
+                    {
+                        x.Item().Text("Subscriber Information").SemiBold().FontSize(14).Underline();
+                        x.Item().PaddingTop(10).Table(table =>
+                        {
+                            table.ColumnsDefinition(cols =>
+                            {
+                                cols.ConstantColumn(150);
+                                cols.RelativeColumn();
+                            });
+                            
+                            table.Cell().Text("Full Name:");
+                            table.Cell().Text(member.FullName).SemiBold();
+                            
+                            table.Cell().Text("Phone Number:");
+                            table.Cell().Text(member.PhoneNumber);
+
+                            table.Cell().Text("Email:");
+                            table.Cell().Text(member.Email ?? "N/A");
+
+                            table.Cell().Text("PAN Number:");
+                            table.Cell().Text(member.PanNumber ?? "Pending");
+
+                            table.Cell().Text("Aadhaar Number:");
+                            table.Cell().Text(member.AadhaarNumber ?? "Pending");
+                            
+                            table.Cell().Text("Address:");
+                            table.Cell().Text(member.Address ?? "N/A");
+                        });
+
+                        x.Item().PaddingTop(20).Text("Declaration").SemiBold().FontSize(14).Underline();
+                        x.Item().PaddingTop(10).Text("I hereby declare that the details furnished above are true and correct to the best of my knowledge and belief and I undertake to inform you of any changes therein, immediately. In case any of the above information is found to be false or untrue or misleading or misrepresenting, I am aware that I may be held liable for it.");
+
+                        x.Item().PaddingTop(60).Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("Signature of Subscriber").SemiBold();
+                                c.Item().PaddingTop(30).LineHorizontal(1);
+                                c.Item().PaddingTop(5).Text($"Name: {member.FullName}");
+                                c.Item().Text($"Date: {DateTime.Now:dd-MMM-yyyy}");
+                            });
+                            
+                            row.ConstantItem(50);
+                            
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("For Office Use Only").SemiBold();
+                                c.Item().PaddingTop(30).LineHorizontal(1);
+                                c.Item().PaddingTop(5).Text("Authorized Signatory");
+                            });
+                        });
+                    });
+
+                page.Footer().AlignCenter().Text(x => { x.Span("Page "); x.CurrentPageNumber(); });
+            });
+        });
+
+        return document.GeneratePdf();
+    }
 }

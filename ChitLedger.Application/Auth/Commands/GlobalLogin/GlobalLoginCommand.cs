@@ -1,0 +1,40 @@
+using ChitLedger.Application.Common.Interfaces;
+using ChitLedger.Domain.Common;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace ChitLedger.Application.Auth.Commands.GlobalLogin;
+
+public class GlobalLoginCommand : IRequest<Result<string>>
+{
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+public class GlobalLoginHandler : IRequestHandler<GlobalLoginCommand, Result<string>>
+{
+    private readonly IGlobalDbContext _context;
+    private readonly ITokenService _tokenService;
+
+    public GlobalLoginHandler(IGlobalDbContext context, ITokenService tokenService)
+    {
+        _context = context;
+        _tokenService = tokenService;
+    }
+
+    public async Task<Result<string>> Handle(GlobalLoginCommand request, CancellationToken cancellationToken)
+    {
+        // Global Admins always reside in the root tenant.
+        var user = await _context.Users
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive, cancellationToken);
+
+        if (user == null || user.PasswordHash != request.Password) // TODO: hash comparison
+        {
+            return Result<string>.Failure("Invalid credentials");
+        }
+
+        var token = _tokenService.GenerateToken(user);
+        return Result<string>.Success(token);
+    }
+}

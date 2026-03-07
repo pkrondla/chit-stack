@@ -9,7 +9,9 @@ public class Member : TenantEntity
     public string? Email { get; set; }
     public string? Address { get; set; }
     public string? PanNumber { get; set; }
+    public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
+    public string? AadhaarDocumentUrl { get; set; }
     public bool KycVerified { get; set; } = false;
     
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();

@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[Nominees] (
     [TenantId] INT NOT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([MemberId]) REFERENCES [dbo].[Members]([Id]),
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id])
+    -- FK Removed for Split DB
 );
 GO
+

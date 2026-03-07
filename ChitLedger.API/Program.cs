@@ -36,7 +36,22 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "ChitLedger",
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "ChitLedgerApp",
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "super_secret_key_12345_must_be_long_enough"))
+            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "super_secret_key_12345_must_be_long_enough")),
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role
+    };
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && 
+                (path.StartsWithSegments("/auctionHub") || path.StartsWithSegments("/api/forms")))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -48,7 +63,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -95,6 +110,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseSerilogRequestLogging();
 
@@ -106,5 +122,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChitLedger.API.Hubs.AuctionHub>("/auctionHub");
+
+using (var scope = app.Services.CreateScope())
+{
+    var tenantDb = scope.ServiceProvider.GetRequiredService<ChitLedger.Infrastructure.Data.TenantDbContext>();
+    tenantDb.Database.EnsureCreated();
+}
 
 app.Run();

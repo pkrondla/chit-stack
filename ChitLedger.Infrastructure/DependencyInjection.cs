@@ -12,7 +12,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var globalConnectionString = configuration.GetConnectionString("GlobalConnection");
+        var globalConnectionString = configuration.GetConnectionString("GlobalDBConnection");
 
         services.AddDbContext<GlobalDbContext>(options =>
             options.UseSqlServer(globalConnectionString));
@@ -21,17 +21,19 @@ public static class DependencyInjection
             // Dynamic connection handling would happen here or via factory
             // For simplicity in Plan, we use a basic connection for now, 
             // but in real multi-tenant, we replace string based on TenantService
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("TenantDBConnection")));
 
         services.AddScoped<ITenantService, TenantService>();
         
         // Identity / Auth Services
+        services.AddScoped<IGlobalDbContext>(provider => provider.GetRequiredService<GlobalDbContext>());
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<TenantDbContext>());
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IGSTService, GSTService>();
         services.AddScoped<IJournalService, JournalService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPdfService, PdfService>();
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
         
         // QuestPDF License
         QuestPDF.Settings.License = LicenseType.Community;

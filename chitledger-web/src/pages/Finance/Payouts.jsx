@@ -1,138 +1,167 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Typography, Button, Tag, Modal, Form, Input, InputNumber, Select, Alert, message, List, Divider } from 'antd';
+import { IndianRupee, CheckCircle, ShieldAlert } from 'lucide-react';
 import api from '../../api/axios';
-import { IndianRupee, CheckCircle, Clock } from 'lucide-react';
+
+const { Title, Text } = Typography;
 
 const Payouts = () => {
-    const [auctions, setAuctions] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    // Payment Modal State
+    const queryClient = useQueryClient();
     const [selectedAuction, setSelectedAuction] = useState(null);
-    const [paymentMode, setPaymentMode] = useState('Bank');
-    const [referenceNumber, setReferenceNumber] = useState('');
+    const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
-    const fetchAuctions = async () => {
-        try {
-            const response = await api.get('/Auctions');
-            // Filter: Closed Auctions + Has Winner + Not Paid (or show Check History tab)
-            setAuctions(response.data.filter(a => a.auctionStatus === 'Closed' && a.winningTicketId));
-        } catch (error) {
-            console.error("Failed to load auctions", error);
-        } finally {
-            setLoading(false);
+    const [form] = Form.useForm();
+    const paymentMode = Form.useWatch('paymentMode', form) || 'Bank';
+
+    // Guarantor specific state
+    const [isGuarantorFormOpen, setIsGuarantorFormOpen] = useState(false);
+    const [guarantorForm] = Form.useForm();
+
+    const { data: auctions = [], isLoading } = useQuery({
+        queryKey: ['payouts'],
+        queryFn: async () => {
+            const res = await api.get('/Auctions');
+            return res.data.data || res.data;
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchAuctions();
-    }, []);
+    const { data: guarantors = [], refetch: refetchGuarantors } = useQuery({
+        queryKey: ['guarantors', selectedAuction?.winningTicketId],
+        queryFn: async () => {
+            if (!selectedAuction?.winningTicketId) return [];
+            const res = await api.get(`/Guarantors/${selectedAuction.winningTicketId}`);
+            return res.data.data || res.data;
+        },
+        enabled: !!selectedAuction?.winningTicketId
+    });
 
-    // Guarantor State
-    const [guarantors, setGuarantors] = useState([]);
-    const [showGuarantorForm, setShowGuarantorForm] = useState(false);
-    const [newGuarantor, setNewGuarantor] = useState({ name: '', phoneNumber: '', aadhaarNumber: '', annualIncome: 0, occupation: '' });
-
-    const fetchGuarantors = async (ticketId) => {
-        try {
-            const res = await api.get(`/Guarantors/${ticketId}`);
-            setGuarantors(res.data);
-        } catch (e) {
-            console.error("Failed to load guarantors", e);
-        }
-    };
-
-    const handleAddGuarantor = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/Guarantors', {
-                ticketId: selectedAuction.winningTicketId,
-                ...newGuarantor
-            });
-            alert("Guarantor Added");
-            setNewGuarantor({ name: '', phoneNumber: '', aadhaarNumber: '', annualIncome: 0, occupation: '' });
-            setShowGuarantorForm(false);
-            fetchGuarantors(selectedAuction.winningTicketId);
-        } catch (e) {
-            alert(e.response?.data?.error || e.message);
-        }
-    };
-
-    // Effect to load guarantors when auction selected
-    useEffect(() => {
-        if (selectedAuction?.winningTicketId) {
-            fetchGuarantors(selectedAuction.winningTicketId);
-        } else {
-            setGuarantors([]);
-        }
-    }, [selectedAuction]);
-
-    const handleDisburse = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/Finance/payout', {
-                auctionId: selectedAuction.id,
-                paymentMode,
-                referenceNumber
-            });
-            alert("Payment Disbursed Successfully!");
+    const payoutMutation = useMutation({
+        mutationFn: async (payload) => {
+            const res = await api.post('/Finance/payout', payload);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success("Payment Disbursed Successfully!");
+            setIsPayoutModalOpen(false);
             setSelectedAuction(null);
-            fetchAuctions(); // Refresh
-        } catch (error) {
-            alert("Payout Failed: " + (error.response?.data?.error || error.message));
+            form.resetFields();
+            queryClient.invalidateQueries({ queryKey: ['payouts'] });
+        },
+        onError: (error) => {
+            message.error("Payout Failed: " + (error.response?.data?.error || error.message));
         }
+    });
+
+    const guarantorMutation = useMutation({
+        mutationFn: async (payload) => {
+            const res = await api.post('/Guarantors', payload);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success("Guarantor Added Successfully");
+            guarantorForm.resetFields();
+            setIsGuarantorFormOpen(false);
+            refetchGuarantors();
+        },
+        onError: (error) => {
+            message.error(error.response?.data?.error || error.message);
+        }
+    });
+
+    const handleDisburseSubmit = (values) => {
+        payoutMutation.mutate({
+            auctionId: selectedAuction.id,
+            paymentMode: values.paymentMode,
+            referenceNumber: values.referenceNumber || ''
+        });
     };
 
-    if (loading) return <div>Loading Payouts...</div>;
+    const handleAddGuarantor = (values) => {
+        guarantorMutation.mutate({
+            ticketId: selectedAuction.winningTicketId,
+            ...values,
+            annualIncome: parseFloat(values.annualIncome) || 0
+        });
+    };
 
-    const pendingPayouts = auctions.filter(a => !a.isPaid);
+    const openPayoutModal = (auction) => {
+        setSelectedAuction(auction);
+        setIsPayoutModalOpen(true);
+        form.setFieldsValue({ paymentMode: 'Bank' });
+        setIsGuarantorFormOpen(false);
+    };
+
+    console.log("auctions fetched:", auctions);
+
+    const pendingPayouts = auctions.filter(a => a.auctionStatus === 'Closed' && a.winningTicketId && !a.isPaid);
     const completedPayouts = auctions.filter(a => a.isPaid);
 
-    return (
-        <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '2rem' }}>Prize Money Payouts</h2>
+    if (isLoading) return <div className="p-12 text-center text-slate-500 text-lg">Loading Payouts...</div>;
 
-            <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#dc2626' }}>Pending Disbursements</h3>
-                {pendingPayouts.length === 0 ? <p style={{ color: '#64748b' }}>No pending payouts.</p> : (
-                    <div style={{ display: 'grid', gap: '1rem' }}>
+    return (
+        <div className="max-w-6xl mx-auto pb-12">
+            <Title level={2} className="!mb-8 text-slate-800">Prize Money Payouts</Title>
+
+            <div className="mb-12">
+                <Title level={3} className="text-red-700 !mb-6 font-semibold border-b border-red-100 pb-2">Pending Disbursements</Title>
+
+                {pendingPayouts.length === 0 ? (
+                    <Card className="bg-slate-50 border border-slate-200 text-center py-8">
+                        <Text className="text-slate-500 text-lg">No pending payouts at this time.</Text>
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {pendingPayouts.map(auction => (
-                            <div key={auction.id} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{auction.groupName}</div>
-                                    <div style={{ color: '#64748b' }}>
-                                        Auction Date: {new Date(auction.auctionDate).toLocaleDateString()} • Ticket ID: {auction.winningTicketId}
+                            <Card key={auction.id} className="shadow-sm border-0 border-l-4 border-l-red-500 rounded-xl hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <Title level={4} className="!mb-1 text-slate-800">{auction.groupName}</Title>
+                                        <Text className="text-slate-500 block text-sm mb-4">
+                                            Auction Date: {new Date(auction.auctionDate).toLocaleDateString()} • Ticket ID: {auction.winningTicketId}
+                                        </Text>
+                                        <div className="bg-slate-50 px-4 py-2 rounded-lg inline-block">
+                                            <Text className="text-slate-500 text-xs uppercase font-bold tracking-wider block mb-1">Net Payable</Text>
+                                            <Text className="text-slate-900 text-xl font-bold font-mono">
+                                                ₹{auction.netPayableAmount?.toLocaleString()}
+                                            </Text>
+                                        </div>
                                     </div>
-                                    <div style={{ marginTop: '0.5rem', color: '#0f172a', fontWeight: '500' }}>
-                                        Net Payable: ₹{auction.netPayableAmount.toLocaleString()}
-                                    </div>
+                                    <Button
+                                        type="primary"
+                                        onClick={() => openPayoutModal(auction)}
+                                        className="bg-slate-900 font-bold h-10 shadow-sm"
+                                        icon={<IndianRupee size={16} />}
+                                    >
+                                        Disburse
+                                    </Button>
                                 </div>
-                                <button
-                                    onClick={() => setSelectedAuction(auction)}
-                                    style={{ padding: '0.75rem 1.5rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}
-                                >
-                                    <IndianRupee size={16} style={{ marginRight: '0.5rem' }} />
-                                    Disburse
-                                </button>
-                            </div>
+                            </Card>
                         ))}
                     </div>
                 )}
             </div>
 
-            <div style={{ marginTop: '3rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#166534' }}>Payment History</h3>
-                {completedPayouts.length === 0 ? <p style={{ color: '#64748b' }}>No history available.</p> : (
-                    <div style={{ display: 'grid', gap: '1rem' }}>
+            <div>
+                <Title level={3} className="text-green-700 !mb-6 font-semibold border-b border-green-100 pb-2">Payment History</Title>
+
+                {completedPayouts.length === 0 ? (
+                    <Card className="bg-slate-50 border border-slate-200 text-center py-8">
+                        <Text className="text-slate-500 text-lg">No disbursement history available.</Text>
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {completedPayouts.map(auction => (
-                            <div key={auction.id} style={{ backgroundColor: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div key={auction.id} className="bg-green-50 p-4 rounded-xl border border-green-200 flex justify-between items-center shadow-sm">
                                 <div>
-                                    <div style={{ fontWeight: 'bold', color: '#166534' }}>{auction.groupName}</div>
-                                    <div style={{ fontSize: '0.875rem', color: '#15803d' }}>
-                                        Paid on {new Date(auction.paymentDate).toLocaleDateString()} • ₹{auction.netPayableAmount.toLocaleString()}
+                                    <div className="font-bold text-green-800 text-lg mb-1">{auction.groupName}</div>
+                                    <div className="text-sm text-green-700 flex items-center gap-2">
+                                        <span className="font-semibold bg-green-200 px-2 py-0.5 rounded text-xs">₹{auction.netPayableAmount?.toLocaleString()}</span>
+                                        Paid on {new Date(auction.paymentDate).toLocaleDateString()}
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', color: '#166534' }}>
-                                    <CheckCircle size={20} style={{ marginRight: '0.5rem' }} />
+                                <div className="flex items-center text-green-700 bg-white px-3 py-1 rounded-full shadow-sm font-bold border border-green-100">
+                                    <CheckCircle size={18} className="mr-2" />
                                     Paid
                                 </div>
                             </div>
@@ -141,103 +170,130 @@ const Payouts = () => {
                 )}
             </div>
 
-            {/* Modal */}
-            {selectedAuction && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center'
-                }}>
-                    <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', width: '400px', maxWidth: '90%' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>Confirm Payout</h3>
-                        <p style={{ marginBottom: '1.5rem', color: '#64748b' }}>
-                            Disburse <strong>₹{selectedAuction.netPayableAmount.toLocaleString()}</strong> for {selectedAuction.groupName}?
-                        </p>
+            {/* Payout Modal */}
+            <Modal
+                title={<Title level={3} className="!mb-0">Confirm Payout</Title>}
+                open={isPayoutModalOpen}
+                onCancel={() => setIsPayoutModalOpen(false)}
+                footer={null}
+                width={600}
+                destroyOnClose
+                className="top-10"
+            >
+                {selectedAuction && (
+                    <div className="mt-4">
+                        <Alert
+                            message={
+                                <div className="text-base text-slate-700">
+                                    Disbursing <strong className="text-lg">₹{selectedAuction.netPayableAmount?.toLocaleString()}</strong> for <strong>{selectedAuction.groupName}</strong>
+                                </div>
+                            }
+                            type="info"
+                            showIcon
+                            className="bg-blue-50 border-blue-200 mb-6"
+                        />
 
                         {/* Guarantors Section */}
-                        <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <label style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#334155' }}>Security / Guarantors</label>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowGuarantorForm(!showGuarantorForm)}
-                                    style={{ fontSize: '0.8rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                        <div className="mb-8 p-6 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <Title level={5} className="!mb-0 flex items-center gap-2 text-slate-700">
+                                    <ShieldAlert size={18} /> Security / Guarantors
+                                </Title>
+                                <Button
+                                    type="link"
+                                    onClick={() => setIsGuarantorFormOpen(!isGuarantorFormOpen)}
+                                    className="font-semibold"
                                 >
-                                    + Add Guarantor
-                                </button>
+                                    {isGuarantorFormOpen ? 'Cancel' : '+ Add Guarantor'}
+                                </Button>
                             </div>
 
-                            {showGuarantorForm && (
-                                <div style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                                    <input placeholder="Name" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
-                                        value={newGuarantor.name} onChange={e => setNewGuarantor({ ...newGuarantor, name: e.target.value })} />
-                                    <input placeholder="Phone" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
-                                        value={newGuarantor.phoneNumber} onChange={e => setNewGuarantor({ ...newGuarantor, phoneNumber: e.target.value })} />
-                                    <input placeholder="Aadhaar" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
-                                        value={newGuarantor.aadhaarNumber} onChange={e => setNewGuarantor({ ...newGuarantor, aadhaarNumber: e.target.value })} />
-                                    <input placeholder="Annual Income" type="number" style={{ display: 'block', width: '100%', marginBottom: '0.5rem', padding: '0.25rem' }}
-                                        value={newGuarantor.annualIncome} onChange={e => setNewGuarantor({ ...newGuarantor, annualIncome: e.target.value })} />
-                                    <button type="button" onClick={handleAddGuarantor} style={{ width: '100%', padding: '0.25rem', backgroundColor: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer' }}>Save Guarantor</button>
-                                </div>
+                            {isGuarantorFormOpen && (
+                                <Card className="mb-4 bg-white shadow-sm border-slate-200" bodyStyle={{ padding: '1rem' }}>
+                                    <Form form={guarantorForm} layout="vertical" onFinish={handleAddGuarantor} size="middle">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Form.Item name="name" rules={[{ required: true }]} className="mb-3">
+                                                <Input placeholder="Full Name" />
+                                            </Form.Item>
+                                            <Form.Item name="phoneNumber" rules={[{ required: true }]} className="mb-3">
+                                                <Input placeholder="Phone Number" />
+                                            </Form.Item>
+                                            <Form.Item name="aadhaarNumber" className="mb-3">
+                                                <Input placeholder="Aadhaar Number (Optional)" />
+                                            </Form.Item>
+                                            <Form.Item name="annualIncome" className="mb-3">
+                                                <InputNumber className="w-full" placeholder="Annual Income" />
+                                            </Form.Item>
+                                        </div>
+                                        <Button
+                                            type="primary"
+                                            htmlType="submit"
+                                            block
+                                            loading={guarantorMutation.isPending}
+                                            className="bg-blue-600 font-semibold mt-2"
+                                        >
+                                            Save Guarantor
+                                        </Button>
+                                    </Form>
+                                </Card>
                             )}
 
                             {guarantors.length === 0 ? (
-                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No guarantors added. Risk Check Recommended.</div>
+                                <div className="text-sm text-slate-500 italic flex items-center gap-2 bg-white px-4 py-3 rounded-lg border border-slate-100">
+                                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                                    No guarantors added. Risk Check Recommended.
+                                </div>
                             ) : (
-                                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                    {guarantors.map(g => (
-                                        <li key={g.id} style={{ fontSize: '0.85rem', padding: '0.25rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                                            <strong>{g.name}</strong> ({g.relationship}) - Ph: {g.phoneNumber}
-                                        </li>
-                                    ))}
-                                </ul>
+                                <List
+                                    size="small"
+                                    dataSource={guarantors}
+                                    renderItem={(g) => (
+                                        <List.Item className="bg-white mb-2 rounded border border-slate-100 px-3">
+                                            <Text strong className="text-slate-700">{g.name}</Text>
+                                            <Text className="text-slate-500 text-xs ml-2">Ph: {g.phoneNumber}</Text>
+                                        </List.Item>
+                                    )}
+                                />
                             )}
                         </div>
 
-                        <form onSubmit={handleDisburse}>
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Payment Mode</label>
-                                <select
-                                    value={paymentMode}
-                                    onChange={(e) => setPaymentMode(e.target.value)}
-                                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                                >
-                                    <option value="Bank">Bank Transfer / NEFT</option>
-                                    <option value="Cheque">Cheque</option>
-                                    <option value="Cash">Cash</option>
-                                </select>
-                            </div>
+                        {/* Payment Form */}
+                        <Divider />
+                        <Title level={5} className="!mb-4">Disbursement Details</Title>
+
+                        <Form form={form} layout="vertical" onFinish={handleDisburseSubmit} initialValues={{ paymentMode: 'Bank' }}>
+                            <Form.Item name="paymentMode" label="Payment Mode" rules={[{ required: true }]}>
+                                <Select size="large">
+                                    <Select.Option value="Bank">Bank Transfer / NEFT</Select.Option>
+                                    <Select.Option value="Cheque">Cheque</Select.Option>
+                                    <Select.Option value="Cash">Cash</Select.Option>
+                                </Select>
+                            </Form.Item>
 
                             {paymentMode !== 'Cash' && (
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Reference No / Cheque No</label>
-                                    <input
-                                        value={referenceNumber}
-                                        onChange={(e) => setReferenceNumber(e.target.value)}
-                                        required
-                                        style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                                    />
-                                </div>
+                                <Form.Item name="referenceNumber" label="Reference No / Cheque No" rules={[{ required: true }]}>
+                                    <Input size="large" />
+                                </Form.Item>
                             )}
 
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedAuction(null)}
-                                    style={{ flex: 1, padding: '0.75rem', backgroundColor: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                >
+                            <div className="flex gap-4 mt-8">
+                                <Button size="large" onClick={() => setIsPayoutModalOpen(false)} className="flex-1 font-semibold">
                                     Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    style={{ flex: 1, padding: '0.75rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                </Button>
+                                <Button
+                                    type="primary"
+                                    htmlType="submit"
+                                    size="large"
+                                    className="bg-slate-900 flex-1 font-bold shadow-md"
+                                    loading={payoutMutation.isPending}
                                 >
                                     Confirm Payment
-                                </button>
+                                </Button>
                             </div>
-                        </form>
+                        </Form>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 };
