@@ -13,6 +13,7 @@ public class MemberDto
     public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
     public string? AadhaarDocumentUrl { get; set; }
+    public string? RegistrationBranchName { get; set; }
     public int TicketCount { get; set; }
     public DateTime JoinedDate { get; set; }
     public List<MemberTicketDto> Tickets { get; set; } = new();
@@ -24,6 +25,7 @@ public class MemberDto
             CreateMap<Member, MemberDto>()
                 .ForMember(d => d.TicketCount, opt => opt.MapFrom(s => s.Tickets.Count))
                 .ForMember(d => d.JoinedDate, opt => opt.MapFrom(s => s.CreatedAt))
+                .ForMember(d => d.RegistrationBranchName, opt => opt.MapFrom(s => s.RegistrationBranch != null ? s.RegistrationBranch.Name : null))
                 .ForMember(d => d.Tickets, opt => opt.MapFrom(s => s.Tickets));
 
             CreateMap<Ticket, MemberTicketDto>()

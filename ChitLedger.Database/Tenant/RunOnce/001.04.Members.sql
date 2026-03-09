@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[Members] (
     [PanNumber] NVARCHAR(20) NULL,
     [Address] NVARCHAR(MAX) NULL,
     [TenantId] INT NOT NULL,
+    [RegistrationBranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     -- FK Removed for Split DB
 );

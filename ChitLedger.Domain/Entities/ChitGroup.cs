@@ -2,7 +2,7 @@ using ChitLedger.Domain.Common;
 
 namespace ChitLedger.Domain.Entities;
 
-public class ChitGroup : TenantEntity
+public class ChitGroup : BranchEntity
 {
     public string GroupName { get; set; } = string.Empty;
     public decimal ChitValue { get; set; }

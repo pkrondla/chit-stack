@@ -6,6 +6,7 @@ CREATE TABLE [dbo].[JournalEntryLines] (
     [CreditAmount] DECIMAL(18,2) NOT NULL DEFAULT 0,
     [Description] NVARCHAR(MAX) NULL,
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([JournalEntryId]) REFERENCES [dbo].[JournalEntries]([Id]),
     FOREIGN KEY ([AccountHeadId]) REFERENCES [dbo].[AccountHeads]([Id]),

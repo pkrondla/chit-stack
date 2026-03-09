@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[Tickets] (
     [PrizedInstallment] INT NULL,
     [Status] NVARCHAR(50) DEFAULT 'Active',
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([ChitGroupId]) REFERENCES [dbo].[ChitGroups]([Id]),
     FOREIGN KEY ([MemberId]) REFERENCES [dbo].[Members]([Id]),

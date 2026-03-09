@@ -2,7 +2,7 @@ using ChitLedger.Domain.Common;
 
 namespace ChitLedger.Domain.Entities;
 
-public class Demand : TenantEntity
+public class Demand : BranchEntity
 {
     public int TicketId { get; set; }
     public Ticket Ticket { get; set; } = null!;

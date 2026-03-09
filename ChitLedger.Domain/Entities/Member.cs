@@ -13,6 +13,9 @@ public class Member : TenantEntity
     public string? AadhaarNumber { get; set; }
     public string? AadhaarDocumentUrl { get; set; }
     public bool KycVerified { get; set; } = false;
+
+    public int? RegistrationBranchId { get; set; }
+    public Branch? RegistrationBranch { get; set; }
     
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
 }

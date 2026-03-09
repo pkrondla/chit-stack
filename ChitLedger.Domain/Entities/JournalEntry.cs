@@ -2,7 +2,7 @@ using ChitLedger.Domain.Common;
 
 namespace ChitLedger.Domain.Entities;
 
-public class JournalEntry : TenantEntity
+public class JournalEntry : BranchEntity
 {
     public DateTime EntryDate { get; set; }
     public string EntryType { get; set; } = string.Empty; // Receipt, Auction, General
@@ -13,7 +13,7 @@ public class JournalEntry : TenantEntity
     public ICollection<JournalEntryLine> Lines { get; set; } = new List<JournalEntryLine>();
 }
 
-public class JournalEntryLine : TenantEntity
+public class JournalEntryLine : BranchEntity
 {
     public int JournalEntryId { get; set; }
     public JournalEntry JournalEntry { get; set; } = null!;

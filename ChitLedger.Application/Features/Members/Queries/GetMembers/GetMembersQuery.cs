@@ -25,6 +25,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, Result<List<Me
     public async Task<Result<List<MemberDto>>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
         var members = await _context.Members
+            .Include(m => m.RegistrationBranch)
             .Include(m => m.Tickets)
             .ProjectTo<MemberDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);

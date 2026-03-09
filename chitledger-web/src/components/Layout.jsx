@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout as AntLayout, Menu, Button, Dropdown } from 'antd';
+import { Layout as AntLayout, Menu, Button, Dropdown, Select } from 'antd';
 import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
-    ScrollText, IndianRupee, Settings, ChevronDown
+    ScrollText, IndianRupee, Settings, ChevronDown, Building2
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 
@@ -12,6 +12,9 @@ const { Header, Sider, Content } = AntLayout;
 const Layout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const user = useAuthStore(state => state.user);
+    const activeBranch = useAuthStore(state => state.activeBranch);
+    const authorizedBranches = useAuthStore(state => state.authorizedBranches);
+    const setActiveBranch = useAuthStore(state => state.setActiveBranch);
     const logout = useAuthStore(state => state.logout);
     const navigate = useNavigate();
     const location = useLocation();
@@ -72,14 +75,39 @@ const Layout = () => {
                     <h1 className="text-xl font-semibold text-slate-800 capitalize m-0">
                         {location.pathname.split('/')[1] || 'Dashboard'}
                     </h1>
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-6">
+                        {authorizedBranches && authorizedBranches.length > 0 && (
+                            <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
+                                <Building2 size={16} className="text-blue-600" />
+                                <Select
+                                    value={activeBranch?.id}
+                                    style={{ width: 180 }}
+                                    bordered={false}
+                                    options={authorizedBranches.map(b => ({ label: b.name, value: b.id }))}
+                                    onChange={(val) => {
+                                        const branch = authorizedBranches.find(b => b.id === val);
+                                        if (branch) {
+                                            setActiveBranch(branch);
+                                            window.location.reload(); // Refresh the page to reload branch data
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )}
                         <Dropdown menu={{
                             items: [
                                 { key: 'logout', label: 'Logout', icon: <LogOut size={16} />, onClick: handleLogout, danger: true }
                             ]
                         }} trigger={['click']} placement="bottomRight">
-                            <span className="cursor-pointer text-slate-600 hover:text-slate-900 flex items-center gap-2">
-                                {user.fullName} ({user.role}) <ChevronDown size={16} />
+                            <span className="cursor-pointer text-slate-600 hover:text-slate-900 flex items-center gap-2 border-l border-slate-200 pl-4">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
+                                    {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div className="hidden md:block text-sm">
+                                    <div className="font-medium text-slate-800 leading-tight">{user.fullName || user.username}</div>
+                                    <div className="text-xs text-slate-500">{user.role}</div>
+                                </div>
+                                <ChevronDown size={14} className="text-slate-400" />
                             </span>
                         </Dropdown>
                     </div>

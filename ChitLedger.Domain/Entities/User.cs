@@ -13,4 +13,6 @@ public class User : TenantEntity
     // For Subscribers/Members
     public int? MemberId { get; set; }
     public Member? Member { get; set; }
+
+    public ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
 }

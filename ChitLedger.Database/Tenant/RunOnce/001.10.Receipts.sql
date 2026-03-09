@@ -8,6 +8,7 @@ CREATE TABLE [dbo].[Receipts] (
     [PaymentMode] NVARCHAR(50) NOT NULL, -- Cash, Bank, Online
     [ReferenceNumber] NVARCHAR(100) NULL,
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([MemberId]) REFERENCES [dbo].[Members]([Id]),
     FOREIGN KEY ([ChitGroupId]) REFERENCES [dbo].[ChitGroups]([Id]),

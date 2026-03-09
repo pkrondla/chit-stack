@@ -10,6 +10,7 @@ CREATE TABLE [dbo].[Auctions] (
     [ForemanCommissionAmount] DECIMAL(18,2) NOT NULL DEFAULT 0,
     [AuctionStatus] NVARCHAR(50) DEFAULT 'Scheduled',
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([ChitGroupId]) REFERENCES [dbo].[ChitGroups]([Id]),
     FOREIGN KEY ([WinningTicketId]) REFERENCES [dbo].[Tickets]([Id]),

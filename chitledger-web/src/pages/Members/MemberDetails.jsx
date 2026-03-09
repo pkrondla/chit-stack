@@ -58,10 +58,13 @@ const MemberDetails = () => {
                             <div>
                                 <Title level={2} className="!mb-1 text-slate-800">{member.fullName}</Title>
                                 <div className="text-slate-500 font-mono text-sm mb-3">Subscriber ID: {member.id}</div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 mb-3">
                                     <Tag color={isVerified ? 'success' : 'warning'} className="rounded-full px-3 py-1 font-bold border-0">
                                         {isVerified ? 'KYC Verified' : 'KYC Pending'}
                                     </Tag>
+                                </div>
+                                <div className="text-sm font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-md inline-flex items-center gap-2 border border-slate-200">
+                                    Registration Branch: <span className="text-slate-800">{member.registrationBranchName || 'Global'}</span>
                                 </div>
                             </div>
                             <div className="flex gap-3">

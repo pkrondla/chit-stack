@@ -5,13 +5,35 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChitLedger.Application.Auth.Commands.Login;
 
-public class LoginCommand : IRequest<Result<string>>
+public class LoginResponse
+{
+    public string Token { get; set; } = string.Empty;
+    public LoginUserDto User { get; set; } = null!;
+    public List<LoginBranchDto> AuthorizedBranches { get; set; } = new();
+}
+
+public class LoginUserDto 
+{
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+}
+
+public class LoginBranchDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+}
+
+public class LoginCommand : IRequest<Result<LoginResponse>>
 {
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }
 
-public class LoginHandler : IRequestHandler<LoginCommand, Result<string>>
+public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
 {
     private readonly ITenantService _tenantService;
     private readonly ITokenService _tokenService;
@@ -31,20 +53,41 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<string>>
         _context = context;
     }
 
-    public async Task<Result<string>> Handle(LoginCommand request, CancellationToken cancellationToken)
+    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var tenantId = _tenantService.TenantId;
         
         // Simple password check (Hash should be used in real app)
         var user = await _context.Users
+            .Include(u => u.UserBranches)
+            .ThenInclude(ub => ub.Branch)
             .FirstOrDefaultAsync(u => u.Username == request.Username && u.TenantId == tenantId, cancellationToken);
             
         if (user == null || user.PasswordHash != request.Password) // TODO: Hash check
         {
-            return Result<string>.Failure("Invalid credentials");
+            return Result<LoginResponse>.Failure("Invalid credentials");
         }
         
         var token = _tokenService.GenerateToken(user, tenantId);
-        return Result<string>.Success(token);
+        
+        var response = new LoginResponse
+        {
+            Token = token,
+            User = new LoginUserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = user.Role,
+                FullName = user.FullName
+            },
+            AuthorizedBranches = user.UserBranches.Select(ub => new LoginBranchDto
+            {
+                Id = ub.Branch!.Id,
+                Name = ub.Branch.Name,
+                Code = ub.Branch.Code
+            }).ToList()
+        };
+        
+        return Result<LoginResponse>.Success(response);
     }
 }

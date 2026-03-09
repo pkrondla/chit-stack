@@ -9,6 +9,7 @@ CREATE TABLE [dbo].[ChitGroups] (
     [LaunchDate] DATETIME2 NULL,
     [Status] INT NOT NULL, -- Enum: 0=Proposed, 1=Active, 2=Completed, 3=Closed
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     -- FK Removed for Split DB
 );

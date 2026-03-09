@@ -24,6 +24,7 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("TenantDBConnection")));
 
         services.AddScoped<ITenantService, TenantService>();
+        services.AddScoped<IBranchService, BranchService>();
         
         // Identity / Auth Services
         services.AddScoped<IGlobalDbContext>(provider => provider.GetRequiredService<GlobalDbContext>());

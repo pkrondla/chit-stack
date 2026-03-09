@@ -8,6 +8,7 @@ CREATE TABLE [dbo].[Demands] (
     [Status] NVARCHAR(50) DEFAULT 'Pending',
     [DueDate] DATETIME2 NOT NULL,
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY ([TicketId]) REFERENCES [dbo].[Tickets]([Id]),
     FOREIGN KEY ([AuctionId]) REFERENCES [dbo].[Auctions]([Id]),

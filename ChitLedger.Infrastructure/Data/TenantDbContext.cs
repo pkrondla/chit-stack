@@ -9,15 +9,18 @@ public class TenantDbContext : DbContext, IApplicationDbContext
 {
     private readonly ITenantService _tenantService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IBranchService _branchService;
 
     public TenantDbContext(
         DbContextOptions<TenantDbContext> options,
         ITenantService tenantService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IBranchService branchService)
         : base(options)
     {
         _tenantService = tenantService;
         _currentUserService = currentUserService;
+        _branchService = branchService;
     }
 
     public DbSet<ChitGroup> ChitGroups => Set<ChitGroup>();
@@ -33,6 +36,8 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Demand> Demands => Set<Demand>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<Branch> Branches => Set<Branch>();
+    public DbSet<UserBranch> UserBranches => Set<UserBranch>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -56,7 +61,19 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         
         builder.Entity<Member>().Property(x => x.PhoneNumber).HasMaxLength(20);
         builder.Entity<Member>().HasIndex(x => x.PhoneNumber).IsUnique();
+        
+        // Tenant Filters
         builder.Entity<ChitGroup>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        
+        // Branch Filters
+        builder.Entity<ChitGroup>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+        builder.Entity<Ticket>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+        builder.Entity<Auction>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+        builder.Entity<Receipt>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+        builder.Entity<Demand>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+        builder.Entity<JournalEntry>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+        builder.Entity<JournalEntryLine>().HasQueryFilter(e => _branchService.BranchId == null || e.BranchId == _branchService.BranchId);
+
         builder.Entity<JournalEntryLine>()
             .HasOne(l => l.JournalEntry)
             .WithMany(j => j.Lines)
@@ -106,6 +123,15 @@ public class TenantDbContext : DbContext, IApplicationDbContext
                 entry.Entity.TenantId = _tenantService.TenantId;
             }
         }
+        
+        foreach (var entry in ChangeTracker.Entries<BranchEntity>())
+        {
+            if (entry.State == EntityState.Added && _branchService.BranchId.HasValue)
+            {
+                entry.Entity.BranchId = _branchService.BranchId.Value;
+            }
+        }
+        
         return await base.SaveChangesAsync(cancellationToken);
     }
 }

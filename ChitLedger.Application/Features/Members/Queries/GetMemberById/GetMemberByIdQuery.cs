@@ -27,6 +27,7 @@ public class GetMemberByIdHandler : IRequestHandler<GetMemberByIdQuery, Result<M
     public async Task<Result<MemberDto>> Handle(GetMemberByIdQuery request, CancellationToken cancellationToken)
     {
         var member = await _context.Members
+            .Include(m => m.RegistrationBranch)
             .Include(m => m.Tickets)
                 .ThenInclude(t => t.ChitGroup)
             .Where(m => m.Id == request.Id)

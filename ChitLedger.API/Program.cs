@@ -115,6 +115,7 @@ app.UseStaticFiles();
 app.UseSerilogRequestLogging();
 
 app.UseMiddleware<TenantMiddleware>();
+app.UseMiddleware<BranchMiddleware>();
 
 app.UseCors("AllowClient");
 

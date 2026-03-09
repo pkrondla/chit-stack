@@ -6,6 +6,7 @@ CREATE TABLE [dbo].[JournalEntries] (
     [ReferenceId] INT NULL,
     [ReferenceType] NVARCHAR(50) NULL,
     [TenantId] INT NOT NULL,
+    [BranchId] INT NULL,
     [Created] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     -- FK Removed for Split DB
 );

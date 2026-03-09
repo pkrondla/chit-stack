@@ -1,0 +1,14 @@
+using ChitLedger.Domain.Common;
+
+namespace ChitLedger.Domain.Entities;
+
+public class Branch : TenantEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string? Address { get; set; }
+    public string? ContactNumber { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
+}
