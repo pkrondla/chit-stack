@@ -99,7 +99,7 @@ public class MembersController : ControllerBase
     }
 
     [HttpPost("allocate-ticket")]
-    public async Task<ActionResult<Result<int>>> AllocateTicket(AllocateTicketCommand command)
+    public async Task<ActionResult<Result<List<int>>>> AllocateTicket(AllocateTicketCommand command)
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);

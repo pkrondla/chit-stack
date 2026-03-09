@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 
 import Groups from './pages/Groups/GroupList';
 import CreateGroup from './pages/Groups/CreateGroup';
+import EditGroup from './pages/Groups/EditGroup';
 import EnrollMember from './pages/Groups/EnrollMember';
 import GroupTickets from './pages/Groups/GroupTickets';
 import Members from './pages/Members/MemberList';
@@ -48,6 +49,7 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="groups" element={<Groups />} />
           <Route path="groups/new" element={<CreateGroup />} />
+          <Route path="groups/:id/edit" element={<EditGroup />} />
           <Route path="groups/enroll" element={<EnrollMember />} />
           <Route path="groups/:groupId/tickets" element={<GroupTickets />} />
           <Route path="members" element={<Members />} />

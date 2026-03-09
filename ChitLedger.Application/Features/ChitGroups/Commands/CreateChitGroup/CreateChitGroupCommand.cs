@@ -10,6 +10,7 @@ public class CreateChitGroupCommand : IRequest<Result<int>>
 {
     public string GroupName { get; set; } = string.Empty;
     public decimal ChitValue { get; set; }
+    public decimal InstallmentAmount { get; set; }
     public int DurationMonths { get; set; }
     public decimal ForemanCommissionPercent { get; set; } = 5.0m;
 }
@@ -27,6 +28,13 @@ public class CreateChitGroupValidator : AbstractValidator<CreateChitGroupCommand
 
         RuleFor(v => v.DurationMonths)
             .GreaterThan(0).WithMessage("Duration must be greater than 0.");
+            
+        RuleFor(v => v.InstallmentAmount)
+            .GreaterThan(0).WithMessage("Monthly due must be greater than 0.");
+            
+        RuleFor(v => v)
+            .Must(v => v.ChitValue == v.DurationMonths * v.InstallmentAmount)
+            .WithMessage("Chit Value must be equal to Monthly Due multiplied by Duration.");
             
         RuleFor(v => v.ForemanCommissionPercent)
             .InclusiveBetween(0, 100).WithMessage("Commission must be between 0 and 100.");
@@ -49,7 +57,7 @@ public class CreateChitGroupHandler : IRequestHandler<CreateChitGroupCommand, Re
             GroupName = request.GroupName,
             ChitValue = request.ChitValue,
             DurationMonths = request.DurationMonths,
-            InstallmentAmount = request.ChitValue / request.DurationMonths, // Simple div logic
+            InstallmentAmount = request.InstallmentAmount,
             ForemanCommissionPercent = request.ForemanCommissionPercent,
             Status = GroupStatus.Proposed
         };

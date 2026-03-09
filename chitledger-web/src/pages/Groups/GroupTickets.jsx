@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Typography, Button, Tag, Modal, Form, Input, DatePicker, Select, message, Spin } from 'antd';
-import { UserMinus, UserPlus, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Typography, Button, Tag, Modal, Form, Input, DatePicker, Select, message, Spin, Table, Dropdown, Space } from 'antd';
+import { UserMinus, UserPlus, FileText, CheckCircle, Clock, MoreVertical, ShieldAlert } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -50,22 +50,25 @@ const GroupTickets = () => {
             queryClient.invalidateQueries({ queryKey: ['tickets', groupId] });
         },
         onError: (error) => {
-            message.error(error.response?.data?.error || 'Failed to assign ticket');
+            const errData = error.response?.data;
+            const errMsg = errData?.errors?.[0] || errData?.error || 'Failed to assign ticket';
+            message.error(errMsg);
         }
     });
 
     const removeSubscriberMutation = useMutation({
         mutationFn: async (ticketId) => {
-            // Need a real endpoint here, assuming something like this:
-            // return await api.post(`/Tickets/${ticketId}/remove-subscriber`);
-            throw new Error("Endpoint not implemented in backend yet");
+            const res = await api.post('/Tickets/remove', { ticketId, reason: 'Removed by Admin' });
+            return res.data.data || res.data;
         },
         onSuccess: () => {
             message.success('Subscriber removed successfully!');
             queryClient.invalidateQueries({ queryKey: ['tickets', groupId] });
         },
         onError: (error) => {
-            message.warning("Simulated Removal (API not ready): " + error.message);
+            const errData = error.response?.data;
+            const errMsg = errData?.errors?.[0] || errData?.error || 'Failed to remove subscriber';
+            message.error(errMsg);
         }
     });
 
@@ -116,8 +119,7 @@ const GroupTickets = () => {
     const handleAssignFinish = (values) => {
         assignMutation.mutate({
             chitGroupId: parseInt(groupId),
-            memberId: parseInt(values.memberId),
-            ticketNumber: selectedTicket.ticketNumber
+            memberIds: [parseInt(values.memberId)] // Backend changed to accept array
         });
     };
 
@@ -144,78 +146,113 @@ const GroupTickets = () => {
         return <div className="flex justify-center p-12"><Spin size="large" /></div>;
     }
 
+    const columns = [
+        {
+            title: 'Ticket No.',
+            dataIndex: 'ticketNumber',
+            key: 'ticketNumber',
+            render: (text) => <span className="font-mono text-lg font-bold text-slate-800">#{text}</span>,
+            sorter: (a, b) => a.ticketNumber - b.ticketNumber,
+        },
+        {
+            title: 'Subscriber',
+            key: 'subscriber',
+            render: (_, ticket) => (
+                <div className="flex items-center gap-2">
+                    <Text className="text-slate-800 font-semibold">{ticket.memberName || <span className="text-slate-400 italic">Not Assigned</span>}</Text>
+                    {ticket.isPrized && (
+                        <Tag color="purple" className="rounded-full px-2 py-0 border-0 font-bold m-0">Prized</Tag>
+                    )}
+                </div>
+            )
+        },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status) => (
+                <Tag
+                    color={status === 'Active' ? 'success' : status === 'Vacant' ? 'warning' : 'default'}
+                    className="rounded-full px-3 py-1 font-bold m-0 text-sm flex items-center gap-1 border-0 w-max"
+                >
+                    {status === 'Active' ? <CheckCircle size={14} /> : status === 'Vacant' ? <Clock size={14} /> : <ShieldAlert size={14} />}
+                    {status}
+                </Tag>
+            )
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            align: 'right',
+            render: (_, ticket) => (
+                <Space size="small">
+                    {ticket.status === 'Active' && (
+                        <>
+                            <Button
+                                size="small"
+                                type="text"
+                                icon={<UserPlus size={16} className="text-slate-600" />}
+                                onClick={() => handleNomineeClick(ticket)}
+                                title="Manage Nominee"
+                            />
+                            <Button
+                                size="small"
+                                type="text"
+                                icon={<FileText size={16} className="text-slate-600" />}
+                                onClick={() => downloadFile(`/forms/subscriber-agreement/${ticket.id}`, `Agreement_${ticket.id}.pdf`)}
+                                title="Download Agreement"
+                            />
+                            {!ticket.isPrized && (
+                                <Dropdown
+                                    menu={{
+                                        items: [
+                                            {
+                                                key: 'remove',
+                                                label: <span className="text-red-600 font-semibold">Remove Subscriber</span>,
+                                                icon: <UserMinus size={16} className="text-red-600" />,
+                                                onClick: () => confirmRemove(ticket.id)
+                                            }
+                                        ]
+                                    }}
+                                    trigger={['click']}
+                                    placement="bottomRight"
+                                >
+                                    <Button size="small" type="text" icon={<MoreVertical size={16} className="text-slate-600" />} />
+                                </Dropdown>
+                            )}
+                        </>
+                    )}
+                    {ticket.status === 'Vacant' && (
+                        <Button
+                            type="primary"
+                            size="small"
+                            onClick={() => handleAssignClick(ticket)}
+                            className="bg-blue-600 font-semibold"
+                        >
+                            Assign Subscriber
+                        </Button>
+                    )}
+                </Space>
+            )
+        }
+    ];
+
     return (
         <div className="max-w-7xl mx-auto pb-12">
             <Title level={2} className="!mb-8 text-slate-800">Ticket Management</Title>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {tickets.map(ticket => (
-                    <Card
-                        key={ticket.id}
-                        className={`shadow-sm border-0 rounded-xl hover:shadow-md transition-all ${ticket.status === 'Active' ? 'border-l-4 border-l-green-600' : 'border-l-4 border-l-amber-500'
-                            }`}
-                        styles={{ body: { padding: '1.5rem' } }}
-                    >
-                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-100">
-                            <span className="font-mono text-2xl font-bold text-slate-800">#{ticket.ticketNumber}</span>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    type="text"
-                                    icon={<UserPlus size={18} />}
-                                    onClick={() => handleNomineeClick(ticket)}
-                                    title="Manage Nominee"
-                                    className="text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-                                />
-                                <Button
-                                    type="text"
-                                    icon={<FileText size={18} />}
-                                    onClick={() => downloadFile(`/forms/subscriber-agreement/${ticket.id}`, `Agreement_${ticket.id}.pdf`)}
-                                    title="Download Agreement"
-                                    className="text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-                                />
-                                <Tag
-                                    color={ticket.status === 'Active' ? 'success' : 'warning'}
-                                    className="rounded-full px-3 py-1 font-bold m-0 text-sm flex items-center gap-1 border-0"
-                                >
-                                    {ticket.status === 'Active' ? <CheckCircle size={14} /> : <Clock size={14} />}
-                                    {ticket.status}
-                                </Tag>
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <Text className="text-slate-500 text-xs uppercase font-bold tracking-wider block mb-1">Subscriber</Text>
-                            <div className="flex items-center gap-2">
-                                <Text className="text-slate-800 font-semibold text-lg">{ticket.memberName || 'Not Assigned'}</Text>
-                                {ticket.isPrized && (
-                                    <Tag color="purple" className="rounded-full px-2 py-0 border-0 font-bold m-0">Prized</Tag>
-                                )}
-                            </div>
-                        </div>
-
-                        {ticket.status === 'Active' && !ticket.isPrized && (
-                            <Button
-                                danger
-                                icon={<UserMinus size={16} />}
-                                onClick={() => confirmRemove(ticket.id)}
-                                className="w-full flex justify-center items-center bg-red-50 hover:bg-red-100 border-red-200 font-semibold"
-                            >
-                                Remove Subscriber
-                            </Button>
-                        )}
-
-                        {ticket.status === 'Vacant' && (
-                            <Button
-                                type="primary"
-                                icon={<UserPlus size={16} />}
-                                onClick={() => handleAssignClick(ticket)}
-                                className="w-full flex justify-center items-center bg-blue-600 hover:bg-blue-700 font-bold shadow-sm"
-                            >
-                                Assign Vacancy
-                            </Button>
-                        )}
-                    </Card>
-                ))}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+                <Table
+                    columns={columns}
+                    dataSource={tickets}
+                    rowKey="id"
+                    pagination={{ pageSize: 20 }}
+                    loading={{
+                        indicator: <Spin size="large" />,
+                        spinning: isLoadingTickets
+                    }}
+                    rowClassName={(record) => record.status === 'Active' ? 'bg-green-50/20' : record.status === 'Vacant' ? 'bg-amber-50/20' : ''}
+                />
             </div>
 
             {/* Assign Modal */}

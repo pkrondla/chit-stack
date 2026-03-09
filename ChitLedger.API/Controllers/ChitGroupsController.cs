@@ -1,5 +1,6 @@
 using ChitLedger.Application.Features.Groups.Commands.LaunchGroup;
 using ChitLedger.Application.Features.ChitGroups.Commands.CreateChitGroup;
+using ChitLedger.Application.Features.ChitGroups.Commands.UpdateChitGroup;
 using ChitLedger.Application.Features.ChitGroups.Queries.GetChitGroups;
 using ChitLedger.Application.Features.Tickets.Queries.GetTickets;
 using ChitLedger.Domain.Common;
@@ -30,6 +31,19 @@ public class ChitGroupsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Result<int>>> Create(CreateChitGroupCommand command)
     {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result);
+        }
+        return Ok(result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<Result<int>>> Update(int id, UpdateChitGroupCommand command)
+    {
+        if (id != command.Id) return BadRequest(Result<int>.Failure("ID mismatch"));
+
         var result = await _mediator.Send(command);
         if (!result.Succeeded)
         {

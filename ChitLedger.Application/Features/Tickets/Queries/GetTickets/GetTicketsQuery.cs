@@ -12,8 +12,8 @@ public class TicketDto
 {
     public int Id { get; set; }
     public int TicketNumber { get; set; }
-    public int MemberId { get; set; }
-    public string MemberName { get; set; } = string.Empty;
+    public int? MemberId { get; set; }
+    public string? MemberName { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsPrized { get; set; }
 }
@@ -52,7 +52,7 @@ public class TicketProfile : Profile
     public TicketProfile()
     {
         CreateMap<Ticket, TicketDto>()
-            .ForMember(d => d.MemberName, opt => opt.MapFrom(s => s.Member.FullName))
+            .ForMember(d => d.MemberName, opt => opt.MapFrom(s => s.Member != null ? s.Member.FullName : null))
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()));
     }
 }

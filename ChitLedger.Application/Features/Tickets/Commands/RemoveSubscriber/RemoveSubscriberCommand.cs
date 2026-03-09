@@ -40,9 +40,7 @@ public class RemoveSubscriberHandler : IRequestHandler<RemoveSubscriberCommand, 
         
         ticket.Status = TicketStatus.Vacant;
         ticket.RemovalDate = DateTime.Now;
-        
-        // We do NOT nullify MemberId yet, so we know who "was" there. 
-        // When assigning to new member, we will overwrite.
+        ticket.MemberId = null;
 
         await _context.SaveChangesAsync(cancellationToken);
 

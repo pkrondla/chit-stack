@@ -26,10 +26,20 @@ const CreateGroup = () => {
     });
 
     const handleFinish = (values) => {
+        const chitValue = parseFloat(values.chitValue);
+        const durationMonths = parseInt(values.durationMonths);
+        const installmentAmount = parseFloat(values.installmentAmount);
+
+        if (chitValue !== durationMonths * installmentAmount) {
+            message.error(`Math Error: Chit Value (₹${chitValue}) must equal Duration (${durationMonths}) × Monthly Due (₹${installmentAmount}). Calculation is ₹${durationMonths * installmentAmount}.`);
+            return;
+        }
+
         createMutation.mutate({
             groupName: values.groupName,
-            chitValue: parseFloat(values.chitValue),
-            durationMonths: parseInt(values.durationMonths),
+            chitValue: chitValue,
+            durationMonths: durationMonths,
+            installmentAmount: installmentAmount,
             commissionPercentage: parseFloat(values.commissionPercentage),
             startDate: values.startDate ? values.startDate.toISOString() : new Date().toISOString()
         });
@@ -54,7 +64,7 @@ const CreateGroup = () => {
                         <Input size="large" placeholder="e.g. Gold Saver 2026" className="w-full" />
                     </Form.Item>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Form.Item
                             name="chitValue"
                             label={<span className="font-semibold text-slate-700">Chit Value (₹)</span>}
@@ -66,6 +76,20 @@ const CreateGroup = () => {
                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                 parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
                                 placeholder="100000"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="installmentAmount"
+                            label={<span className="font-semibold text-slate-700">Monthly Due (₹)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber
+                                size="large"
+                                className="w-full"
+                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                placeholder="5000"
                             />
                         </Form.Item>
 

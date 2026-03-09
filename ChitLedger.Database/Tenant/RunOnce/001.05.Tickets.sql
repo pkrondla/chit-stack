@@ -2,7 +2,7 @@ CREATE TABLE [dbo].[Tickets] (
     [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [TicketNumber] INT NOT NULL,
     [ChitGroupId] INT NOT NULL,
-    [MemberId] INT NOT NULL,
+    [MemberId] INT NULL,
     [IsPrized] BIT NOT NULL DEFAULT 0,
     [PrizedInstallment] INT NULL,
     [Status] NVARCHAR(50) DEFAULT 'Active',

@@ -138,6 +138,13 @@ GO
 
 -- Map Admin to HQ Branch
 DECLARE @TenantId INT = (SELECT Id FROM Tenants WHERE TenantKey = 'default');
+
+-- Alter Tickets table to allow nullable MemberId for handling vacancies without losing the slot
+IF EXISTS(SELECT 1 FROM sys.columns WHERE Name = N'MemberId' AND Object_ID = Object_ID(N'Tickets'))
+BEGIN
+    ALTER TABLE Tickets ALTER COLUMN MemberId INT NULL;
+END
+GO
 DECLARE @AdminId INT = (SELECT Id FROM Users WHERE Username = 'admin');
 DECLARE @HQBranchId INT = (SELECT Id FROM Branches WHERE Code = 'HQ');
 

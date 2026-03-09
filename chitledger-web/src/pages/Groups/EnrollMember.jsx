@@ -21,6 +21,8 @@ const EnrollMember = () => {
         }
     });
 
+    const selectedGroupId = Form.useWatch('chitGroupId', form);
+
     const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
         queryKey: ['groups'],
         queryFn: async () => {
@@ -28,6 +30,19 @@ const EnrollMember = () => {
             return res.data.data || res.data;
         }
     });
+
+    const { data: currentGroupTickets = [] } = useQuery({
+        queryKey: ['tickets', selectedGroupId],
+        queryFn: async () => {
+            if (!selectedGroupId) return [];
+            const res = await api.get(`/ChitGroups/${selectedGroupId}/tickets`);
+            return res.data.data || [];
+        },
+        enabled: !!selectedGroupId
+    });
+
+    // Extract member IDs already enrolled in the selected group
+    const enrolledMemberIds = currentGroupTickets.map(t => t.memberId);
 
     useEffect(() => {
         if (groupId) {
@@ -45,15 +60,16 @@ const EnrollMember = () => {
             navigate('/groups');
         },
         onError: (error) => {
-            message.error(error.response?.data?.error || 'Failed to enroll member');
+            const errData = error.response?.data;
+            const errMsg = errData?.errors?.[0] || errData?.error || 'Failed to enroll member';
+            message.error(errMsg);
         }
     });
 
     const handleFinish = (values) => {
         enrollMutation.mutate({
             chitGroupId: parseInt(values.chitGroupId),
-            memberId: parseInt(values.memberId),
-            ticketNumber: parseInt(values.ticketNumber)
+            memberIds: values.memberIds.map(id => parseInt(id))
         });
     };
 
@@ -88,27 +104,29 @@ const EnrollMember = () => {
                     </Form.Item>
 
                     <Form.Item
-                        name="memberId"
-                        label={<span className="font-semibold text-slate-700">Select Member</span>}
-                        rules={[{ required: true, message: 'Member is required' }]}
-                    >
-                        <Select size="large" placeholder="-- Select Member --" showSearch optionFilterProp="children">
-                            {members.map(m => (
-                                <Select.Option key={m.id} value={m.id}>
-                                    {m.fullName} ({m.phoneNumber})
-                                </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-
-                    <Form.Item
-                        name="ticketNumber"
-                        label={<span className="font-semibold text-slate-700">Assign Ticket Number</span>}
-                        rules={[{ required: true, message: 'Ticket number is required' }]}
-                        help={<Text className="text-slate-500 text-xs">Note: Ticket 1 is typically reserved for the Foreman.</Text>}
+                        name="memberIds"
+                        label={<span className="font-semibold text-slate-700">Select Members</span>}
+                        rules={[{ required: true, message: 'Please select at least one member' }]}
+                        help={<Text className="text-slate-500 text-xs">Selected members will automatically be assigned the next available Ticket Numbers in sequence.</Text>}
                         className="mb-8"
                     >
-                        <InputNumber size="large" className="w-full" placeholder="e.g. 1" min={1} />
+                        <Select
+                            mode="multiple"
+                            size="large"
+                            placeholder="-- Select Members --"
+                            showSearch
+                            optionFilterProp="children"
+                            maxTagCount="responsive"
+                        >
+                            {members.map(m => {
+                                const isEnrolled = enrolledMemberIds.includes(m.id);
+                                return (
+                                    <Select.Option key={m.id} value={m.id} disabled={isEnrolled}>
+                                        {m.fullName} ({m.phoneNumber}) {isEnrolled && " - Already Enrolled"}
+                                    </Select.Option>
+                                );
+                            })}
+                        </Select>
                     </Form.Item>
 
                     <div className="flex justify-end gap-3 mt-4">
