@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Typography, Button, Form, Input, Divider, message, Upload } from 'antd';
-import { UserPlus, ShieldCheck, Upload as UploadIcon } from 'lucide-react';
+import { UserPlus, ShieldCheck, Upload as UploadIcon, Camera } from 'lucide-react';
 import api from '../../api/axios';
+import MemberAvatar from '../../components/MemberAvatar';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +12,8 @@ const RegisterMember = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [form] = Form.useForm();
+    const [photoPreview, setPhotoPreview] = useState(null);
+    const [memberName, setMemberName] = useState('');
 
     const registerMutation = useMutation({
         mutationFn: async (payload) => {
@@ -40,12 +44,14 @@ const RegisterMember = () => {
                     } else if (values[key]?.fileList?.[0]?.originFileObj) {
                         formData.append(key, values[key].fileList[0].originFileObj);
                     }
+                } else if (key === 'photo') {
+                    const file = values[key]?.file?.originFileObj || values[key]?.fileList?.[0]?.originFileObj;
+                    if (file) formData.append('photo', file);
                 } else {
                     formData.append(key, values[key]);
                 }
             }
         });
-
         registerMutation.mutate(formData);
     };
 
@@ -73,7 +79,7 @@ const RegisterMember = () => {
                             label={<span className="font-semibold text-slate-700">Full Name</span>}
                             rules={[{ required: true, message: 'Full name is required' }]}
                         >
-                            <Input size="large" placeholder="John Doe" />
+                            <Input size="large" placeholder="John Doe" onChange={e => setMemberName(e.target.value)} />
                         </Form.Item>
 
                         <Form.Item
@@ -101,6 +107,47 @@ const RegisterMember = () => {
                         >
                             <Input size="large" placeholder="john.doe@example.com" />
                         </Form.Item>
+                    </div>
+                </Card>
+
+                {/* Photo Upload */}
+                <Card className="shadow-sm border-0 rounded-xl" styles={{ body: { padding: '2rem' } }}>
+                    <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-2">
+                        <Camera size={18} className="text-slate-500" />
+                        <Title level={4} className="!mb-0 text-slate-700">Member Photo</Title>
+                        <span className="text-slate-400 text-sm ml-2">(Optional — used in auction screen)</span>
+                    </div>
+                    <div className="flex items-center gap-8">
+                        <MemberAvatar
+                            name={memberName}
+                            photoUrl={photoPreview}
+                            size={96}
+                        />
+                        <Form.Item name="photo" className="!mb-0">
+                            <Upload
+                                beforeUpload={(file) => {
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => setPhotoPreview(e.target.result);
+                                    reader.readAsDataURL(file);
+                                    return false; // prevent auto-upload
+                                }}
+                                maxCount={1}
+                                accept="image/*"
+                                showUploadList={false}
+                            >
+                                <Button icon={<Camera size={16} />} size="large">
+                                    {photoPreview ? 'Change Photo' : 'Upload Photo'}
+                                </Button>
+                            </Upload>
+                        </Form.Item>
+                        {photoPreview && (
+                            <Button
+                                danger
+                                onClick={() => { setPhotoPreview(null); form.setFieldValue('photo', null); }}
+                            >
+                                Remove
+                            </Button>
+                        )}
                     </div>
                 </Card>
 

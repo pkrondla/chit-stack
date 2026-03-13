@@ -13,6 +13,7 @@ public class MemberDto
     public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
     public string? AadhaarDocumentUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     public string? RegistrationBranchName { get; set; }
     public int TicketCount { get; set; }
     public DateTime JoinedDate { get; set; }

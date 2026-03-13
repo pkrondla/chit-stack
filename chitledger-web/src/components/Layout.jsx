@@ -71,8 +71,11 @@ const Layout = () => {
                 />
             </Sider>
             <AntLayout>
-                <Header className="bg-white px-6 py-0 shadow-sm flex items-center justify-between z-10">
-                    <h1 className="text-xl font-semibold text-slate-800 capitalize m-0">
+                <Header
+                    className="px-6 py-0 shadow-sm flex items-center justify-between z-10"
+                    style={{ backgroundColor: '#ffffff', lineHeight: 'inherit' }}
+                >
+                    <h1 className="text-xl font-bold text-gray-900 capitalize m-0">
                         {location.pathname.split('/')[1] || 'Dashboard'}
                     </h1>
                     <div className="flex items-center gap-6">
@@ -99,15 +102,15 @@ const Layout = () => {
                                 { key: 'logout', label: 'Logout', icon: <LogOut size={16} />, onClick: handleLogout, danger: true }
                             ]
                         }} trigger={['click']} placement="bottomRight">
-                            <span className="cursor-pointer text-slate-600 hover:text-slate-900 flex items-center gap-2 border-l border-slate-200 pl-4">
+                            <span className="cursor-pointer flex items-center gap-2 pl-4">
                                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
                                     {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div className="hidden md:block text-sm">
-                                    <div className="font-medium text-slate-800 leading-tight">{user.fullName || user.username}</div>
-                                    <div className="text-xs text-slate-500">{user.role}</div>
+                                    <div className="font-semibold text-slate-900 leading-tight">{user.fullName || user.username}</div>
+                                    <div className="text-xs text-slate-600 font-medium">{user.role}</div>
                                 </div>
-                                <ChevronDown size={14} className="text-slate-400" />
+                                <ChevronDown size={14} className="text-slate-500" />
                             </span>
                         </Dropdown>
                     </div>

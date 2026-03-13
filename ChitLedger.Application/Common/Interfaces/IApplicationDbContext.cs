@@ -18,6 +18,8 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<Demand> Demands { get; }
     DbSet<Tenant> Tenants { get; }
+    DbSet<TenantSettings> TenantSettings { get; }
+    DbSet<HolidayDate> HolidayDates { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -12,6 +12,7 @@ public class Member : TenantEntity
     public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
     public string? AadhaarDocumentUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     public bool KycVerified { get; set; } = false;
 
     public int? RegistrationBranchId { get; set; }

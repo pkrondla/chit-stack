@@ -23,11 +23,17 @@ public class AuctionDto
     public int? WinningTicketId { get; set; }
     public bool IsPaid { get; set; }
     public DateTime? PaymentDate { get; set; }
+    public string? GroupStatus { get; set; }
+    public decimal ChitValue { get; set; }
+    public int DurationMonths { get; set; }
+    public decimal ForemanCommissionPercent { get; set; }
 }
 
 public class GetAuctionsQuery : IRequest<Result<List<AuctionDto>>>
 {
     public int? ChitGroupId { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
 }
 
 public class GetAuctionsHandler : IRequestHandler<GetAuctionsQuery, Result<List<AuctionDto>>>
@@ -52,8 +58,18 @@ public class GetAuctionsHandler : IRequestHandler<GetAuctionsQuery, Result<List<
             query = query.Where(x => x.ChitGroupId == request.ChitGroupId);
         }
 
+        if (request.FromDate.HasValue)
+        {
+            query = query.Where(x => x.AuctionDate >= request.FromDate.Value);
+        }
+
+        if (request.ToDate.HasValue)
+        {
+            query = query.Where(x => x.AuctionDate <= request.ToDate.Value);
+        }
+
         var auctions = await query
-            .OrderByDescending(x => x.AuctionDate)
+            .OrderBy(x => x.AuctionDate)
             .ProjectTo<AuctionDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
@@ -66,6 +82,11 @@ public class AuctionProfile : Profile
     public AuctionProfile()
     {
         CreateMap<Auction, AuctionDto>()
-            .ForMember(d => d.GroupName, opt => opt.MapFrom(s => s.ChitGroup.GroupName));
+            .ForMember(d => d.GroupName, opt => opt.MapFrom(s => s.ChitGroup.GroupName))
+            .ForMember(d => d.GroupStatus, opt => opt.MapFrom(s => s.ChitGroup.Status.ToString()))
+            .ForMember(d => d.ChitValue, opt => opt.MapFrom(s => s.ChitGroup.ChitValue))
+            .ForMember(d => d.DurationMonths, opt => opt.MapFrom(s => s.ChitGroup.DurationMonths))
+            .ForMember(d => d.ForemanCommissionPercent, opt => opt.MapFrom(s => s.ChitGroup.ForemanCommissionPercent));
     }
 }
+

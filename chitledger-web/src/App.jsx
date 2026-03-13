@@ -14,12 +14,15 @@ import MemberDetails from './pages/Members/MemberDetails';
 import EditMember from './pages/Members/EditMember';
 import Auctions from './pages/Auctions/AuctionList';
 import AuctionConsole from './pages/Auctions/AuctionConsole';
+import AuctionScheduler from './pages/Auctions/AuctionScheduler';
 import LiveAuction from './pages/Auctions/LiveAuction';
 import CollectionEntry from './pages/Finance/CollectionEntry';
 import Payouts from './pages/Finance/Payouts';
 import FinancialReports from './pages/Reports/FinancialReports';
 import UserManagement from './pages/Admin/UserManagement';
 import PortalDashboard from './pages/Portal/PortalDashboard';
+import Settings from './pages/Settings/Settings';
+import CompanySettings from './pages/Settings/CompanySettings';
 
 // Placeholder Pages
 const Dashboard = () => <div><h2>Welcome to Dashboard</h2><p>Select a module from the sidebar.</p></div>;
@@ -59,12 +62,15 @@ function App() {
           <Route path="auctions" element={<Auctions />} />
           <Route path="auctions/console/:auctionId" element={<AuctionConsole />} />
           <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
+          <Route path="groups/:groupId/scheduler" element={<AuctionScheduler />} />
           <Route path="finance" element={<CollectionEntry />} />
           <Route path="finance/payouts" element={<Payouts />} />
           <Route path="reports" element={<FinancialReports />} />
           {/* Admin */}
           <Route path="admin/users" element={<UserManagement />} />
           <Route path="portal" element={<PortalDashboard />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="settings/company" element={<Settings />} />
           {/* Add more routes here */}
         </Route>
       </Routes>

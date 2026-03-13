@@ -15,34 +15,79 @@ public class AllocateTicketCommand : IRequest<Result<List<int>>>
 public class AllocateTicketHandler : IRequestHandler<AllocateTicketCommand, Result<List<int>>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly ITenantService _tenantService;
+    private readonly IBranchService _branchService;
 
-    public AllocateTicketHandler(IApplicationDbContext context)
+    public AllocateTicketHandler(IApplicationDbContext context, ITenantService tenantService, IBranchService branchService)
     {
         _context = context;
+        _tenantService = tenantService;
+        _branchService = branchService;
     }
 
     public async Task<Result<List<int>>> Handle(AllocateTicketCommand request, CancellationToken cancellationToken)
     {
         // 1. Validate Group
-        var group = await _context.ChitGroups.Include(g => g.Tickets).FirstOrDefaultAsync(g => g.Id == request.ChitGroupId, cancellationToken);
+        var group = await _context.ChitGroups
+            .IgnoreQueryFilters()
+            .Include(g => g.Tickets)
+            .FirstOrDefaultAsync(g => g.Id == request.ChitGroupId, cancellationToken);
         if (group == null) return Result<List<int>>.Failure("Chit Group not found.");
         
         if (request.MemberIds == null || !request.MemberIds.Any())
             return Result<List<int>>.Failure("No members selected.");
 
-        // Check Max Capacity (Total Active and Vacant Tickets cannot exceed Duration Months)
-        if (group.Tickets.Count + request.MemberIds.Count > group.DurationMonths)
+
+        // Fix Group Branch/Tenant if missing (0)
+        if (group.TenantId == 0) group.TenantId = _tenantService.TenantId;
+        if (group.BranchId == 0 && _branchService.BranchId.HasValue) group.BranchId = _branchService.BranchId.Value;
+
+        var ticket1 = await _context.Tickets
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.ChitGroupId == group.Id && t.TicketNumber == 1, cancellationToken);
+
+        if (ticket1 == null)
         {
-            return Result<List<int>>.Failure($"Cannot enroll {request.MemberIds.Count} members. Only {group.DurationMonths - group.Tickets.Count} slots left out of a total {group.DurationMonths} slots.");
+            ticket1 = new Ticket
+            {
+                ChitGroupId = group.Id,
+                TicketNumber = 1,
+                IsForeman = true,
+                MemberId = null,
+                Status = TicketStatus.Active,
+                BranchId = group.BranchId,
+                TenantId = group.TenantId
+            };
+            _context.Tickets.Add(ticket1);
+            if (group.Tickets != null) group.Tickets.Add(ticket1);
+        }
+        else 
+        {
+            // Ensure even an existing ticket stays in sync with group branch/tenant
+            ticket1.IsForeman = true;
+            ticket1.MemberId = null;
+            ticket1.Status = TicketStatus.Active;
+            ticket1.BranchId = group.BranchId;
+            ticket1.TenantId = group.TenantId;
+        }
+
+        // Check Max Capacity (Total Tickets cannot exceed Duration Months)
+        // Since ticket1 logic above ensures ticket #1 exists (either existing or newly added to _context),
+        // we check the total count in the group.
+        int existingCount = group.Tickets.Count;
+        if (existingCount + request.MemberIds.Count > group.DurationMonths)
+        {
+            int availableSlots = group.DurationMonths - existingCount;
+            return Result<List<int>>.Failure($"Cannot enroll {request.MemberIds.Count} members. Only {availableSlots} slots left out of a total {group.DurationMonths} slots (including Foreman ticket).");
         }
 
         var createdTicketIds = new List<int>();
 
         // Find existing enrolled members
-        var existingMemberIds = group.Tickets.Select(t => t.MemberId).ToHashSet();
+        var existingMemberIds = group.Tickets.Where(t => t.MemberId != null).Select(t => t.MemberId!.Value).ToHashSet();
 
-        // Find the highest existing ticket number to auto-increment from
-        int nextTicketNumber = group.Tickets.Any() ? group.Tickets.Max(t => t.TicketNumber) + 1 : 1;
+        // Find the highest existing ticket number to auto-increment from, but ensure we start at 2 if we just had/added foreman
+        int nextTicketNumber = group.Tickets.Any() ? Math.Max(2, group.Tickets.Max(t => t.TicketNumber) + 1) : 2;
 
         foreach (var memberId in request.MemberIds)
         {
@@ -60,7 +105,7 @@ public class AllocateTicketHandler : IRequestHandler<AllocateTicketCommand, Resu
             };
 
             _context.Tickets.Add(ticket);
-            createdTicketIds.Add(ticket.Id); // Normally need to save first to get ID, but let's just track we processed them. Wait, EF Core might not populate ID until SaveChanges.
+            createdTicketIds.Add(ticket.Id); 
         }
 
         await _context.SaveChangesAsync(cancellationToken);

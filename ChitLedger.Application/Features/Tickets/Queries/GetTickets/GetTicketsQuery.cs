@@ -16,6 +16,7 @@ public class TicketDto
     public string? MemberName { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsPrized { get; set; }
+    public bool IsForeman { get; set; }
 }
 
 public class GetTicketsQuery : IRequest<Result<List<TicketDto>>>
@@ -37,6 +38,7 @@ public class GetTicketsHandler : IRequestHandler<GetTicketsQuery, Result<List<Ti
     public async Task<Result<List<TicketDto>>> Handle(GetTicketsQuery request, CancellationToken cancellationToken)
     {
         var tickets = await _context.Tickets
+            .IgnoreQueryFilters()
             .Include(t => t.Member)
             .Where(t => t.ChitGroupId == request.ChitGroupId)
             .OrderBy(t => t.TicketNumber)
@@ -52,7 +54,7 @@ public class TicketProfile : Profile
     public TicketProfile()
     {
         CreateMap<Ticket, TicketDto>()
-            .ForMember(d => d.MemberName, opt => opt.MapFrom(s => s.Member != null ? s.Member.FullName : null))
+            .ForMember(d => d.MemberName, opt => opt.MapFrom(s => s.IsForeman ? "FOREMAN / COMPANY" : (s.Member != null ? s.Member.FullName : null)))
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()));
     }
 }

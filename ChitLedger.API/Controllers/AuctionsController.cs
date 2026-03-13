@@ -23,9 +23,14 @@ public class AuctionsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<Result<List<AuctionDto>>>> Get([FromQuery] int? groupId)
+    public async Task<ActionResult<Result<List<AuctionDto>>>> Get([FromQuery] int? chitGroupId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
-        return Ok(await _mediator.Send(new GetAuctionsQuery { ChitGroupId = groupId }));
+        return Ok(await _mediator.Send(new GetAuctionsQuery 
+        { 
+            ChitGroupId = chitGroupId,
+            FromDate = fromDate,
+            ToDate = toDate
+        }));
     }
 
     [HttpPost("schedule")]
@@ -38,6 +43,14 @@ public class AuctionsController : ControllerBase
 
     [HttpPost("bid")]
     public async Task<ActionResult<Result<bool>>> PlaceBid(PlaceBidCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpPost("proxy-bid")]
+    public async Task<ActionResult<Result<int>>> ProxyBid(PlaceProxyBidCommand command)
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);

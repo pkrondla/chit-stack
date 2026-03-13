@@ -14,6 +14,7 @@ public class Ticket : BranchEntity
     public bool IsPrized { get; set; } = false; // Has verified prize money?
     public int? PrizedInstallment { get; set; }
     public TicketStatus Status { get; set; } = TicketStatus.Active;
+    public bool IsForeman { get; set; } = false;
     public DateTime? RemovalDate { get; set; }
 }
 

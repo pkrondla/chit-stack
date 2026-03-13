@@ -29,6 +29,7 @@ public class RemoveSubscriberHandler : IRequestHandler<RemoveSubscriberCommand, 
 
         if (ticket == null) return Result<int>.Failure("Ticket not found.");
         
+        if (ticket.IsForeman) return Result<int>.Failure("The Foreman ticket cannot be removed.");
         if (ticket.IsPrized) return Result<int>.Failure("Cannot remove a Prized subscriber. Settle the liability first.");
         if (ticket.Status == TicketStatus.Removed || ticket.Status == TicketStatus.Vacant) 
             return Result<int>.Failure("Ticket is already inactive.");

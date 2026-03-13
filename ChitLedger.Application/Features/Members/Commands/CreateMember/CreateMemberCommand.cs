@@ -16,6 +16,7 @@ public class CreateMemberCommand : IRequest<Result<int>>
     public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
     public string? AadhaarDocumentUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     public string? Address { get; set; }
 }
 
@@ -64,6 +65,7 @@ public class CreateMemberHandler : IRequestHandler<CreateMemberCommand, Result<i
             PanDocumentUrl = request.PanDocumentUrl,
             AadhaarNumber = request.AadhaarNumber,
             AadhaarDocumentUrl = request.AadhaarDocumentUrl,
+            PhotoUrl = request.PhotoUrl,
             Address = request.Address
         };
 

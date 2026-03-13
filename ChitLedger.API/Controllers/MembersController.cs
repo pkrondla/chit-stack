@@ -62,6 +62,12 @@ public class MembersController : ControllerBase
             command.AadhaarDocumentUrl = await fileStorage.SaveFileAsync(stream, request.AadhaarDocument.FileName, "kyc-docs");
         }
 
+        if (request.Photo != null)
+        {
+            using var stream = request.Photo.OpenReadStream();
+            command.PhotoUrl = await fileStorage.SaveFileAsync(stream, request.Photo.FileName, "member-photos");
+        }
+
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
@@ -93,6 +99,12 @@ public class MembersController : ControllerBase
             command.AadhaarDocumentUrl = await fileStorage.SaveFileAsync(stream, request.AadhaarDocument.FileName, "kyc-docs");
         }
 
+        if (request.Photo != null)
+        {
+            using var stream = request.Photo.OpenReadStream();
+            command.PhotoUrl = await fileStorage.SaveFileAsync(stream, request.Photo.FileName, "member-photos");
+        }
+
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
@@ -117,6 +129,7 @@ public class CreateMemberRequest
     public IFormFile? PanDocument { get; set; }
     public string? AadhaarNumber { get; set; }
     public IFormFile? AadhaarDocument { get; set; }
+    public IFormFile? Photo { get; set; }
 }
 
 public class UpdateMemberRequest : CreateMemberRequest

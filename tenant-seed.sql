@@ -89,6 +89,9 @@ ALTER TABLE ChitGroups ADD CreatedAt DATETIME2 NULL, CreatedBy NVARCHAR(200) NUL
 IF COL_LENGTH('dbo.ChitGroups', 'BranchId') IS NULL
 ALTER TABLE ChitGroups ADD BranchId INT NULL;
 
+IF COL_LENGTH('dbo.Tickets', 'IsForeman') IS NULL
+ALTER TABLE Tickets ADD IsForeman BIT NOT NULL DEFAULT 0;
+
 IF COL_LENGTH('dbo.Tickets', 'BranchId') IS NULL
 ALTER TABLE Tickets ADD BranchId INT NULL;
 

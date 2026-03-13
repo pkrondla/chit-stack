@@ -6,58 +6,199 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChitLedger.Application.Features.Groups.Commands.LaunchGroup;
 
-public class LaunchGroupCommand : IRequest<Result<int>>
+// ─────────────────────────────────────────────────────────────────────────────
+// DTO for a single preview row
+// ─────────────────────────────────────────────────────────────────────────────
+public class AuctionScheduleSlotDto
+{
+    public int InstallmentNumber { get; set; }
+    public string OriginalDate { get; set; } = string.Empty;   // The raw computed date
+    public string ScheduledDate { get; set; } = string.Empty;  // After Sunday/holiday shift
+    public string Time { get; set; } = string.Empty;
+    public bool IsAdjusted { get; set; }
+    public string AdjustmentReason { get; set; } = string.Empty;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUERY — Preview schedule (no DB writes)
+// ─────────────────────────────────────────────────────────────────────────────
+public class GenerateAuctionScheduleQuery : IRequest<Result<List<AuctionScheduleSlotDto>>>
+{
+    public int GroupId { get; set; }
+    public string FirstAuctionDate { get; set; } = string.Empty;  // "yyyy-MM-dd"
+}
+
+public class GenerateAuctionScheduleHandler : IRequestHandler<GenerateAuctionScheduleQuery, Result<List<AuctionScheduleSlotDto>>>
+{
+    private readonly IApplicationDbContext _context;
+    public GenerateAuctionScheduleHandler(IApplicationDbContext context) => _context = context;
+
+    public async Task<Result<List<AuctionScheduleSlotDto>>> Handle(GenerateAuctionScheduleQuery request, CancellationToken cancellationToken)
+    {
+        var group = await _context.ChitGroups.FirstOrDefaultAsync(g => g.Id == request.GroupId, cancellationToken);
+        if (group == null) return Result<List<AuctionScheduleSlotDto>>.Failure("Group not found.");
+        if (group.Status != GroupStatus.Proposed) return Result<List<AuctionScheduleSlotDto>>.Failure("Group is already launched.");
+
+        if (!DateOnly.TryParse(request.FirstAuctionDate, out var firstDate))
+            return Result<List<AuctionScheduleSlotDto>>.Failure("Invalid first auction date.");
+
+        // Load all holidays for this tenant
+        var holidays = await _context.HolidayDates.ToListAsync(cancellationToken);
+        var year = firstDate.Year;
+
+        HashSet<DateOnly> holidaySet = BuildHolidaySet(holidays, year, year + 3);
+
+        var slots = new List<AuctionScheduleSlotDto>();
+        var timeStr = group.AuctionTime.HasValue ? group.AuctionTime.Value.ToString("hh:mm tt") : "04:00 PM";
+
+        for (int i = 0; i < group.DurationMonths; i++)
+        {
+            DateOnly raw = ComputeRawDate(group, firstDate, i);
+            (DateOnly shifted, string reason) = ShiftIfNeeded(raw, holidaySet);
+
+            slots.Add(new AuctionScheduleSlotDto
+            {
+                InstallmentNumber = i + 1,
+                OriginalDate = raw.ToString("yyyy-MM-dd"),
+                ScheduledDate = shifted.ToString("yyyy-MM-dd"),
+                Time = timeStr,
+                IsAdjusted = shifted != raw,
+                AdjustmentReason = reason
+            });
+        }
+
+        return Result<List<AuctionScheduleSlotDto>>.Success(slots);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static DateOnly ComputeRawDate(ChitGroup group, DateOnly firstDate, int monthIndex)
+    {
+        if (monthIndex == 0) return firstDate;
+
+        if (group.AuctionScheduleMode == "SameWeekday"
+            && group.AuctionWeekNumber.HasValue && group.AuctionDayOfWeek.HasValue)
+        {
+            int targetMonth = firstDate.Month + monthIndex;
+            int targetYear = firstDate.Year + (targetMonth - 1) / 12;
+            targetMonth = ((targetMonth - 1) % 12) + 1;
+            return NthWeekdayOfMonth(targetYear, targetMonth, group.AuctionDayOfWeek.Value, group.AuctionWeekNumber.Value);
+        }
+        else
+        {
+            // FixedDay mode
+            int day = group.AuctionDayOfMonth ?? firstDate.Day;
+            int targetMonth = firstDate.Month + monthIndex;
+            int targetYear = firstDate.Year + (targetMonth - 1) / 12;
+            targetMonth = ((targetMonth - 1) % 12) + 1;
+            int clampedDay = Math.Min(day, DateTime.DaysInMonth(targetYear, targetMonth));
+            return new DateOnly(targetYear, targetMonth, clampedDay);
+        }
+    }
+
+    private static DateOnly NthWeekdayOfMonth(int year, int month, int dayOfWeek, int weekNumber)
+    {
+        var first = new DateOnly(year, month, 1);
+        int diff = ((int)dayOfWeek - (int)first.DayOfWeek + 7) % 7;
+        var candidate = first.AddDays(diff);
+
+        if (weekNumber == 5) // "Last"
+        {
+            while (candidate.AddDays(7).Month == month) candidate = candidate.AddDays(7);
+        }
+        else
+        {
+            candidate = candidate.AddDays(7 * (weekNumber - 1));
+        }
+
+        return candidate;
+    }
+
+    private static (DateOnly shifted, string reason) ShiftIfNeeded(DateOnly date, HashSet<DateOnly> holidays)
+    {
+        var original = date;
+        string reason = string.Empty;
+
+        // Shift Sunday → Monday
+        if (date.DayOfWeek == DayOfWeek.Sunday)
+        {
+            date = date.AddDays(1);
+            reason = "Shifted from Sunday";
+        }
+
+        // Shift holidays forward (skip further Sundays too)
+        int safety = 0;
+        while (holidays.Contains(date) && safety++ < 10)
+        {
+            date = date.AddDays(1);
+            if (date.DayOfWeek == DayOfWeek.Sunday) date = date.AddDays(1);
+            reason = string.IsNullOrEmpty(reason) ? "Shifted due to holiday" : reason + " + holiday";
+        }
+
+        return (date, reason);
+    }
+
+    private static HashSet<DateOnly> BuildHolidaySet(List<HolidayDate> holidays, int fromYear, int toYear)
+    {
+        var set = new HashSet<DateOnly>();
+        foreach (var h in holidays)
+        {
+            if (h.IsRecurringYearly)
+            {
+                for (int y = fromYear; y <= toYear; y++)
+                {
+                    try { set.Add(new DateOnly(y, h.Date.Month, h.Date.Day)); } catch { }
+                }
+            }
+            else
+            {
+                set.Add(h.Date);
+            }
+        }
+        return set;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMAND — Launch group (validates schedule is complete, then activates)
+// ─────────────────────────────────────────────────────────────────────────────
+public class LaunchGroupWithScheduleCommand : IRequest<Result<int>>
 {
     public int GroupId { get; set; }
 }
 
-public class LaunchGroupHandler : IRequestHandler<LaunchGroupCommand, Result<int>>
+public class LaunchGroupWithScheduleHandler : IRequestHandler<LaunchGroupWithScheduleCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    public LaunchGroupWithScheduleHandler(IApplicationDbContext context) => _context = context;
 
-    public LaunchGroupHandler(IApplicationDbContext context)
-    {
-        _context = context;
-    }
-
-    public async Task<Result<int>> Handle(LaunchGroupCommand request, CancellationToken cancellationToken)
+    public async Task<Result<int>> Handle(LaunchGroupWithScheduleCommand request, CancellationToken cancellationToken)
     {
         var group = await _context.ChitGroups
             .Include(g => g.Tickets)
             .FirstOrDefaultAsync(g => g.Id == request.GroupId, cancellationToken);
 
-        if (group == null) return Result<int>.Failure("Group not found");
-
-        if (group.Status != GroupStatus.Proposed)
-            return Result<int>.Failure("Group is already launched or closed.");
+        if (group == null) return Result<int>.Failure("Group not found.");
+        if (group.Status != GroupStatus.Proposed) return Result<int>.Failure("Group is already launched or closed.");
 
         if (group.Tickets.Count < group.DurationMonths)
-            return Result<int>.Failure($"Cannot launch. Only {group.Tickets.Count}/{group.DurationMonths} tickets subscribed.");
+            return Result<int>.Failure($"Cannot launch. Only {group.Tickets.Count}/{group.DurationMonths} tickets enrolled.");
 
-        // Update Status
+        // Validate auction schedule is fully set up
+        var auctionCount = await _context.Auctions
+            .CountAsync(a => a.ChitGroupId == request.GroupId, cancellationToken);
+
+        if (auctionCount < group.DurationMonths)
+            return Result<int>.Failure(
+                $"Auction schedule is incomplete. {auctionCount}/{group.DurationMonths} months scheduled. " +
+                "Please set dates for all months in Auction Scheduler before launching.");
+
+        // Activate the group
         group.Status = GroupStatus.Active;
         group.LaunchDate = DateTime.UtcNow;
 
-        // Schedule 1st Auction
-        // Usually, 1st Auction is Installment 1, Date = Launch Date or Next Month
-        // Act: 1st Installment is full payment to Foreman (No Auction), OR 1st Auction happens immediately?
-        // Let's assume 1st Auction happens 1 month after Launch. Installment 1 is collection.
-        // Actually, in many Chits, 1st installment is paid upfront, and 1st Auction is for 1st prize.
-        
-        var auction = new Auction
-        {
-            ChitGroupId = group.Id,
-            InstallmentNumber = 1,
-            AuctionDate = DateTime.UtcNow.AddMonths(1), // Scheduled for next month
-            AuctionStatus = "Scheduled",
-            WinningBidAmount = 0,
-            DividendAmount = 0,
-            NetPayableAmount = 0
-        };
-        _context.Auctions.Add(auction);
-
         await _context.SaveChangesAsync(cancellationToken);
-
         return Result<int>.Success(group.Id);
     }
 }
+

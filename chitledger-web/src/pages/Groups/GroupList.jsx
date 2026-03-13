@@ -1,15 +1,18 @@
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Typography, Button, Tag, Space, Spin, message, Modal, Table, Dropdown } from 'antd';
-import { Plus, Users, Play, FileText, Gavel, Edit, MoreVertical } from 'lucide-react';
+import { Plus, Users, Play, FileText, Gavel, Edit, MoreVertical, CalendarClock } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
+import LaunchGroupModal from './LaunchGroupModal';
 
 const { Title, Text } = Typography;
 
 const Groups = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [launchingGroup, setLaunchingGroup] = useState(null);
 
     const { data: groups = [], isLoading } = useQuery({
         queryKey: ['groups'],
@@ -19,29 +22,9 @@ const Groups = () => {
         }
     });
 
-    const launchMutation = useMutation({
-        mutationFn: async (groupId) => {
-            const res = await api.post(`/ChitGroups/${groupId}/launch`);
-            return res.data.data || res.data;
-        },
-        onSuccess: () => {
-            message.success("Group Launched Successfully!");
-            queryClient.invalidateQueries({ queryKey: ['groups'] });
-        },
-        onError: (error) => {
-            message.error("Launch Failed: " + (error.response?.data?.error || error.message));
-        }
-    });
-
-    const handleLaunch = (groupId, e) => {
+    const handleLaunch = (group, e) => {
         e.stopPropagation();
-        Modal.confirm({
-            title: 'Launch Group',
-            content: 'Are you sure? This will Activate the group and schedule the first auction. Ensure all tickets are subscribed.',
-            okText: 'Yes, Launch',
-            cancelText: 'Cancel',
-            onOk: () => launchMutation.mutate(groupId)
-        });
+        setLaunchingGroup(group);
     };
 
     const columns = [
@@ -115,10 +98,58 @@ const Groups = () => {
                                     onClick: () => navigate(`/groups/enroll?groupId=${group.id}`)
                                 },
                                 {
-                                    key: 'sanction',
-                                    label: 'Download Sanction Form',
+                                    key: 'auction-scheduler',
+                                    label: 'Auction Scheduler',
+                                    icon: <CalendarClock size={16} className="text-violet-600" />,
+                                    onClick: () => navigate(`/groups/${group.id}/scheduler`)
+                                },
+                                {
+                                    key: 'statutory',
+                                    label: 'Statutory Forms',
                                     icon: <FileText size={16} />,
-                                    onClick: () => downloadFile(`/forms/sanction/${group.id}`, `Form_I_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                    children: [
+                                        {
+                                            key: 'download-all',
+                                            label: <span className="font-semibold text-blue-700">⬇ Download All (ZIP)</span>,
+                                            onClick: () => downloadFile(`/forms/statutory/${group.id}`, `Statutory_Forms_${group.groupName.replace(/\s+/g, '_')}.zip`)
+                                        },
+                                        { type: 'divider' },
+                                        {
+                                            key: 'form-i',
+                                            label: 'Form I — Application for Sanction',
+                                            onClick: () => downloadFile(`/forms/sanction/${group.id}`, `Form_I_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                        {
+                                            key: 'form-ii',
+                                            label: 'Form II — Application for Registration',
+                                            onClick: () => downloadFile(`/forms/agreement/${group.id}`, `Form_II_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                        {
+                                            key: 'byelaws',
+                                            label: 'Bye-Laws of the Chit Group',
+                                            onClick: () => downloadFile(`/forms/byelaws/${group.id}`, `ByeLaws_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                        {
+                                            key: 'security',
+                                            label: 'Security Deposit Letter',
+                                            onClick: () => downloadFile(`/forms/security-deposit/${group.id}`, `SecurityDeposit_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                        {
+                                            key: 'form-v',
+                                            label: 'Form V — Declaration of Full Subscription',
+                                            onClick: () => downloadFile(`/forms/form-v/${group.id}`, `Form_V_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                        {
+                                            key: 'form-vi',
+                                            label: 'Form VI — Commencement Request',
+                                            onClick: () => downloadFile(`/forms/form-vi/${group.id}`, `Form_VI_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                        {
+                                            key: 'form-vii',
+                                            label: 'Form VII — Agreements to Subscribers',
+                                            onClick: () => downloadFile(`/forms/form-vii/${group.id}`, `Form_VII_${group.groupName.replace(/\s+/g, '_')}.pdf`)
+                                        },
+                                    ]
                                 },
                                 ...(group.status === 'Proposed' ? [{
                                     type: 'divider'
@@ -127,8 +158,9 @@ const Groups = () => {
                                     key: 'launch',
                                     label: <span className="text-green-600 font-semibold">Launch Group</span>,
                                     icon: <Play size={16} className="text-green-600" />,
-                                    onClick: (e) => handleLaunch(group.id, e.domEvent)
+                                    onClick: (e) => handleLaunch(group, e.domEvent)
                                 }] : [])
+
                             ]
                         }}
                         trigger={['click']}
@@ -163,12 +195,19 @@ const Groups = () => {
                     rowKey="id"
                     loading={{
                         indicator: <Spin size="large" />,
-                        spinning: isLoading || launchMutation.isPending
+                        spinning: isLoading
                     }}
                     pagination={{ pageSize: 12 }}
                     className="w-full"
                 />
             </div>
+
+
+            <LaunchGroupModal
+                group={launchingGroup}
+                open={!!launchingGroup}
+                onClose={() => setLaunchingGroup(null)}
+            />
         </div>
     );
 };

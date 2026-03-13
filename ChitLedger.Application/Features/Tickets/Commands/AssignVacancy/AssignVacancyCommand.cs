@@ -29,6 +29,7 @@ public class AssignVacancyHandler : IRequestHandler<AssignVacancyCommand, Result
 
         if (ticket == null) return Result<int>.Failure("Ticket not found.");
         
+        if (ticket.IsForeman) return Result<int>.Failure("The Foreman ticket cannot be assigned to a member.");
         if (ticket.Status != TicketStatus.Vacant) 
             return Result<int>.Failure("Ticket is not vacant.");
 

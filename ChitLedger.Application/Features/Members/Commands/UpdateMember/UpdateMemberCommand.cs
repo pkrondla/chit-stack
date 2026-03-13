@@ -16,6 +16,7 @@ public class UpdateMemberCommand : IRequest<Result<int>>
     public string? PanDocumentUrl { get; set; }
     public string? AadhaarNumber { get; set; }
     public string? AadhaarDocumentUrl { get; set; }
+    public string? PhotoUrl { get; set; }
     public string? Address { get; set; }
 }
 
@@ -77,6 +78,11 @@ public class UpdateMemberHandler : IRequestHandler<UpdateMemberCommand, Result<i
         if (!string.IsNullOrEmpty(request.AadhaarDocumentUrl))
         {
             entity.AadhaarDocumentUrl = request.AadhaarDocumentUrl;
+        }
+
+        if (!string.IsNullOrEmpty(request.PhotoUrl))
+        {
+            entity.PhotoUrl = request.PhotoUrl;
         }
 
         // Check if KYC is now satisfied

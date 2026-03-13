@@ -38,9 +38,11 @@ const GroupTickets = () => {
         }
     });
 
+    const enrolledMemberIds = tickets.map(t => t.memberId).filter(id => id !== null);
+
     const assignMutation = useMutation({
         mutationFn: async (payload) => {
-            const res = await api.post('/Members/allocate-ticket', payload);
+            const res = await api.post('/Tickets/assign-vacancy', payload);
             return res.data.data || res.data;
         },
         onSuccess: () => {
@@ -118,8 +120,8 @@ const GroupTickets = () => {
 
     const handleAssignFinish = (values) => {
         assignMutation.mutate({
-            chitGroupId: parseInt(groupId),
-            memberIds: [parseInt(values.memberId)] // Backend changed to accept array
+            ticketId: selectedTicket.id,
+            newMemberId: parseInt(values.memberId)
         });
     };
 
@@ -159,9 +161,14 @@ const GroupTickets = () => {
             key: 'subscriber',
             render: (_, ticket) => (
                 <div className="flex items-center gap-2">
-                    <Text className="text-slate-800 font-semibold">{ticket.memberName || <span className="text-slate-400 italic">Not Assigned</span>}</Text>
+                    <Text className={`font-semibold ${ticket.isForeman ? 'text-blue-700' : 'text-slate-800'}`}>
+                        {ticket.memberName || <span className="text-slate-400 italic">Not Assigned</span>}
+                    </Text>
+                    {ticket.isForeman && (
+                        <Tag color="blue" className="rounded-full px-2 py-0 border-0 font-bold m-0 uppercase text-[10px]">Foreman</Tag>
+                    )}
                     {ticket.isPrized && (
-                        <Tag color="purple" className="rounded-full px-2 py-0 border-0 font-bold m-0">Prized</Tag>
+                        <Tag color="purple" className="rounded-full px-2 py-0 border-0 font-bold m-0 text-[10px]">Prized</Tag>
                     )}
                 </div>
             )
@@ -186,7 +193,7 @@ const GroupTickets = () => {
             align: 'right',
             render: (_, ticket) => (
                 <Space size="small">
-                    {ticket.status === 'Active' && (
+                    {ticket.status === 'Active' && !ticket.isForeman && (
                         <>
                             <Button
                                 size="small"
@@ -222,6 +229,9 @@ const GroupTickets = () => {
                             )}
                         </>
                     )}
+                    {ticket.isForeman && (
+                        <Text type="secondary" className="text-xs italic px-2">System Reserved</Text>
+                    )}
                     {ticket.status === 'Vacant' && (
                         <Button
                             type="primary"
@@ -238,7 +248,7 @@ const GroupTickets = () => {
     ];
 
     return (
-        <div className="max-w-7xl mx-auto pb-12">
+        <div className="max-w-7xl mx-auto pb-12" >
             <Title level={2} className="!mb-8 text-slate-800">Ticket Management</Title>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-6">
@@ -270,9 +280,14 @@ const GroupTickets = () => {
                         rules={[{ required: true, message: 'Please select a member' }]}
                     >
                         <Select size="large" placeholder="-- Choose Member --" showSearch optionFilterProp="children">
-                            {availableMembers.map(m => (
-                                <Select.Option key={m.id} value={m.id}>{m.fullName} ({m.phoneNumber})</Select.Option>
-                            ))}
+                            {availableMembers.map(m => {
+                                const isEnrolled = enrolledMemberIds.includes(m.id);
+                                return (
+                                    <Select.Option key={m.id} value={m.id} disabled={isEnrolled}>
+                                        {m.fullName} ({m.phoneNumber}) {isEnrolled && " - Already Enrolled"}
+                                    </Select.Option>
+                                );
+                            })}
                         </Select>
                     </Form.Item>
                     <div className="flex gap-4 mt-8">
@@ -290,10 +305,10 @@ const GroupTickets = () => {
                         </Button>
                     </div>
                 </Form>
-            </Modal>
+            </Modal >
 
             {/* Nominee Modal */}
-            <Modal
+            < Modal
                 title={`Nominee Details for Ticket #${selectedTicket?.ticketNumber}`}
                 open={isNomineeModalOpen}
                 onCancel={() => setIsNomineeModalOpen(false)}
@@ -345,8 +360,8 @@ const GroupTickets = () => {
                         </Button>
                     </div>
                 </Form>
-            </Modal>
-        </div>
+            </Modal >
+        </div >
     );
 };
 

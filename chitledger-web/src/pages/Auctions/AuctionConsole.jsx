@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Typography, Button, Form, InputNumber, Tag, message, Spin, Divider } from 'antd';
+import { Card, Typography, Button, Form, InputNumber, Select, Tag, message, Spin, Divider } from 'antd';
 import { Calculator, ArrowLeft, CheckCircle, FileText } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -25,8 +25,18 @@ const AuctionConsole = () => {
         queryKey: ['auction', auctionId],
         queryFn: async () => {
             const response = await api.get('/Auctions');
-            return response.data.find(a => a.id === parseInt(auctionId));
+            const auctionsList = response.data.data || response.data || [];
+            return auctionsList.find(a => String(a.id) === String(auctionId));
         }
+    });
+
+    const { data: tickets = [], isLoading: isLoadingTickets } = useQuery({
+        queryKey: ['tickets', auction?.chitGroupId],
+        queryFn: async () => {
+            const res = await api.get(`/ChitGroups/${auction.chitGroupId}/tickets`);
+            return res.data.data || [];
+        },
+        enabled: !!auction?.chitGroupId
     });
 
     const closeMutation = useMutation({
@@ -60,11 +70,13 @@ const AuctionConsole = () => {
     });
 
     const calculate = (bidAmount) => {
-        const chitValue = 100000; // Placeholder
-        const totalMembers = 20; // Placeholder
-        const commissionRate = 0.05;
+        if (!auction) return;
 
-        const currentBid = parseFloat(bidAmount) || (auction ? auction.winningBidAmount : 0) || 0;
+        const chitValue = auction.chitValue || 0;
+        const totalMembers = auction.durationMonths || 1;
+        const commissionRate = (auction.foremanCommissionPercent || 5) / 100;
+
+        const currentBid = parseFloat(bidAmount) || auction.winningBidAmount || 0;
         const commission = chitValue * commissionRate;
         const distributable = currentBid - commission;
         const dividend = distributable > 0 ? (distributable / totalMembers) : 0;
@@ -74,22 +86,55 @@ const AuctionConsole = () => {
     };
 
     useEffect(() => {
-        if (auction) {
-            calculate(form.getFieldValue('bidAmount'));
+        if (auction && tickets.length > 0) {
+            // Pre-fill for Foreman if it's the first installment and no winner yet
+            if (auction.installmentNumber === 1 && !auction.winningTicketId && !form.getFieldValue('winningTicketId')) {
+                const foremanTicket = tickets.find(t => t.isForeman || t.ticketNumber === 1);
+                if (foremanTicket) {
+                    form.setFieldsValue({
+                        winningTicketId: foremanTicket.ticketNumber,
+                        memberTicketId: foremanTicket.id,
+                        bidAmount: 0
+                    });
+                    calculate(0);
+                }
+            } else {
+                calculate(form.getFieldValue('bidAmount'));
+            }
         }
-    }, [auction, form]);
+    }, [auction, tickets, form]);
 
     const handleValuesChange = (changedValues, allValues) => {
         if ('bidAmount' in changedValues) {
             calculate(allValues.bidAmount);
         }
+
+        // Sync ticket number and member selection
+        if ('winningTicketId' in changedValues) {
+            const ticketId = changedValues.winningTicketId;
+            const ticket = tickets.find(t => t.id === ticketId || t.ticketNumber === ticketId);
+            if (ticket && ticket.id !== allValues.memberTicketId) {
+                form.setFieldsValue({ memberTicketId: ticket.id });
+            } else if (!ticket) {
+                form.setFieldsValue({ memberTicketId: null });
+            }
+        }
+
+        if ('memberTicketId' in changedValues) {
+            const ticketId = changedValues.memberTicketId;
+            const ticket = tickets.find(t => t.id === ticketId);
+            if (ticket && ticket.ticketNumber !== allValues.winningTicketId) {
+                form.setFieldsValue({ winningTicketId: ticket.ticketNumber });
+            }
+        }
     };
 
     const handleProxyBid = () => {
         form.validateFields(['winningTicketId', 'bidAmount']).then(values => {
+            const ticket = tickets.find(t => t.ticketNumber === values.winningTicketId);
             bidMutation.mutate({
                 auctionId: parseInt(auctionId),
-                ticketId: parseInt(values.winningTicketId),
+                ticketId: ticket ? ticket.id : parseInt(values.winningTicketId),
                 bidAmount: parseFloat(values.bidAmount)
             });
         });
@@ -97,9 +142,10 @@ const AuctionConsole = () => {
 
     const handleCloseAuction = () => {
         form.validateFields(['winningTicketId', 'bidAmount']).then(values => {
+            const ticket = tickets.find(t => t.ticketNumber === values.winningTicketId);
             closeMutation.mutate({
                 auctionId: parseInt(auctionId),
-                winningTicketId: parseInt(values.winningTicketId) || 1, // Fallback placeholder
+                winningTicketId: ticket ? ticket.id : (values.winningTicketId || 1),
                 winningBidAmount: parseFloat(values.bidAmount) || (auction ? auction.winningBidAmount : 0)
             });
         });
@@ -165,13 +211,33 @@ const AuctionConsole = () => {
                                     layout="vertical"
                                     onValuesChange={handleValuesChange}
                                 >
-                                    <Form.Item
-                                        name="winningTicketId"
-                                        label="Ticket #"
-                                        rules={[{ required: true, message: 'Required' }]}
-                                    >
-                                        <InputNumber className="w-full" size="large" placeholder="Enter Ticket Number" />
-                                    </Form.Item>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Form.Item
+                                            name="memberTicketId"
+                                            label="Subscriber Name"
+                                        >
+                                            <Select
+                                                size="large"
+                                                placeholder="Select Member"
+                                                showSearch
+                                                optionFilterProp="children"
+                                                loading={isLoadingTickets}
+                                            >
+                                                {tickets.map(t => (
+                                                    <Select.Option key={t.id} value={t.id}>
+                                                        {t.memberName} (#{t.ticketNumber}) {t.isForeman && " [FOREMAN]"}
+                                                    </Select.Option>
+                                                ))}
+                                            </Select>
+                                        </Form.Item>
+                                        <Form.Item
+                                            name="winningTicketId"
+                                            label="Ticket #"
+                                            rules={[{ required: true, message: 'Required' }]}
+                                        >
+                                            <InputNumber className="w-full" size="large" placeholder="Ticket #" />
+                                        </Form.Item>
+                                    </div>
                                     <Form.Item
                                         name="bidAmount"
                                         label="Bid Amount (Discount)"
@@ -238,7 +304,7 @@ const AuctionConsole = () => {
                             </div>
 
                             <div className="flex justify-between py-2 border-b border-slate-200">
-                                <Text className="text-slate-500">Foreman Commission (5%)</Text>
+                                <Text className="text-slate-500">Foreman Commission ({auction.foremanCommissionPercent || 5}%)</Text>
                                 <Text strong>₹{calculations.commission.toLocaleString()}</Text>
                             </div>
 
