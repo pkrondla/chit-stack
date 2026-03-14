@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ChitLedger.API.Controllers;
 
-[Authorize(Roles = "Admin,Manager")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AuctionsController : ControllerBase
@@ -33,6 +33,7 @@ public class AuctionsController : ControllerBase
         }));
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("schedule")]
     public async Task<ActionResult<Result<int>>> Schedule(ScheduleAuctionCommand command)
     {
@@ -41,6 +42,7 @@ public class AuctionsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager,Member")]
     [HttpPost("bid")]
     public async Task<ActionResult<Result<bool>>> PlaceBid(PlaceBidCommand command)
     {
@@ -49,6 +51,7 @@ public class AuctionsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("proxy-bid")]
     public async Task<ActionResult<Result<int>>> ProxyBid(PlaceProxyBidCommand command)
     {
@@ -57,6 +60,7 @@ public class AuctionsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("close")]
     public async Task<ActionResult<Result<int>>> Close(CloseAuctionCommand command)
     {

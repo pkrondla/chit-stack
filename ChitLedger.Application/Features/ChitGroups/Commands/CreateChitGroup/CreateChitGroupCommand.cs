@@ -15,7 +15,7 @@ public class CreateChitGroupCommand : IRequest<Result<int>>
     public decimal ForemanCommissionPercent { get; set; } = 5.0m;
     // Auction Schedule
     public string? AuctionScheduleMode { get; set; }  // 'FixedDay' | 'SameWeekday'
-    public int? AuctionDayOfMonth { get; set; }
+    public string? AuctionDayOfMonth { get; set; }
     public int? AuctionWeekNumber { get; set; }
     public int? AuctionDayOfWeek { get; set; }
     public string? AuctionTime { get; set; }  // "HH:mm" string from frontend

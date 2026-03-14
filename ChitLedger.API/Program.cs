@@ -57,6 +57,7 @@ builder.Services.AddAuthentication(options =>
 
 // SignalR
 builder.Services.AddSignalR();
+builder.Services.AddScoped<ChitLedger.Application.Common.Interfaces.IAuctionNotificationService, ChitLedger.API.Services.AuctionNotificationService>();
 
 // CORS
 builder.Services.AddCors(options =>

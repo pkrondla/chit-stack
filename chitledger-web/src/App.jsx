@@ -27,7 +27,6 @@ import CompanySettings from './pages/Settings/CompanySettings';
 // Placeholder Pages
 const Dashboard = () => <div><h2>Welcome to Dashboard</h2><p>Select a module from the sidebar.</p></div>;
 
-import { useEffect } from 'react';
 
 const ProtectedRoute = ({ children }) => {
   const user = useAuthStore((state) => state.user);
@@ -38,9 +37,6 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  useEffect(() => {
-    useAuthStore.getState().initAuth();
-  }, []);
 
   return (
     <Router>

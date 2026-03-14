@@ -9,16 +9,19 @@ public class PlaceBidCommand : IRequest<Result<bool>>
 {
     public int AuctionId { get; set; }
     public int BidderTicketId { get; set; } // Which ticket is bidding (Member)
-    public decimal BidAmount { get; set; } // The DISCQOUNT amount usually in Chits
+    public decimal BidAmount { get; set; } // The DISCOUNT amount
+    public string Source { get; set; } = "Web"; // Web, Mobile, Office
 }
 
 public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IAuctionNotificationService _notificationService;
 
-    public PlaceBidHandler(IApplicationDbContext context)
+    public PlaceBidHandler(IApplicationDbContext context, IAuctionNotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<bool>> Handle(PlaceBidCommand request, CancellationToken cancellationToken)
@@ -31,7 +34,10 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
         
         // TODO: Validate if auction is OPEN/LIVE
         
-        var ticket = await _context.Tickets.FindAsync(new object[] { request.BidderTicketId }, cancellationToken);
+        var ticket = await _context.Tickets
+            .Include(t => t.Member)
+            .FirstOrDefaultAsync(t => t.Id == request.BidderTicketId, cancellationToken);
+            
         if (ticket == null) return Result<bool>.Failure("Ticket not found.");
         
         // Validation: Max Bid Cap (Chit Act 1982 usually caps at 30% or 40%)
@@ -54,6 +60,14 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
         auction.WinningTicketId = request.BidderTicketId;
         
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify Real-time
+        await _notificationService.NotifyBidAsync(
+            auction.Id, 
+            ticket.Member?.FullName ?? $"Ticket #{ticket.TicketNumber}", 
+            request.BidAmount,
+            ticket.Member?.PhotoUrl,
+            request.Source);
 
         return Result<bool>.Success(true);
     }

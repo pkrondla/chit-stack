@@ -16,7 +16,7 @@ public class UpdateChitGroupCommand : IRequest<Result<int>>
     public decimal ForemanCommissionPercent { get; set; }
     // Auction Schedule
     public string? AuctionScheduleMode { get; set; }
-    public int? AuctionDayOfMonth { get; set; }
+    public string? AuctionDayOfMonth { get; set; }
     public int? AuctionWeekNumber { get; set; }
     public int? AuctionDayOfWeek { get; set; }
     public string? AuctionTime { get; set; }

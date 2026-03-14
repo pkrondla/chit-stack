@@ -30,7 +30,7 @@ public class ChitGroup : BranchEntity
 
     // Auction Schedule Preference (set before/at launch)
     public string? AuctionScheduleMode { get; set; }  // 'FixedDay' | 'SameWeekday'
-    public int? AuctionDayOfMonth { get; set; }        // e.g. 15 (used when mode = FixedDay)
+    public string? AuctionDayOfMonth { get; set; }        // e.g. "1, 10, 20" (used when mode = FixedDay)
     public int? AuctionWeekNumber { get; set; }        // e.g. 3 (3rd weekday, used when mode = SameWeekday)
     public int? AuctionDayOfWeek { get; set; }         // 0=Sun..6=Sat (used when mode = SameWeekday)
     public TimeOnly? AuctionTime { get; set; }         // e.g. 16:00

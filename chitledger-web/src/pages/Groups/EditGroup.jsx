@@ -69,9 +69,9 @@ const EditGroup = () => {
                 commissionPercentage: group.foremanCommissionPercent || 5,
                 // Schedule
                 auctionScheduleMode: mode,
-                auctionDayOfMonth: group.auctionDayOfMonth,
-                auctionWeekNumber: group.auctionWeekNumber,
-                auctionDayOfWeek: group.auctionDayOfWeek,
+                auctionDayOfMonth: group.auctionDayOfMonth ? group.auctionDayOfMonth.split(',').map(v => parseInt(v.trim())) : [],
+                auctionWeekNumber: null,
+                auctionDayOfWeek: null,
                 auctionTime: group.auctionTime ? dayjs(group.auctionTime, 'HH:mm') : null,
                 // Statutory
                 sanctionNumber: group.sanctionNumber || '',
@@ -129,9 +129,11 @@ const EditGroup = () => {
                 installmentAmount: isRunning ? group.installmentAmount : parseFloat(values.installmentAmount),
                 foremanCommissionPercent: parseFloat(values.commissionPercentage),
                 auctionScheduleMode: values.auctionScheduleMode || null,
-                auctionDayOfMonth: values.auctionScheduleMode === 'FixedDay' ? values.auctionDayOfMonth : null,
-                auctionWeekNumber: values.auctionScheduleMode === 'SameWeekday' ? values.auctionWeekNumber : null,
-                auctionDayOfWeek: values.auctionScheduleMode === 'SameWeekday' ? values.auctionDayOfWeek : null,
+                auctionDayOfMonth: values.auctionScheduleMode === 'FixedDay'
+                    ? (Array.isArray(values.auctionDayOfMonth) ? values.auctionDayOfMonth.sort((a, b) => a - b).join(',') : values.auctionDayOfMonth)
+                    : null,
+                auctionWeekNumber: null,
+                auctionDayOfWeek: null,
                 auctionTime: values.auctionTime ? values.auctionTime.format('HH:mm') : null,
             });
 
@@ -287,38 +289,27 @@ const EditGroup = () => {
                     <Form.Item
                         name="auctionScheduleMode"
                         label={<span className="font-medium text-slate-700">Schedule Type</span>}
+                        hidden
                     >
-                        <Radio.Group onChange={e => setScheduleMode(e.target.value)}>
-                            <Radio value="FixedDay">Fixed Day of Month (e.g. every 15th)</Radio>
-                            <Radio value="SameWeekday">Same Weekday (e.g. every 3rd Saturday)</Radio>
+                        <Radio.Group>
+                            <Radio value="FixedDay">Fixed Day of Month</Radio>
                         </Radio.Group>
                     </Form.Item>
 
-                    {scheduleMode === 'FixedDay' ? (
-                        <Form.Item
-                            name="auctionDayOfMonth"
-                            label={<span className="font-medium text-slate-700">Day of Month</span>}
-                            help="If it falls on a Sunday or holiday, it shifts to the next workday."
-                            className="max-w-xs"
-                        >
-                            <InputNumber min={1} max={28} placeholder="e.g. 15" size="large" className="w-full" />
-                        </Form.Item>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-4 max-w-md">
-                            <Form.Item
-                                name="auctionWeekNumber"
-                                label={<span className="font-medium text-slate-700">Which Week</span>}
-                            >
-                                <Select size="large" placeholder="Select week" options={WEEK_NUMBERS} />
-                            </Form.Item>
-                            <Form.Item
-                                name="auctionDayOfWeek"
-                                label={<span className="font-medium text-slate-700">Day of Week</span>}
-                            >
-                                <Select size="large" placeholder="Select day" options={DAYS_OF_WEEK} />
-                            </Form.Item>
-                        </div>
-                    )}
+                    <Form.Item
+                        name="auctionDayOfMonth"
+                        label={<span className="font-medium text-slate-700">Day(s) of Month</span>}
+                        help="Select one or more days (e.g., 1, 10, 20). If a day falls on a Sunday or holiday, it shifts to the next workday."
+                        rules={[{ required: true, message: 'Please select at least one day' }]}
+                    >
+                        <Select
+                            mode="multiple"
+                            size="large"
+                            placeholder="Select day(s)"
+                            style={{ width: '100%' }}
+                            options={Array.from({ length: 31 }, (_, i) => ({ label: (i + 1).toString(), value: i + 1 }))}
+                        />
+                    </Form.Item>
 
                     <Form.Item
                         name="auctionTime"

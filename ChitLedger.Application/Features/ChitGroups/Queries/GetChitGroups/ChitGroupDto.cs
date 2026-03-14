@@ -29,7 +29,7 @@ public class ChitGroupDto
     public decimal FilingFees { get; set; }
     // Auction schedule preference
     public string? AuctionScheduleMode { get; set; }
-    public int? AuctionDayOfMonth { get; set; }
+    public string? AuctionDayOfMonth { get; set; }
     public int? AuctionWeekNumber { get; set; }
     public int? AuctionDayOfWeek { get; set; }
     public string? AuctionTime { get; set; }

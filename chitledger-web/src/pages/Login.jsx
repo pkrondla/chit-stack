@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, Alert } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
@@ -9,8 +9,15 @@ const { Title, Text } = Typography;
 const Login = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const user = useAuthStore(state => state.user);
     const login = useAuthStore(state => state.login);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user) {
+            navigate('/dashboard');
+        }
+    }, [user, navigate]);
 
     const onFinish = async (values) => {
         setLoading(true);

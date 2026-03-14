@@ -57,7 +57,7 @@ const EnrollMember = () => {
         },
         onSuccess: () => {
             message.success('Member successfully enrolled!');
-            navigate('/groups');
+            navigate('/members');
         },
         onError: (error) => {
             const errData = error.response?.data;

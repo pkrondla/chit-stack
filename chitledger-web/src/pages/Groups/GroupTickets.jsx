@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Typography, Button, Tag, Modal, Form, Input, DatePicker, Select, message, Spin, Table, Dropdown, Space } from 'antd';
 import { UserMinus, UserPlus, FileText, CheckCircle, Clock, MoreVertical, ShieldAlert } from 'lucide-react';
@@ -11,6 +11,7 @@ const { Title, Text } = Typography;
 
 const GroupTickets = () => {
     const { groupId } = useParams();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     // Modals state
@@ -249,7 +250,18 @@ const GroupTickets = () => {
 
     return (
         <div className="max-w-7xl mx-auto pb-12" >
-            <Title level={2} className="!mb-8 text-slate-800">Ticket Management</Title>
+            <div className="flex justify-between items-center mb-8">
+                <Title level={2} className="!m-0 text-slate-800">Ticket Management</Title>
+                <Button
+                    type="primary"
+                    icon={<UserPlus size={18} />}
+                    onClick={() => navigate(`/groups/enroll?groupId=${groupId}`)}
+                    size="large"
+                    className="bg-slate-900 border-none font-semibold shadow-sm hover:!bg-slate-800"
+                >
+                    Enroll Member
+                </Button>
+            </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-6">
                 <Table

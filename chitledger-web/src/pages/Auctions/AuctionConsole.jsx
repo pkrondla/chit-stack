@@ -130,12 +130,13 @@ const AuctionConsole = () => {
     };
 
     const handleProxyBid = () => {
-        form.validateFields(['winningTicketId', 'bidAmount']).then(values => {
+        form.validateFields(['winningTicketId', 'bidAmount', 'source']).then(values => {
             const ticket = tickets.find(t => t.ticketNumber === values.winningTicketId);
             bidMutation.mutate({
                 auctionId: parseInt(auctionId),
                 ticketId: ticket ? ticket.id : parseInt(values.winningTicketId),
-                bidAmount: parseFloat(values.bidAmount)
+                bidAmount: parseFloat(values.bidAmount),
+                source: values.source || "Office"
             });
         });
     };
@@ -238,19 +239,32 @@ const AuctionConsole = () => {
                                             <InputNumber className="w-full" size="large" placeholder="Ticket #" />
                                         </Form.Item>
                                     </div>
-                                    <Form.Item
-                                        name="bidAmount"
-                                        label="Bid Amount (Discount)"
-                                        rules={[{ required: true, message: 'Required' }]}
-                                    >
-                                        <InputNumber
-                                            className="w-full"
-                                            size="large"
-                                            placeholder="0.00"
-                                            formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                            parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
-                                        />
-                                    </Form.Item>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Form.Item
+                                            name="bidAmount"
+                                            label="Bid Amount (Discount)"
+                                            rules={[{ required: true, message: 'Required' }]}
+                                        >
+                                            <InputNumber
+                                                className="w-full"
+                                                size="large"
+                                                placeholder="0.00"
+                                                formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                            />
+                                        </Form.Item>
+                                        <Form.Item
+                                            name="source"
+                                            label="Bid Method"
+                                            initialValue="Office"
+                                        >
+                                            <Select size="large">
+                                                <Select.Option value="Office">Physical (Office)</Select.Option>
+                                                <Select.Option value="Web">Web Portal</Select.Option>
+                                                <Select.Option value="Mobile">Mobile App</Select.Option>
+                                            </Select>
+                                        </Form.Item>
+                                    </div>
                                     <Button
                                         block
                                         size="large"

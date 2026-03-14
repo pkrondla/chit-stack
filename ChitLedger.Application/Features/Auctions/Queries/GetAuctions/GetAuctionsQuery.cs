@@ -27,6 +27,7 @@ public class AuctionDto
     public decimal ChitValue { get; set; }
     public int DurationMonths { get; set; }
     public decimal ForemanCommissionPercent { get; set; }
+    public string? AuctionVenueAddress { get; set; }
 }
 
 public class GetAuctionsQuery : IRequest<Result<List<AuctionDto>>>
@@ -86,7 +87,8 @@ public class AuctionProfile : Profile
             .ForMember(d => d.GroupStatus, opt => opt.MapFrom(s => s.ChitGroup.Status.ToString()))
             .ForMember(d => d.ChitValue, opt => opt.MapFrom(s => s.ChitGroup.ChitValue))
             .ForMember(d => d.DurationMonths, opt => opt.MapFrom(s => s.ChitGroup.DurationMonths))
-            .ForMember(d => d.ForemanCommissionPercent, opt => opt.MapFrom(s => s.ChitGroup.ForemanCommissionPercent));
+            .ForMember(d => d.ForemanCommissionPercent, opt => opt.MapFrom(s => s.ChitGroup.ForemanCommissionPercent))
+            .ForMember(d => d.AuctionVenueAddress, opt => opt.MapFrom(s => s.ChitGroup.AuctionVenueAddress));
     }
 }
 

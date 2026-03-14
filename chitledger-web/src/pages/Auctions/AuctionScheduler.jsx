@@ -61,7 +61,8 @@ const AuctionScheduler = () => {
                 let suggested = dayjs().add(10, 'day'); // Start looking 10 days from now
 
                 if (selectedGroup.auctionScheduleMode === 'FixedDay' && selectedGroup.auctionDayOfMonth) {
-                    suggested = dayjs().date(selectedGroup.auctionDayOfMonth);
+                    const days = selectedGroup.auctionDayOfMonth.split(',').map(d => parseInt(d.trim()));
+                    suggested = dayjs().date(days[0]);
                     if (suggested.isBefore(dayjs().add(2, 'day'))) {
                         suggested = suggested.add(1, 'month');
                     }
@@ -412,8 +413,8 @@ const AuctionScheduler = () => {
                     <div className="mt-3 text-sm text-slate-500 bg-blue-50 rounded-lg px-3 py-2">
                         <strong>Schedule mode:</strong>{' '}
                         {selectedGroup.auctionScheduleMode === 'FixedDay'
-                            ? `Every ${selectedGroup.auctionDayOfMonth}${['th', 'st', 'nd', 'rd'][Math.min(selectedGroup.auctionDayOfMonth % 10, 3)] || 'th'} of the month`
-                            : `${['Last', '1st', '2nd', '3rd', '4th'][selectedGroup.auctionWeekNumber] || '#'} ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][selectedGroup.auctionDayOfWeek] || ''} of each month`
+                            ? `Every ${selectedGroup.auctionDayOfMonth}${selectedGroup.auctionDayOfMonth?.includes(',') ? ' days' : 'th'} of the month`
+                            : 'Custom Schedule'
                         }
                         {selectedGroup.auctionTime && <> · <strong>{selectedGroup.auctionTime}</strong></>}
                     </div>

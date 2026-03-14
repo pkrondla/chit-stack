@@ -72,28 +72,58 @@ public class GenerateAuctionScheduleHandler : IRequestHandler<GenerateAuctionSch
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private static DateOnly ComputeRawDate(ChitGroup group, DateOnly firstDate, int monthIndex)
+    private static DateOnly ComputeRawDate(ChitGroup group, DateOnly firstDate, int installmentIndex)
     {
-        if (monthIndex == 0) return firstDate;
+        if (installmentIndex == 0) return firstDate;
 
         if (group.AuctionScheduleMode == "SameWeekday"
             && group.AuctionWeekNumber.HasValue && group.AuctionDayOfWeek.HasValue)
         {
-            int targetMonth = firstDate.Month + monthIndex;
+            int targetMonth = firstDate.Month + installmentIndex;
             int targetYear = firstDate.Year + (targetMonth - 1) / 12;
             targetMonth = ((targetMonth - 1) % 12) + 1;
             return NthWeekdayOfMonth(targetYear, targetMonth, group.AuctionDayOfWeek.Value, group.AuctionWeekNumber.Value);
         }
         else
         {
-            // FixedDay mode
-            int day = group.AuctionDayOfMonth ?? firstDate.Day;
-            int targetMonth = firstDate.Month + monthIndex;
-            int targetYear = firstDate.Year + (targetMonth - 1) / 12;
-            targetMonth = ((targetMonth - 1) % 12) + 1;
-            int clampedDay = Math.Min(day, DateTime.DaysInMonth(targetYear, targetMonth));
-            return new DateOnly(targetYear, targetMonth, clampedDay);
+            // FixedDay mode - supports multiple days e.g. "1, 10, 20"
+            var days = ParseDays(group.AuctionDayOfMonth, firstDate.Day);
+            
+            DateOnly current = firstDate;
+            for (int i = 0; i < installmentIndex; i++)
+            {
+                int nextDayIndex = days.FindIndex(d => d > current.Day);
+                if (nextDayIndex != -1)
+                {
+                    current = new DateOnly(current.Year, current.Month, Math.Min(days[nextDayIndex], DateTime.DaysInMonth(current.Year, current.Month)));
+                }
+                else
+                {
+                    // Move to next month
+                    int nextMonth = current.Month + 1;
+                    int nextYear = current.Year + (nextMonth - 1) / 12;
+                    nextMonth = ((nextMonth - 1) % 12) + 1;
+                    current = new DateOnly(nextYear, nextMonth, Math.Min(days[0], DateTime.DaysInMonth(nextYear, nextMonth)));
+                }
+            }
+            return current;
         }
+    }
+
+    private static List<int> ParseDays(string? dayString, int defaultDay)
+    {
+        if (string.IsNullOrWhiteSpace(dayString))
+            return new List<int> { defaultDay };
+
+        var days = dayString.Split(',')
+            .Select(s => int.TryParse(s.Trim(), out int d) ? d : (int?)null)
+            .Where(d => d.HasValue && d.Value >= 1 && d.Value <= 31)
+            .Select(d => d!.Value)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        return days.Count > 0 ? days : new List<int> { defaultDay };
     }
 
     private static DateOnly NthWeekdayOfMonth(int year, int month, int dayOfWeek, int weekNumber)

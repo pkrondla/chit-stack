@@ -11,15 +11,18 @@ public class PlaceProxyBidCommand : IRequest<Result<int>>
     public int AuctionId { get; set; }
     public int TicketId { get; set; } // The member for whom bid is placed
     public decimal BidAmount { get; set; }
+    public string Source { get; set; } = "Office"; // Office, Physical
 }
 
 public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IAuctionNotificationService _notificationService;
 
-    public PlaceProxyBidHandler(IApplicationDbContext context)
+    public PlaceProxyBidHandler(IApplicationDbContext context, IAuctionNotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<int>> Handle(PlaceProxyBidCommand request, CancellationToken cancellationToken)
@@ -32,7 +35,10 @@ public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result
         
         if (auction.AuctionStatus == "Closed") return Result<int>.Failure("Auction is closed");
 
-        var ticket = await _context.Tickets.FindAsync(new object[] { request.TicketId }, cancellationToken);
+        var ticket = await _context.Tickets
+            .Include(t => t.Member)
+            .FirstOrDefaultAsync(t => t.Id == request.TicketId, cancellationToken);
+
         if (ticket == null || ticket.ChitGroupId != auction.ChitGroupId)
             return Result<int>.Failure("Invalid Ticket for this group");
 
@@ -54,6 +60,14 @@ public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result
         auction.NetPayableAmount = auction.ChitGroup.ChitValue - request.BidAmount;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify Real-time
+        await _notificationService.NotifyBidAsync(
+            auction.Id,
+            ticket.Member?.FullName ?? $"Ticket #{ticket.TicketNumber}",
+            request.BidAmount,
+            ticket.Member?.PhotoUrl,
+            request.Source);
 
         return Result<int>.Success(auction.Id);
     }
