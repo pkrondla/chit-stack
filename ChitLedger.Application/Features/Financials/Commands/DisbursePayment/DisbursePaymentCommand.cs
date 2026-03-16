@@ -1,3 +1,4 @@
+using ChitLedger.Application.Common.Constants;
 using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -11,17 +12,20 @@ public class DisbursePaymentCommand : IRequest<Result<int>>
     public string PaymentMode { get; set; } = "Bank";
     public string ReferenceNumber { get; set; } = string.Empty;
     public DateTime PaymentDate { get; set; } = DateTime.Now;
+    public int? AccountHeadId { get; set; } // Optional: specific bank/cash account
 }
 
 public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IJournalService _journalService;
+    private readonly IAccountResolutionService _accountService;
 
-    public DisbursePaymentHandler(IApplicationDbContext context, IJournalService journalService)
+    public DisbursePaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService)
     {
         _context = context;
         _journalService = journalService;
+        _accountService = accountService;
     }
 
     public async Task<Result<int>> Handle(DisbursePaymentCommand request, CancellationToken cancellationToken)
@@ -46,18 +50,32 @@ public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Re
 
         // Journal Entry
         // Debit: Prize Payable (Liability decreasing)
-        // Credit: Bank (Asset decreasing)
+        // Credit: Bank/Cash (Asset decreasing)
         
+        var payableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.PrizePayable, cancellationToken);
+        if (!payableAccount.Succeeded) return Result<int>.Failure(payableAccount.Errors.First());
+
+        string creditAccountCode;
+
+        if (request.AccountHeadId.HasValue)
+        {
+            var account = await _context.AccountHeads.FindAsync(new object[] { request.AccountHeadId.Value }, cancellationToken);
+            if (account == null) return Result<int>.Failure("Selected payment account not found.");
+            creditAccountCode = account.AccountCode;
+        }
+        else
+        {
+            string role = request.PaymentMode == "Cash" ? AccountRoles.Cash : AccountRoles.Bank;
+            var resolveResult = await _accountService.GetAccountCodeByRoleAsync(role, cancellationToken);
+            if (!resolveResult.Succeeded) return Result<int>.Failure(resolveResult.Errors.First());
+            creditAccountCode = resolveResult.Data;
+        }
+
         var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
         {
-            ("LIABILITY-PRIZE-PAYABLE", auction.NetPayableAmount, 0),
-            ("ASSET-BANK", 0, auction.NetPayableAmount) // Assuming mainly Bank transfers for large amounts
+            (payableAccount.Data, auction.NetPayableAmount, 0),
+            (creditAccountCode, 0, auction.NetPayableAmount)
         };
-
-        if (request.PaymentMode == "Cash")
-        {
-             journalLines[1] = ("ASSET-CASH", 0, auction.NetPayableAmount);
-        }
 
         await _journalService.CreateEntryAsync(
             "Payout",

@@ -1,4 +1,6 @@
+using ChitLedger.Application.Features.Reporting.Commands.UpsertAccount;
 using ChitLedger.Application.Features.Reporting.Queries.GetAccountHeads;
+using ChitLedger.Application.Features.Reporting.Queries.GetBranches;
 using ChitLedger.Application.Features.Reporting.Queries.GetDayBook;
 using ChitLedger.Application.Features.Reporting.Queries.GetLedger;
 using ChitLedger.Application.Features.Reporting.Queries.GetProfitAndLoss;
@@ -44,6 +46,29 @@ public class ReportingController : ControllerBase
     public async Task<ActionResult<Result<List<AccountHeadDto>>>> GetAccountHeads()
     {
         return Ok(await _mediator.Send(new GetAccountHeadsQuery()));
+    }
+
+    [HttpGet("branches")]
+    public async Task<ActionResult<Result<List<BranchDto>>>> GetBranches()
+    {
+        return Ok(await _mediator.Send(new GetBranchesQuery()));
+    }
+
+    [HttpPost("accounts")]
+    public async Task<ActionResult<Result<int>>> CreateAccount(UpsertAccountCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpPut("accounts/{id}")]
+    public async Task<ActionResult<Result<int>>> UpdateAccount(int id, UpsertAccountCommand command)
+    {
+        command.Id = id;
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
     }
 
     [HttpGet("trial-balance")]

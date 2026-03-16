@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IGSTService, GSTService>();
         services.AddScoped<IJournalService, JournalService>();
+        services.AddScoped<IAccountResolutionService, AccountResolutionService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IPdfService, PdfService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();

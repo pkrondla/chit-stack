@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Typography, Tag, Select, message, Tooltip, Row, Col, Divider } from 'antd';
+import { Card, Table, Button, Space, Typography, Tag, Select, App, Tooltip, Row, Col, Divider } from 'antd';
 import { FileText, Download, FileArchive, ArrowLeft, Search, Building2, User as UserIcon } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -7,6 +7,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const StatutoryForms = () => {
+    const { message } = App.useApp();
     const [loading, setLoading] = useState(false);
     const [chitGroups, setChitGroups] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
@@ -18,7 +19,7 @@ const StatutoryForms = () => {
 
     const fetchGroups = async () => {
         try {
-            const res = await api.get('/chitgroup');
+            const res = await api.get('/ChitGroups');
             const data = res.data.data || res.data;
             setChitGroups(Array.isArray(data) ? data : []);
             if (Array.isArray(data) && data.length > 0) {
@@ -37,7 +38,7 @@ const StatutoryForms = () => {
 
     const fetchAuctions = async (groupId) => {
         try {
-            const res = await api.get(`/auctions/group/${groupId}`);
+            const res = await api.get(`/Auctions?chitGroupId=${groupId}`);
             const data = res.data.data || res.data;
             setAuctions(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -80,10 +81,10 @@ const StatutoryForms = () => {
             dataIndex: 'name',
             key: 'name',
             render: (text, record) => (
-                <Space direction="vertical" size={0}>
+                <div className="flex flex-col gap-0">
                     <Text strong>{text}</Text>
                     <Text type="secondary" className="text-xs">{record.description}</Text>
-                </Space>
+                </div>
             )
         },
         {
@@ -180,8 +181,10 @@ const StatutoryForms = () => {
                 <Col>
                     <Space>
                         <Select
+                            showSearch
                             style={{ width: 250 }}
                             placeholder="Select Chit Group"
+                            optionFilterProp="children"
                             value={selectedGroup}
                             onChange={(val) => setSelectedGroup(val)}
                         >
@@ -208,6 +211,7 @@ const StatutoryForms = () => {
                         <Table
                             columns={columns}
                             dataSource={formsList}
+                            rowKey="key"
                             pagination={false}
                             size="middle"
                             loading={loading}
@@ -218,7 +222,8 @@ const StatutoryForms = () => {
                     <Card title={<Space><Building2 size={20} /><span>Auction Minutes (Form VIII)</span></Space>}>
                         <Table
                             columns={auctionColumns}
-                            dataSource={auctions}
+                            dataSource={auctions.filter(a => a.auctionStatus === 'Closed')}
+                            rowKey="id"
                             pagination={{ pageSize: 5 }}
                             size="small"
                             loading={loading}
@@ -226,7 +231,7 @@ const StatutoryForms = () => {
                     </Card>
 
                     <Card className="mt-4" title={<Space><UserIcon size={20} /><span>Member Specific Forms</span></Space>}>
-                        <Text type="secondary" block className="mb-4">Individual member forms can be downloaded from the Member Directory.</Text>
+                        <Text type="secondary" className="mb-4 display-block" style={{ display: 'block' }}>Individual member forms can be downloaded from the Member Directory.</Text>
                         <ul className="list-disc pl-5 text-sm space-y-2">
                             <li>Subscriber Agreement (Section 6)</li>
                             <li>KYC Verification Form</li>

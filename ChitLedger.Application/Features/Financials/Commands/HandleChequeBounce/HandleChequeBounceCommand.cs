@@ -1,3 +1,4 @@
+using ChitLedger.Application.Common.Constants;
 using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
 using ChitLedger.Domain.Entities;
@@ -18,11 +19,13 @@ public class HandleChequeBounceHandler : IRequestHandler<HandleChequeBounceComma
 {
     private readonly IApplicationDbContext _context;
     private readonly IJournalService _journalService;
+    private readonly IAccountResolutionService _accountService;
 
-    public HandleChequeBounceHandler(IApplicationDbContext context, IJournalService journalService)
+    public HandleChequeBounceHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService)
     {
         _context = context;
         _journalService = journalService;
+        _accountService = accountService;
     }
 
     public async Task<Result<int>> Handle(HandleChequeBounceCommand request, CancellationToken cancellationToken)
@@ -71,10 +74,16 @@ public class HandleChequeBounceHandler : IRequestHandler<HandleChequeBounceComma
         {
             // Debit: Member Receivable (Asset)
             // Credit: Bounce Charge Income (Income)
+            var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
+            var bounceIncomeAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.BounceChargeIncome, cancellationToken);
+
+            if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
+            if (!bounceIncomeAccount.Succeeded) return Result<int>.Failure(bounceIncomeAccount.Errors.First());
+
             var chargeLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
             {
-                ("RECEIVABLE-MEMBER", request.BounceCharge, 0),
-                ("INCOME-BOUNCE-CHARGES", 0, request.BounceCharge)
+                (receivableAccount.Data, request.BounceCharge, 0),
+                (bounceIncomeAccount.Data, 0, request.BounceCharge)
             };
 
             await _journalService.CreateEntryAsync(

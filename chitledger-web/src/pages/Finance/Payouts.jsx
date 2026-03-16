@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Typography, Button, Tag, Modal, Form, Input, InputNumber, Select, Alert, message, List, Divider } from 'antd';
+import { Card, Typography, Button, Tag, Modal, Form, Input, InputNumber, Select, Alert, App, List, Divider } from 'antd';
 import { IndianRupee, CheckCircle, ShieldAlert } from 'lucide-react';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
 
 const Payouts = () => {
+    const { message } = App.useApp();
     const queryClient = useQueryClient();
     const [selectedAuction, setSelectedAuction] = useState(null);
     const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
@@ -22,6 +23,14 @@ const Payouts = () => {
         queryKey: ['payouts'],
         queryFn: async () => {
             const res = await api.get('/Auctions');
+            return res.data.data || res.data;
+        }
+    });
+
+    const { data: accounts = [] } = useQuery({
+        queryKey: ['accounts'],
+        queryFn: async () => {
+            const res = await api.get('/Reporting/accounts');
             return res.data.data || res.data;
         }
     });
@@ -73,7 +82,8 @@ const Payouts = () => {
         payoutMutation.mutate({
             auctionId: selectedAuction.id,
             paymentMode: values.paymentMode,
-            referenceNumber: values.referenceNumber || ''
+            referenceNumber: values.referenceNumber || '',
+            accountHeadId: values.accountHeadId
         });
     };
 
@@ -91,8 +101,6 @@ const Payouts = () => {
         form.setFieldsValue({ paymentMode: 'Bank' });
         setIsGuarantorFormOpen(false);
     };
-
-    console.log("auctions fetched:", auctions);
 
     const pendingPayouts = auctions.filter(a => a.auctionStatus === 'Closed' && a.winningTicketId && !a.isPaid);
     const completedPayouts = auctions.filter(a => a.isPaid);
@@ -263,10 +271,27 @@ const Payouts = () => {
 
                         <Form form={form} layout="vertical" onFinish={handleDisburseSubmit} initialValues={{ paymentMode: 'Bank' }}>
                             <Form.Item name="paymentMode" label="Payment Mode" rules={[{ required: true }]}>
-                                <Select size="large">
+                                <Select size="large" onChange={() => form.setFieldValue('accountHeadId', undefined)}>
                                     <Select.Option value="Bank">Bank Transfer / NEFT</Select.Option>
                                     <Select.Option value="Cheque">Cheque</Select.Option>
                                     <Select.Option value="Cash">Cash</Select.Option>
+                                </Select>
+                            </Form.Item>
+
+                            <Form.Item
+                                label={<span className="font-semibold text-slate-700">{paymentMode === 'Cash' ? 'Cash Account' : 'Bank Account'}</span>}
+                                name="accountHeadId"
+                                rules={[{ required: true, message: 'Please select an account' }]}
+                            >
+                                <Select size="large" placeholder="Select Account">
+                                    {accounts
+                                        .filter(a => paymentMode === 'Cash' ? a.systemRole === 'Cash' : a.systemRole === 'Bank')
+                                        .map(a => (
+                                            <Select.Option key={a.id} value={a.id}>
+                                                {a.accountName} ({a.accountCode})
+                                            </Select.Option>
+                                        ))
+                                    }
                                 </Select>
                             </Form.Item>
 

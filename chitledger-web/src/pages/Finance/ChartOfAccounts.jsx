@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Table, Button, Modal, Form, Input, Select, Space, Tag, message } from 'antd';
+import { Card, Table, Button, Modal, Form, Input, Select, Space, Tag, App, Typography } from 'antd';
 import { Plus, Edit2, ShieldCheck } from 'lucide-react';
 import api from '../../api/axios';
 
 const ChartOfAccounts = () => {
+    const { message } = App.useApp();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
@@ -35,7 +36,9 @@ const ChartOfAccounts = () => {
     const columns = [
         { title: 'Code', dataIndex: 'accountCode', key: 'code' },
         { title: 'Account Name', dataIndex: 'accountName', key: 'name' },
-        { title: 'Type', dataIndex: 'type', key: 'type', render: (t) => <Tag color="geekblue">{t.toUpperCase()}</Tag> },
+        { title: 'Bank Details', dataIndex: 'bankDetails', key: 'bank', ellipsis: true },
+        { title: 'Type', dataIndex: 'type', key: 'type', render: (t) => <Tag color="geekblue">{t?.toUpperCase()}</Tag> },
+        { title: 'System Role', dataIndex: 'systemRole', key: 'role', render: (r) => r ? <Tag color="orange">{r}</Tag> : '-' },
         { title: 'System', dataIndex: 'isSystem', key: 'system', render: (s) => s ? <ShieldCheck size={16} className="text-slate-400" /> : null },
         {
             title: 'Action',
@@ -87,6 +90,32 @@ const ChartOfAccounts = () => {
                             <Select.Option value="Income">Income</Select.Option>
                             <Select.Option value="Expense">Expense</Select.Option>
                         </Select>
+                    </Form.Item>
+                    <Form.Item name="systemRole" label="System Role Mapping" extra="Map this account to a specific system operation. Optional.">
+                        <Select allowClear>
+                            <Select.Option value="MemberReceivable">Member Receivable</Select.Option>
+                            <Select.Option value="CommissionIncome">Commission Income</Select.Option>
+                            <Select.Option value="LateFeeIncome">Late Fee Income</Select.Option>
+                            <Select.Option value="CgstLiability">CGST Liability</Select.Option>
+                            <Select.Option value="SgstLiability">SGST Liability</Select.Option>
+                            <Select.Option value="TdsLiability">TDS Liability</Select.Option>
+                            <Select.Option value="PrizePayable">Prize Money Payable</Select.Option>
+                            <Select.Option value="BounceChargeIncome">Bounce Charge Income</Select.Option>
+                            <Select.Option value="Cash">Cash Account (Default)</Select.Option>
+                            <Select.Option value="Bank">Bank Account (Default)</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        noStyle
+                        shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type}
+                    >
+                        {({ getFieldValue }) =>
+                            getFieldValue('type') === 'Asset' ? (
+                                <Form.Item name="bankDetails" label="Bank Details (A/c No, IFSC, etc.)">
+                                    <Input.TextArea placeholder="Enter bank account details for this ledger" />
+                                </Form.Item>
+                            ) : null
+                        }
                     </Form.Item>
                 </Form>
             </Modal>

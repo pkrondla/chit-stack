@@ -1,3 +1,4 @@
+using ChitLedger.Application.Common.Constants;
 using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -15,13 +16,15 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
     private readonly IApplicationDbContext _context;
     private readonly IGSTService _gstService;
     private readonly IJournalService _journalService;
+    private readonly IAccountResolutionService _accountService;
     private readonly IAuctionNotificationService _notificationService;
 
-    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAuctionNotificationService notificationService)
+    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService)
     {
         _context = context;
         _gstService = gstService;
         _journalService = journalService;
+        _accountService = accountService;
         _notificationService = notificationService;
     }
 
@@ -100,20 +103,29 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         // Credit: Output CGST (Liability)
         // Credit: Output SGST (Liability)
         
-        // In simple terms: The winner receives (ChitValue - Discount). The Company earns Commission. The Members earn Dividend.
-        // We will just record the Income recognition here.
-        
+        var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.CommissionIncome, cancellationToken); // Using CommissionIncome role for receivable for now or define a new one
+        var incomeAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.CommissionIncome, cancellationToken);
+        var cgstAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.CgstLiability, cancellationToken);
+        var sgstAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.SgstLiability, cancellationToken);
+
+        if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
+        if (!incomeAccount.Succeeded) return Result<int>.Failure(incomeAccount.Errors.First());
+        if (!cgstAccount.Succeeded) return Result<int>.Failure(cgstAccount.Errors.First());
+        if (!sgstAccount.Succeeded) return Result<int>.Failure(sgstAccount.Errors.First());
+
         var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
         {
-            ("RECEIVABLE-COMMISSION", commissionBase + totalGst, 0), // Pending receipt from Payout adjustment
-            ("INCOME-COMMISSION", 0, commissionBase),
-            ("LIABILITY-CGST", 0, cgst),
-            ("LIABILITY-SGST", 0, sgst)
+            (receivableAccount.Data, commissionBase + totalGst, 0), 
+            (incomeAccount.Data, 0, commissionBase),
+            (cgstAccount.Data, 0, cgst),
+            (sgstAccount.Data, 0, sgst)
         };
         
         if (totalTds > 0)
         {
-            journalLines.Add(("LIABILITY-TDS", 0, totalTds));
+            var tdsAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.TdsLiability, cancellationToken);
+            if (!tdsAccount.Succeeded) return Result<int>.Failure(tdsAccount.Errors.First());
+            journalLines.Add((tdsAccount.Data, 0, totalTds));
         }
         
         await _journalService.CreateEntryAsync(

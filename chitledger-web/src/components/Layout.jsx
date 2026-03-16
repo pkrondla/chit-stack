@@ -85,7 +85,7 @@ const Layout = () => {
                 <Menu
                     theme="dark"
                     mode="inline"
-                    selectedKeys={[location.pathname]}
+                    selectedKeys={[location.pathname + location.search]}
                     onClick={({ key }) => navigate(key)}
                     items={menuItems}
                     className="mt-4"

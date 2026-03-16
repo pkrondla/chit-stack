@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Form, Input, Select, Button, Space, Typography, DatePicker, InputNumber, Divider, message, Alert } from 'antd';
-import { Save, Plus, Trash2, Receipt, CreditCard, ArrowLeftRight } from 'lucide-react';
+import { Card, Form, Input, Select, Button, Typography, DatePicker, InputNumber, Divider, App, Alert } from 'antd';
+import { Save, Plus, Trash2, Receipt } from 'lucide-react';
 import api from '../../api/axios';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
 const VoucherEntry = () => {
+    const { message } = App.useApp();
     const queryClient = useQueryClient();
     const [form] = Form.useForm();
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Typography, Button, Form, Input, Select, InputNumber, Alert, message, Divider, Space } from 'antd';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { Card, Typography, Button, Form, Input, Select, InputNumber, App, Divider, Space } from 'antd';
 import { Printer, CheckCircle, Calculator } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -8,6 +8,7 @@ import { downloadFile } from '../../utils/downloadHelper';
 const { Title, Text } = Typography;
 
 const CollectionEntry = () => {
+    const { message } = App.useApp();
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
 
@@ -21,6 +22,14 @@ const CollectionEntry = () => {
         mutationFn: async () => await api.post('/Finance/calc-penalties'),
         onSuccess: () => message.success('Penalties Updated Successfully'),
         onError: () => message.error('Failed to calculate penalties')
+    });
+
+    const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery({
+        queryKey: ['accounts'],
+        queryFn: async () => {
+            const res = await api.get('/Reporting/accounts');
+            return res.data.data || res.data;
+        }
     });
 
     const handleCheckDues = async () => {
@@ -50,7 +59,7 @@ const CollectionEntry = () => {
         onSuccess: (data) => {
             message.success("Payment Recorded Successfully!");
             setLastReceiptId(data.data);
-            form.resetFields(['amount', 'referenceNumber']);
+            form.resetFields(['amount', 'referenceNumber', 'accountHeadId']);
             setDuesInfo(null);
         },
         onError: (error) => {
@@ -63,7 +72,8 @@ const CollectionEntry = () => {
             ticketId: parseInt(values.ticketId),
             amount: parseFloat(values.amount),
             paymentMode: values.paymentMode,
-            referenceNumber: values.referenceNumber || ''
+            referenceNumber: values.referenceNumber || '',
+            accountHeadId: values.accountHeadId
         });
     };
 
@@ -158,11 +168,28 @@ const CollectionEntry = () => {
                             name="paymentMode"
                             rules={[{ required: true }]}
                         >
-                            <Select size="large">
+                            <Select size="large" onChange={() => form.setFieldValue('accountHeadId', undefined)}>
                                 <Select.Option value="Cash">Cash</Select.Option>
                                 <Select.Option value="Bank">Bank Transfer / NEFT</Select.Option>
                                 <Select.Option value="UPI">UPI</Select.Option>
                                 <Select.Option value="Cheque">Cheque</Select.Option>
+                            </Select>
+                        </Form.Item>
+
+                        <Form.Item
+                            label={<span className="font-semibold text-slate-700">{(paymentMode === 'Cash' || paymentMode === 'UPI') ? 'Deposit To (Cash/PhonePe)' : 'Deposit To (Bank Account)'}</span>}
+                            name="accountHeadId"
+                            rules={[{ required: true, message: 'Please select where money is deposited' }]}
+                        >
+                            <Select size="large" placeholder="Select Account" loading={isLoadingAccounts}>
+                                {accounts
+                                    .filter(a => (paymentMode === 'Cash' || paymentMode === 'UPI') ? a.systemRole === 'Cash' : a.systemRole === 'Bank')
+                                    .map(a => (
+                                        <Select.Option key={a.id} value={a.id}>
+                                            {a.accountName} ({a.accountCode})
+                                        </Select.Option>
+                                    ))
+                                }
                             </Select>
                         </Form.Item>
 

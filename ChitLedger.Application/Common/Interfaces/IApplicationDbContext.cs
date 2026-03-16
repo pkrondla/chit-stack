@@ -20,6 +20,8 @@ public interface IApplicationDbContext
     DbSet<Tenant> Tenants { get; }
     DbSet<TenantSettings> TenantSettings { get; }
     DbSet<HolidayDate> HolidayDates { get; }
+    DbSet<Branch> Branches { get; }
+    DbSet<UserBranch> UserBranches { get; }
     DbSet<AuctionAttendance> AuctionAttendances { get; }
     DbSet<AuctionBid> AuctionBids { get; }
     

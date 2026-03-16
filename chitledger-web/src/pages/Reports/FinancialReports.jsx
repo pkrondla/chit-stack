@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Typography, Tabs, DatePicker, Button, Select, Table, Space, message, Spin } from 'antd';
+import { useSearchParams } from 'react-router-dom';
+import { Card, Typography, Tabs, DatePicker, Button, Select, Table, Space, message, Spin, Divider } from 'antd';
 import { FileText, Download } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
@@ -9,7 +10,24 @@ const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const FinancialReports = () => {
-    const [activeTab, setActiveTab] = useState('DayBook');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'DayBook');
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && tab !== activeTab) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (key) => {
+        setActiveTab(key);
+        if (key === 'DayBook') {
+            setSearchParams({});
+        } else {
+            setSearchParams({ tab: key });
+        }
+    };
 
     // Day Book State
     const [dayBookDate, setDayBookDate] = useState(dayjs());
@@ -29,7 +47,7 @@ const FinancialReports = () => {
     const { data: branches = [] } = useQuery({
         queryKey: ['branches'],
         queryFn: async () => {
-            const res = await api.get('/Settings/branches');
+            const res = await api.get('/Reporting/branches');
             return res.data.data || res.data;
         }
     });
@@ -355,7 +373,7 @@ const FinancialReports = () => {
 
             <Tabs
                 activeKey={activeTab}
-                onChange={setActiveTab}
+                onChange={handleTabChange}
                 items={tabItems}
                 className="custom-tabs"
             />

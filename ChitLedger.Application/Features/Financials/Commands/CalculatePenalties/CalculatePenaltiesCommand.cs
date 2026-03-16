@@ -1,3 +1,4 @@
+using ChitLedger.Application.Common.Constants;
 using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -14,11 +15,13 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
 {
     private readonly IApplicationDbContext _context;
     private readonly IJournalService _journalService;
+    private readonly IAccountResolutionService _accountService;
 
-    public CalculatePenaltiesHandler(IApplicationDbContext context, IJournalService journalService)
+    public CalculatePenaltiesHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService)
     {
         _context = context;
         _journalService = journalService;
+        _accountService = accountService;
     }
 
     public async Task<Result<int>> Handle(CalculatePenaltiesCommand request, CancellationToken cancellationToken)
@@ -59,10 +62,16 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
                     // Journal Entry: Accrue Late Fee Income
                     // Debit: Receivable (Member owes this)
                     // Credit: Late Fee Income
+                    var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
+                    var lateFeeAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.LateFeeIncome, cancellationToken);
+
+                    if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
+                    if (!lateFeeAccount.Succeeded) return Result<int>.Failure(lateFeeAccount.Errors.First());
+
                     var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
                     {
-                        ("RECEIVABLE-MEMBER", calculatedPenalty, 0),
-                        ("INCOME-LATE-FEE", 0, calculatedPenalty)
+                        (receivableAccount.Data, calculatedPenalty, 0),
+                        (lateFeeAccount.Data, 0, calculatedPenalty)
                     };
                     
                     await _journalService.CreateEntryAsync(
