@@ -77,6 +77,23 @@ const AuctionSettings = () => {
                                 placeholder="e.g., 40"
                             />
                         </Form.Item>
+
+                        <Form.Item
+                            name="tdsPercent"
+                            label="TDS Percentage (%)"
+                            extra="TDS to be deducted from distributable dividend (Section 194)."
+                            rules={[
+                                { type: 'number', min: 0, max: 20, message: 'Must be between 0 and 20.' }
+                            ]}
+                        >
+                            <InputNumber
+                                min={0}
+                                max={20}
+                                suffix="%"
+                                className="w-full"
+                                placeholder="e.g., 5"
+                            />
+                        </Form.Item>
                     </div>
 
                     <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-100">

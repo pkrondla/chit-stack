@@ -48,7 +48,7 @@ public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Re
         // Debit: Prize Payable (Liability decreasing)
         // Credit: Bank (Asset decreasing)
         
-        var journalLines = new List<(string, decimal, decimal)>
+        var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
         {
             ("LIABILITY-PRIZE-PAYABLE", auction.NetPayableAmount, 0),
             ("ASSET-BANK", 0, auction.NetPayableAmount) // Assuming mainly Bank transfers for large amounts
@@ -65,6 +65,7 @@ public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Re
             $"Prize Money Payout for Auction {auction.Id} - Ticket {auction.WinningTicket.TicketNumber}",
             auction.Id,
             "Auction",
+            auction.BranchId,
             journalLines,
             cancellationToken);
 

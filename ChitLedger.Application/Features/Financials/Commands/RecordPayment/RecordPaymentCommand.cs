@@ -93,7 +93,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         
         string debitAccount = request.PaymentMode == "Cash" ? "ASSET-CASH" : "ASSET-BANK";
         
-        var journalLines = new List<(string, decimal, decimal)>
+        var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
         {
             (debitAccount, request.Amount, 0),
             ("RECEIVABLE-MEMBER", 0, request.Amount)
@@ -105,6 +105,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             $"Receipt #{receipt.Id} from Ticket {ticket.TicketNumber}", 
             receipt.Id, 
             "Receipt", 
+            ticket.BranchId,
             journalLines, 
             cancellationToken);
 

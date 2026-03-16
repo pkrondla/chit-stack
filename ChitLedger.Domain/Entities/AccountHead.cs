@@ -9,6 +9,8 @@ public class AccountHead : TenantEntity
     public string AccountCode { get; set; } = string.Empty; // e.g. "1001"
     public AccountType Type { get; set; } // Asset, Liability, Income, Expense
     public bool IsSystem { get; set; } = false; // Cannot be deleted
+    public int? BranchId { get; set; } // Branch specific account if null then tenant level
+    public string? BankDetails { get; set; } // For Bank type accounts
 }
 
 public enum AccountType

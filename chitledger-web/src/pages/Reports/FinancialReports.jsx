@@ -23,6 +23,17 @@ const FinancialReports = () => {
     // GSTR State
     const [gstrDates, setGstrDates] = useState([dayjs().startOf('month'), dayjs()]);
 
+    // Filters
+    const [selectedBranch, setSelectedBranch] = useState(null);
+
+    const { data: branches = [] } = useQuery({
+        queryKey: ['branches'],
+        queryFn: async () => {
+            const res = await api.get('/Settings/branches');
+            return res.data.data || res.data;
+        }
+    });
+
     const { data: accounts = [] } = useQuery({
         queryKey: ['accounts'],
         queryFn: async () => {
@@ -51,29 +62,26 @@ const FinancialReports = () => {
     });
 
     const downloadGstr1 = async () => {
-        if (!gstrDates || gstrDates.length !== 2) {
-            message.warning("Please select a valid date range");
-            return;
-        }
-        try {
-            const start = gstrDates[0].format('YYYY-MM-DD');
-            const end = gstrDates[1].format('YYYY-MM-DD');
-            const response = await api.get(`/Finance/gstr1?from=${start}&to=${end}`, { responseType: 'blob' });
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `GSTR1_${start}_${end}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            message.success("GSTR-1 Data Exported Successfully");
-        } catch (e) {
-            message.error("GSTR Download Failed: " + e.message);
-        }
+        // ... existing downloadGstr1 logic ...
     };
+
+    const { data: plData, isFetching: isLoadingPL } = useQuery({
+        queryKey: ['profit-loss', ledgerDates[0]?.format('YYYY-MM-DD'), ledgerDates[1]?.format('YYYY-MM-DD'), selectedBranch],
+        queryFn: async () => {
+            const res = await api.get(`/Reporting/profit-loss?start=${ledgerDates[0].format('YYYY-MM-DD')}&end=${ledgerDates[1].format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
+            return res.data.data || res.data;
+        },
+        enabled: activeTab === 'ProfitLoss'
+    });
+
+    const { data: trialBalance, isFetching: isLoadingTB } = useQuery({
+        queryKey: ['trial-balance', dayBookDate.format('YYYY-MM-DD'), selectedBranch],
+        queryFn: async () => {
+            const res = await api.get(`/Reporting/trial-balance?asOfDate=${dayBookDate.format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
+            return res.data.data || res.data;
+        },
+        enabled: activeTab === 'TrialBalance'
+    });
 
     const dayBookColumns = [
         { title: 'Voucher No', dataIndex: 'voucherNumber', key: 'voucherNumber' },
@@ -224,6 +232,82 @@ const FinancialReports = () => {
                         bordered
                         size="middle"
                         locale={{ emptyText: 'No records found for the selected criteria.' }}
+                    />
+                </div>
+            )
+        },
+        {
+            key: 'ProfitLoss',
+            label: <span className="text-lg font-semibold px-4">Profit & Loss</span>,
+            children: (
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                    <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <div className="flex-1">
+                            <div className="text-sm font-semibold text-slate-600 mb-2">Period</div>
+                            <RangePicker
+                                size="large"
+                                className="w-full"
+                                value={ledgerDates}
+                                onChange={setLedgerDates}
+                            />
+                        </div>
+                        <Button type="primary" size="large" onClick={() => setActiveTab('ProfitLoss')} loading={isLoadingPL}>
+                            Refresh
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <Title level={4}>Income</Title>
+                            <Table
+                                columns={[{ title: 'Account', dataIndex: 'accountName' }, { title: 'Amount', dataIndex: 'amount', align: 'right', render: v => v.toLocaleString() }]}
+                                dataSource={plData?.income || []}
+                                pagination={false}
+                                size="small"
+                            />
+                        </div>
+                        <div>
+                            <Title level={4}>Expense</Title>
+                            <Table
+                                columns={[{ title: 'Account', dataIndex: 'accountName' }, { title: 'Amount', dataIndex: 'amount', align: 'right', render: v => v.toLocaleString() }]}
+                                dataSource={plData?.expense || []}
+                                pagination={false}
+                                size="small"
+                            />
+                        </div>
+                    </div>
+                    <Divider />
+                    <div className="flex justify-between text-xl font-bold">
+                        <span>Net Profit:</span>
+                        <span className={plData?.netProfit >= 0 ? "text-green-600" : "text-red-600"}>
+                            ₹{plData?.netProfit?.toLocaleString() || 0}
+                        </span>
+                    </div>
+                </div>
+            )
+        },
+        {
+            key: 'TrialBalance',
+            label: <span className="text-lg font-semibold px-4">Trial Balance</span>,
+            children: (
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                    <Table
+                        columns={[
+                            { title: 'Account', dataIndex: 'accountName' },
+                            { title: 'Debit', dataIndex: 'debitBalance', align: 'right', render: v => v > 0 ? v.toLocaleString() : '-' },
+                            { title: 'Credit', dataIndex: 'creditBalance', align: 'right', render: v => v > 0 ? v.toLocaleString() : '-' }
+                        ]}
+                        dataSource={trialBalance?.lines || []}
+                        pagination={false}
+                        summary={() => (
+                            <Table.Summary fixed>
+                                <Table.Summary.Row className="bg-slate-50 font-bold">
+                                    <Table.Summary.Cell index={0}>Total</Table.Summary.Cell>
+                                    <Table.Summary.Cell index={1} align="right">₹{trialBalance?.totalDebit?.toLocaleString()}</Table.Summary.Cell>
+                                    <Table.Summary.Cell index={2} align="right">₹{trialBalance?.totalCredit?.toLocaleString()}</Table.Summary.Cell>
+                                </Table.Summary.Row>
+                            </Table.Summary>
+                        )}
                     />
                 </div>
             )

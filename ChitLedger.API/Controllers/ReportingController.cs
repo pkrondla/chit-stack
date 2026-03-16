@@ -1,6 +1,9 @@
 using ChitLedger.Application.Features.Reporting.Queries.GetAccountHeads;
 using ChitLedger.Application.Features.Reporting.Queries.GetDayBook;
 using ChitLedger.Application.Features.Reporting.Queries.GetLedger;
+using ChitLedger.Application.Features.Reporting.Queries.GetProfitAndLoss;
+using ChitLedger.Application.Features.Reporting.Queries.GetTrialBalance;
+using ChitLedger.Application.Features.Reporting.Queries.GetBalanceSheet;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -41,5 +44,17 @@ public class ReportingController : ControllerBase
     public async Task<ActionResult<Result<List<AccountHeadDto>>>> GetAccountHeads()
     {
         return Ok(await _mediator.Send(new GetAccountHeadsQuery()));
+    }
+
+    [HttpGet("trial-balance")]
+    public async Task<ActionResult<Result<TrialBalanceDto>>> GetTrialBalance([FromQuery] DateTime asOfDate, [FromQuery] int? branchId)
+    {
+        return Ok(await _mediator.Send(new GetTrialBalanceQuery { AsOfDate = asOfDate, BranchId = branchId }));
+    }
+
+    [HttpGet("balance-sheet")]
+    public async Task<ActionResult<Result<BalanceSheetDto>>> GetBalanceSheet([FromQuery] DateTime asOfDate, [FromQuery] int? branchId)
+    {
+        return Ok(await _mediator.Send(new GetBalanceSheetQuery { AsOfDate = asOfDate, BranchId = branchId }));
     }
 }

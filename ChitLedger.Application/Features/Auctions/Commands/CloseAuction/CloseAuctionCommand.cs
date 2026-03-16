@@ -73,9 +73,19 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         if (totalTickets == 0) return Result<int>.Failure("No tickets in group to distribute dividend.");
 
         var dividendPerTicket = distributableSurplus / totalTickets;
+        
+        // TDS Calculation
+        decimal totalTds = 0;
+        if (settings != null && settings.TdsPercent > 0)
+        {
+            // Calculate TDS on Distributable Surplus (Total Gain)
+            totalTds = distributableSurplus * (settings.TdsPercent / 100);
+        }
 
         auction.ForemanCommissionAmount = commissionBase;
-        auction.DividendAmount = dividendPerTicket;
+        // Dividend stored is NET of TDS
+        auction.DividendAmount = (distributableSurplus - totalTds) / totalTickets; 
+        auction.TdsAmount = totalTds;
         auction.NetPayableAmount = auction.ChitGroup.ChitValue - auction.WinningBidAmount;
         auction.AuctionStatus = "Closed";
 
@@ -93,7 +103,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         // In simple terms: The winner receives (ChitValue - Discount). The Company earns Commission. The Members earn Dividend.
         // We will just record the Income recognition here.
         
-        var journalLines = new List<(string, decimal, decimal)>
+        var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
         {
             ("RECEIVABLE-COMMISSION", commissionBase + totalGst, 0), // Pending receipt from Payout adjustment
             ("INCOME-COMMISSION", 0, commissionBase),
@@ -101,12 +111,18 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             ("LIABILITY-SGST", 0, sgst)
         };
         
+        if (totalTds > 0)
+        {
+            journalLines.Add(("LIABILITY-TDS", 0, totalTds));
+        }
+        
         await _journalService.CreateEntryAsync(
             "Auction-Close", 
             DateTime.Now, 
             $"Commission for Auction {auction.Id}", 
             auction.Id, 
             "Auction", 
+            auction.BranchId,
             journalLines, 
             cancellationToken);
 

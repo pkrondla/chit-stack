@@ -42,6 +42,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<UserBranch> UserBranches => Set<UserBranch>();
     public DbSet<AuctionAttendance> AuctionAttendances => Set<AuctionAttendance>();
     public DbSet<AuctionBid> AuctionBids => Set<AuctionBid>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -112,6 +113,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var currentUser = _currentUserService.UserId ?? "System";
+        var auditEntries = OnBeforeSaveChanges(currentUser);
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
@@ -144,6 +146,125 @@ public class TenantDbContext : DbContext, IApplicationDbContext
             }
         }
         
-        return await base.SaveChangesAsync(cancellationToken);
+        var result = await base.SaveChangesAsync(cancellationToken);
+        await OnAfterSaveChanges(auditEntries, cancellationToken);
+        return result;
+    }
+
+    private List<AuditEntry> OnBeforeSaveChanges(string userId)
+    {
+        ChangeTracker.DetectChanges();
+        var auditEntries = new List<AuditEntry>();
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is AuditLog || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
+                continue;
+
+            // Audit only core entities
+            var entityName = entry.Entity.GetType().Name;
+            var auditedEntities = new[] { "AccountHead", "Member", "ChitGroup", "JournalEntry" };
+            if (!auditedEntities.Contains(entityName))
+                continue;
+
+            var auditEntry = new AuditEntry(entry)
+            {
+                EntityName = entityName,
+                UserId = userId,
+                TenantId = _tenantService.TenantId
+            };
+            auditEntries.Add(auditEntry);
+
+            foreach (var property in entry.Properties)
+            {
+                string propertyName = property.Metadata.Name;
+                if (property.Metadata.IsPrimaryKey())
+                {
+                    auditEntry.KeyValues[propertyName] = property.CurrentValue;
+                    continue;
+                }
+
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        auditEntry.Action = "Insert";
+                        auditEntry.NewValues[propertyName] = property.CurrentValue;
+                        break;
+
+                    case EntityState.Deleted:
+                        auditEntry.Action = "Delete";
+                        auditEntry.OldValues[propertyName] = property.OriginalValue;
+                        break;
+
+                    case EntityState.Modified:
+                        if (property.IsModified)
+                        {
+                            auditEntry.Action = "Update";
+                            auditEntry.OldValues[propertyName] = property.OriginalValue;
+                            auditEntry.NewValues[propertyName] = property.CurrentValue;
+                        }
+                        break;
+                }
+            }
+        }
+
+        return auditEntries;
+    }
+
+    private Task OnAfterSaveChanges(List<AuditEntry> auditEntries, CancellationToken cancellationToken)
+    {
+        if (auditEntries == null || auditEntries.Count == 0)
+            return Task.CompletedTask;
+
+        foreach (var auditEntry in auditEntries)
+        {
+            foreach (var prop in auditEntry.TemporaryProperties)
+            {
+                if (prop.Metadata.IsPrimaryKey())
+                {
+                    auditEntry.KeyValues[prop.Metadata.Name] = prop.CurrentValue;
+                }
+                else
+                {
+                    auditEntry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
+                }
+            }
+            AuditLogs.Add(auditEntry.ToAudit());
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public class AuditEntry
+{
+    public AuditEntry(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        Entry = entry;
+    }
+
+    public Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry { get; }
+    public string UserId { get; set; }
+    public string EntityName { get; set; }
+    public string Action { get; set; }
+    public int TenantId { get; set; }
+    public Dictionary<string, object> KeyValues { get; } = new Dictionary<string, object>();
+    public Dictionary<string, object> OldValues { get; } = new Dictionary<string, object>();
+    public Dictionary<string, object> NewValues { get; } = new Dictionary<string, object>();
+    public List<Microsoft.EntityFrameworkCore.ChangeTracking.PropertyEntry> TemporaryProperties { get; } = new List<Microsoft.EntityFrameworkCore.ChangeTracking.PropertyEntry>();
+
+    public bool HasTemporaryProperties => TemporaryProperties.Any();
+
+    public AuditLog ToAudit()
+    {
+        var audit = new AuditLog();
+        audit.UserId = UserId;
+        audit.Action = Action;
+        audit.EntityName = EntityName;
+        audit.Timestamp = DateTime.UtcNow;
+        audit.TenantId = TenantId;
+        audit.EntityId = (int)(KeyValues.FirstOrDefault().Value ?? 0);
+        audit.DataBefore = OldValues.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(OldValues);
+        audit.DataAfter = NewValues.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(NewValues);
+        return audit;
     }
 }

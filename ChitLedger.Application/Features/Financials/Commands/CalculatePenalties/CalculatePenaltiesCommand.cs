@@ -59,7 +59,7 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
                     // Journal Entry: Accrue Late Fee Income
                     // Debit: Receivable (Member owes this)
                     // Credit: Late Fee Income
-                    var journalLines = new List<(string, decimal, decimal)>
+                    var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
                     {
                         ("RECEIVABLE-MEMBER", calculatedPenalty, 0),
                         ("INCOME-LATE-FEE", 0, calculatedPenalty)
@@ -71,6 +71,7 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
                         $"Late Fee for Ticket #{demand.Ticket.TicketNumber} (Inst {demand.InstallmentNumber})", 
                         demand.Id, 
                         "Demand", 
+                        group.BranchId,
                         journalLines, 
                         cancellationToken);
 

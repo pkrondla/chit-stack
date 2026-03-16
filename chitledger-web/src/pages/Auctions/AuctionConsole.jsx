@@ -536,14 +536,19 @@ const AuctionConsole = () => {
                                             </div>
 
                                             <div className="flex justify-between py-2 border-b border-slate-200">
-                                                <Text className="text-slate-500">Distributable Dividend</Text>
-                                                <Text strong className="text-green-700">₹{calculations.distributable.toLocaleString()}</Text>
+                                                <Text className="text-slate-500">Distributable Dividend (Gross)</Text>
+                                                <Text strong className="text-blue-600">₹{calculations.distributable.toLocaleString()}</Text>
+                                            </div>
+
+                                            <div className="flex justify-between py-2 border-b border-slate-200">
+                                                <Text className="text-slate-500">TDS Deduction ({settings?.tdsPercent || 0}%)</Text>
+                                                <Text strong className="text-red-500">-₹{((calculations.distributable * (settings?.tdsPercent || 0)) / 100).toLocaleString()}</Text>
                                             </div>
 
                                             <div className="flex justify-between py-4">
-                                                <Text className="text-slate-500">Dividend / Member</Text>
+                                                <Text className="text-slate-500">Net Dividend / Member</Text>
                                                 <Tag color="success" className="m-0 text-base py-1 px-3 font-bold rounded-lg">
-                                                    ₹{calculations.dividend.toLocaleString()}
+                                                    ₹{((calculations.distributable * (1 - (settings?.tdsPercent || 0) / 100)) / (tickets.length || 1)).toLocaleString()}
                                                 </Tag>
                                             </div>
 

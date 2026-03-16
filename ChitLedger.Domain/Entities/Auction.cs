@@ -17,6 +17,7 @@ public class Auction : BranchEntity
     public decimal WinningBidAmount { get; set; } // The Discount
     public decimal ForemanCommissionAmount { get; set; }
     public decimal DividendAmount { get; set; } // Per ticket
+    public decimal TdsAmount { get; set; } // Total TDS/TCS for this auction
     public decimal NetPayableAmount { get; set; } // To the winner
     
     public bool IsPaid { get; set; }

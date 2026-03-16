@@ -31,14 +31,35 @@ const Layout = () => {
         { key: '/groups', icon: <Users size={18} />, label: 'Chit Groups' },
         { key: '/auctions', icon: <Gavel size={18} />, label: 'Auctions' },
         { key: '/members', icon: <Users size={18} />, label: 'Members' },
-        { key: '/finance', icon: <FileText size={18} />, label: 'Collections' },
-        { key: '/finance/payouts', icon: <IndianRupee size={18} />, label: 'Payouts' },
-        { key: '/reports', icon: <ScrollText size={18} />, label: 'Reports' },
+        {
+            key: 'financeGrp',
+            icon: <FileText size={18} />,
+            label: 'Accounts',
+            children: [
+                { key: '/finance', label: 'Collection Entry' },
+                { key: '/finance/payouts', label: 'Payout Entry' },
+                { key: '/finance/vouchers', label: 'Voucher Entry' },
+                { key: '/finance/accounts', label: 'Chart of Accounts' },
+                { key: '/finance/reconciliation', label: 'Bank Reconciliation' },
+            ]
+        },
+        {
+            key: 'reportsGrp',
+            icon: <ScrollText size={18} />,
+            label: 'Reports',
+            children: [
+                { key: '/reports', label: 'Day Book & Ledger' },
+                { key: '/reports?tab=ProfitLoss', label: 'Profit & Loss' },
+                { key: '/reports?tab=TrialBalance', label: 'Trial Balance' },
+                { key: '/reports/statutory', label: 'Statutory Forms' },
+            ]
+        },
         { type: 'divider' },
         {
             key: 'setupGrp', label: 'Setup', type: 'group', children: [
                 { key: '/settings', icon: <Settings size={18} />, label: 'Settings' },
                 { key: '/admin/users', icon: <Users size={18} />, label: 'Staff Users' },
+                { key: '/admin/auditor', icon: <Building2 size={18} />, label: 'Auditor Panel' },
             ]
         },
     ];

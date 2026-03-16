@@ -3,6 +3,9 @@ using ChitLedger.Application.Features.Financials.Commands.DisbursePayment;
 using ChitLedger.Application.Features.Financials.Commands.GenerateDemands;
 using ChitLedger.Application.Features.Finance.Queries.GetGstr1Report;
 using ChitLedger.Application.Features.Financials.Commands.RecordPayment;
+using ChitLedger.Application.Features.Financials.Commands.HandleChequeBounce;
+using ChitLedger.Application.Features.Financials.Commands.ReconcileTransactions;
+using ChitLedger.Application.Features.Financials.Commands.CreateJournalEntry;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -50,6 +53,30 @@ public class FinanceController : ControllerBase
     public async Task<ActionResult<Result<int>>> CalculatePenalties()
     {
         return Ok(await _mediator.Send(new CalculatePenaltiesCommand()));
+    }
+
+    [HttpPost("cheque-bounce")]
+    public async Task<ActionResult<Result<int>>> ChequeBounce(HandleChequeBounceCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpPost("reconcile")]
+    public async Task<ActionResult<Result<int>>> Reconcile(ReconcileTransactionsCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpPost("journal")]
+    public async Task<ActionResult<Result<int>>> CreateJournal(CreateJournalEntryCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
     }
 
     [HttpGet("gstr1")]

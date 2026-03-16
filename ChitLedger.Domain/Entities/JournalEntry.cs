@@ -10,6 +10,8 @@ public class JournalEntry : BranchEntity
     public int? ReferenceId { get; set; } // Link to ReceiptId or AuctionId
     public string ReferenceType { get; set; } = string.Empty; // "Receipt", "Auction"
     
+    public string InstrumentStatus { get; set; } = "None"; // None, Pending, Cleared, Bounced
+    
     public ICollection<JournalEntryLine> Lines { get; set; } = new List<JournalEntryLine>();
 }
 
@@ -24,4 +26,7 @@ public class JournalEntryLine : BranchEntity
     public decimal DebitAmount { get; set; }
     public decimal CreditAmount { get; set; }
     public string Description { get; set; } = string.Empty;
+
+    public bool IsReconciled { get; set; } = false;
+    public DateTime? ReconciliationDate { get; set; }
 }

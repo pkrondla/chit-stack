@@ -17,6 +17,7 @@ public class JournalService : IJournalService
 
     public async Task<Result<int>> CreateEntryAsync(string entryType, DateTime date, string description, 
         int? relatedEntityId, string relatedEntityType,
+        int? branchId,
         List<(string AccountCode, decimal Debit, decimal Credit)> lines, 
         CancellationToken cancellationToken)
     {
@@ -36,7 +37,8 @@ public class JournalService : IJournalService
              Description = description,
              EntryType = entryType, // e.g. "Receipt", "Auction", "Commission"
              ReferenceId = relatedEntityId, // e.g. ReceiptID
-             ReferenceType = relatedEntityType // e.g. "Receipt"
+             ReferenceType = relatedEntityType, // e.g. "Receipt"
+             BranchId = branchId
         };
         
         _context.JournalEntries.Add(entry);
@@ -58,7 +60,8 @@ public class JournalService : IJournalService
                 AccountHeadId = account.Id,
                 DebitAmount = line.Debit,
                 CreditAmount = line.Credit,
-                Description = description // Or line specific if needed
+                Description = description,
+                BranchId = branchId
             };
             _context.JournalEntryLines.Add(entryLine);
         }
