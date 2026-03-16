@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Button, Dropdown, Badge, Menu } from 'antd';
 import {
     LayoutDashboard, Gavel, LogOut,
-    History, Wallet, Bell, User, ChevronDown, Menu as MenuIcon
+    History as HistoryIcon, Wallet, Bell, User, ChevronDown, Menu as MenuIcon
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 
@@ -24,7 +24,7 @@ const MemberLayout = () => {
 
     const navItems = [
         { key: '/portal', icon: <LayoutDashboard size={20} />, label: 'Home' },
-        { key: '/portal/my-chits', icon: <History size={20} />, label: 'Chits' },
+        { key: '/portal/my-chits', icon: <HistoryIcon size={20} />, label: 'Chits' },
         { key: '/portal/auctions', icon: <Gavel size={20} />, label: 'Auction' },
         { key: '/portal/payments', icon: <Wallet size={20} />, label: 'Pay' },
     ];
@@ -33,61 +33,63 @@ const MemberLayout = () => {
         <AntLayout className="min-h-screen bg-slate-50/50">
             {/* Top Navigation - Enterprise-Grade Header */}
             <Header
-                className="sticky top-0 z-50 w-full flex items-center justify-between !bg-white/90 backdrop-blur-2xl border-b border-slate-100 !h-24 shadow-sm !overflow-visible"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', color: '#0f172a', display: 'flex', alignItems: 'center', paddingLeft: '5px', paddingRight: '5px' }}
+                className="sticky top-0 z-50 w-full flex items-center justify-between !bg-slate-900 border-b border-white/5 shadow-2xl !overflow-visible"
+                style={{ color: '#ffffff', display: 'flex', alignItems: 'center', paddingLeft: '20px', paddingRight: '20px' }}
             >
                 <div className="flex items-center gap-6 md:gap-14">
                     {/* Brand Logo - More Minimal */}
                     <div
-                        className="h-12 w-12 bg-indigo-600 rounded-[1.25rem] flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-indigo-100 cursor-pointer hover:scale-110 active:scale-95 transition-all"
+                        className="h-12 w-12 bg-white/10 rounded-[1.25rem] flex items-center justify-center text-white font-black text-2xl border border-white/10 cursor-pointer hover:bg-white/20 transition-all"
                         onClick={() => navigate('/portal')}
                     >
                         C
                     </div>
 
-                    {/* System Navigation - Professional Tabs */}
-                    <div className="hidden md:flex items-center gap-2">
-                        {navItems.map(item => {
-                            const isActive = location.pathname === item.key;
-                            return (
-                                <div
-                                    key={item.key}
-                                    onClick={() => navigate(item.key)}
-                                    className={`relative h-14 px-5 flex items-center gap-3 rounded-2xl cursor-pointer transition-all ${isActive
-                                        ? 'text-indigo-600 bg-indigo-50/50'
-                                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                                        }`}
-                                >
-                                    <span className={`${isActive ? 'text-indigo-600' : 'text-slate-400 opacity-80'}`}>
-                                        {item.icon}
-                                    </span>
-                                    <span className={`text-[13px] font-black uppercase tracking-widest ${isActive ? 'opacity-100' : 'opacity-70'}`}>
-                                        {item.label}
-                                    </span>
-                                    {isActive && (
-                                        <div className="absolute -bottom-1 left-4 right-4 h-1 bg-indigo-600 rounded-full shadow-[0_0_10px_rgba(79,70,229,0.5)]" />
-                                    )}
-                                </div>
-                            );
-                        })}
+                    {/* System Navigation - Standard Ant Design Menu to match Admin */}
+                    <div className="hidden md:block min-w-[500px]">
+                        <Menu
+                            mode="horizontal"
+                            theme="dark"
+                            selectedKeys={[location.pathname]}
+                            onClick={({ key }) => navigate(key)}
+                            items={navItems}
+                            style={{
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                height: '48px',
+                            }}
+                            className="member-portal-menu"
+                        />
+                        <style>{`
+                            .member-portal-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item-selected {
+                                background-color: #4f46e5 !important;
+                                border-radius: 12px !important;
+                                color: white !important;
+                            }
+                            .member-portal-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item::after {
+                                display: none !important;
+                            }
+                            .member-portal-menu.ant-menu-dark.ant-menu-horizontal > .ant-menu-item {
+                                transition: all 0.3s;
+                                margin: 0 4px;
+                                height: 40px !important;
+                                line-height: 40px !important;
+                            }
+                        `}</style>
                     </div>
 
                     {/* Mobile Branding */}
                     <div className="md:hidden flex flex-col justify-center">
-                        <span className="text-xs font-black text-slate-800 tracking-widest uppercase leading-none">ChitLedger</span>
-                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em] mt-1">Portal</span>
+                        <span className="text-xs font-black text-white tracking-widest uppercase leading-none">ChitLedger</span>
+                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em] mt-1">Portal</span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4 md:gap-6">
-                    {/* Global Search Mock - Adds Professional Density */}
-                    <div className="hidden lg:flex items-center h-12 px-5 bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 hover:border-indigo-200 transition-colors cursor-pointer mr-2 group">
-                        <span className="text-[11px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Global Records</span>
-                        <div className="ml-6 h-6 w-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-400">⌘K</div>
-                    </div>
-
-                    <Badge count={2} size="small" offset={[-2, 2]} color="#4f46e5">
-                        <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white border border-slate-100 hover:border-indigo-200 hover:text-indigo-600 transition-all cursor-pointer text-slate-400">
+                    <Badge count={2} size="small" offset={[-2, 2]} color="#6366f1">
+                        <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 hover:text-white transition-all cursor-pointer text-slate-400">
                             <Bell size={22} />
                         </div>
                     </Badge>
@@ -99,20 +101,16 @@ const MemberLayout = () => {
                             { key: 'logout', label: 'Logout Session', icon: <LogOut size={16} />, onClick: handleLogout, danger: true }
                         ]
                     }} trigger={['click']} placement="bottomRight">
-                        <div className="flex items-center gap-4 bg-slate-50/50 hover:bg-slate-50 px-5 py-2.5 rounded-[1.5rem] cursor-pointer transition-all border border-slate-100 hover:border-indigo-100 group">
-                            <div className="h-11 w-11 rounded-xl bg-white shadow-sm flex items-center justify-center border border-indigo-100/50 shrink-0 group-hover:scale-105 transition-transform">
-                                <User size={24} className="text-indigo-600" />
+                        <div className="flex items-center h-10 gap-3 bg-white/5 hover:bg-white/10 px-4 rounded-xl cursor-pointer transition-all border border-white/10 hover:border-white/20 group">
+                            <div className="h-9 w-9 rounded-lg bg-white/10 shadow-sm flex items-center justify-center border border-white/10 shrink-0 group-hover:scale-105 transition-transform">
+                                <User size={20} className="text-white" />
                             </div>
                             <div className="hidden md:flex flex-col text-left">
-                                <span className="text-[15px] font-black !text-slate-900 leading-none mb-1.5">
-                                    {user.fullName || 'Member'}
+                                <span className="text-sm font-bold text-white leading-none mb-1">
+                                    {user.fullName || user.username}
                                 </span>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Verified</span>
-                                </div>
                             </div>
-                            <ChevronDown size={14} className="text-slate-400 ml-2 group-hover:text-indigo-600 transition-colors" />
+                            <ChevronDown size={12} className="text-slate-400 ml-1 group-hover:text-white transition-colors" />
                         </div>
                     </Dropdown>
                 </div>

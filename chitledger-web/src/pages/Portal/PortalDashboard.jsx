@@ -6,7 +6,7 @@ import {
     ShieldCheck,
     CreditCard,
     PlayCircle,
-    History,
+    History as HistoryIcon,
     Wallet
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -56,7 +56,7 @@ const PortalDashboard = () => {
 
             {/* Minimal Header Section */}
             <div className="mb-6">
-                <Text className="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.4em] mb-1 block">Account Insights</Text>
+                <Text className="text-[10px] font-bold text-slate-900 uppercase tracking-[0.4em] mb-1 block">Account Insights</Text>
                 <Title level={3} className="!m-0 !font-black tracking-tight text-slate-900">Member Portal</Title>
             </div>
 
@@ -104,7 +104,7 @@ const PortalDashboard = () => {
                                 <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 block">Auction Schedule</Text>
                                 <Title level={4} className="!m-0 !font-black tracking-tight text-slate-900">This Month</Title>
                             </div>
-                            <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
+                            <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200">
                                 <Gavel size={20} />
                             </div>
                         </div>
@@ -124,7 +124,7 @@ const PortalDashboard = () => {
                                         <div className="relative z-10">
                                             <div className="flex items-center gap-4 mb-4">
                                                 <div className="h-12 w-12 bg-white border border-slate-200 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-sm text-slate-900">
-                                                    <span className="text-[8px] font-black uppercase text-indigo-600 leading-none mb-0.5">{new Date(auction.date).toLocaleDateString(undefined, { month: 'short' })}</span>
+                                                    <span className="text-[8px] font-black uppercase text-slate-900 leading-none mb-0.5">{new Date(auction.date).toLocaleDateString(undefined, { month: 'short' })}</span>
                                                     <span className="text-lg font-black leading-none">{new Date(auction.date).toLocaleDateString(undefined, { day: 'numeric' })}</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -142,7 +142,7 @@ const PortalDashboard = () => {
                                                     }`}
                                             >
                                                 {auction.status === 'Closed' ? (
-                                                    <><History size={16} /> View Room</>
+                                                    <><HistoryIcon size={16} /> View Room</>
                                                 ) : (
                                                     <><PlayCircle size={16} /> Join Live Room</>
                                                 )}
@@ -166,8 +166,8 @@ const PortalDashboard = () => {
                             <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 block">Enrollment Portfolio</Text>
                             <Title level={4} className="!m-0 !font-black tracking-tight text-slate-900">Active Subscriptions</Title>
                         </div>
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
-                            <History size={20} />
+                        <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200">
+                            <HistoryIcon size={20} />
                         </div>
                     </div>
 
@@ -183,7 +183,7 @@ const PortalDashboard = () => {
                                 <Col xs={24} sm={12} lg={8} xl={6} key={ticket.ticketId}>
                                     <div
                                         onClick={() => navigate('/portal/my-chits')}
-                                        className="rounded-2xl border border-slate-200 flex flex-col transition-all cursor-pointer group hover:border-indigo-300 hover:shadow-md bg-white h-full relative"
+                                        className="rounded-2xl border border-slate-200 flex flex-col transition-all cursor-pointer group hover:border-slate-300 hover:shadow-md bg-white h-full relative"
                                         style={{ padding: '30px' }}
                                     >
                                         <div className="flex items-center justify-between mb-4">
@@ -204,10 +204,10 @@ const PortalDashboard = () => {
 
                                         <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <Wallet size={14} className="text-indigo-600" />
+                                                <Wallet size={14} className="text-slate-900" />
                                                 <span className="text-slate-900 font-black text-base">₹{ticket.chitValue?.toLocaleString()}</span>
                                             </div>
-                                            <ChevronRight size={18} className="text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                                            <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-1 transition-all" />
                                         </div>
                                     </div>
                                 </Col>
@@ -220,14 +220,14 @@ const PortalDashboard = () => {
             {/* Support Footer */}
             <div className="mt-0 border-t border-slate-100 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 opacity-30 hover:opacity-100 transition-opacity pb-8 px-0">
                 <Space size={10}>
-                    <ShieldCheck size={14} className="text-indigo-600" />
+                    <ShieldCheck size={14} className="text-slate-400" />
                     <Text className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">
                         Government Regulated • v2.4 Audit
                     </Text>
                 </Space>
                 <div className="flex items-center gap-6">
-                    <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-indigo-600">Compliance</Text>
-                    <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-indigo-600">Privacy Policy</Text>
+                    <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900">Compliance</Text>
+                    <Text className="text-[9px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-900">Privacy Policy</Text>
                     <div className="h-1 w-1 bg-slate-300 rounded-full" />
                     <Text className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic leading-none">Secure Protocol</Text>
                 </div>

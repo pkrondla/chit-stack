@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')).render(
           token: {
             colorPrimary: '#4f46e5',
             borderRadius: 12,
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
           },
         }}
       >

@@ -1,5 +1,5 @@
 import { Typography, Card, Table, Tag, Spin, Result } from 'antd';
-import { History, TrendingUp, Info } from 'lucide-react';
+import { History as HistoryIcon, TrendingUp, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../api/axios';
 
@@ -77,8 +77,8 @@ const MyChits = () => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-4">
-                    <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100">
-                        <History size={28} />
+                    <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-100">
+                        <HistoryIcon size={28} />
                     </div>
                     <div>
                         <Title level={2} className="!m-0 text-slate-800">My Enrolled Chits</Title>
@@ -88,9 +88,9 @@ const MyChits = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="border-0 shadow-sm rounded-2xl bg-indigo-50">
-                    <Text className="text-indigo-600 font-bold uppercase text-[10px] tracking-widest block mb-1">Active Chits</Text>
-                    <Title level={3} className="!m-0 text-indigo-900">{chits.length}</Title>
+                <Card className="border-0 shadow-sm rounded-2xl bg-slate-100">
+                    <Text className="text-slate-900 font-bold uppercase text-[10px] tracking-widest block mb-1">Active Chits</Text>
+                    <Title level={3} className="!m-0 text-slate-900">{chits.length}</Title>
                 </Card>
                 <Card className="border-0 shadow-sm rounded-2xl bg-emerald-50">
                     <Text className="text-emerald-600 font-bold uppercase text-[10px] tracking-widest block mb-1">Prized Tickets</Text>
@@ -112,13 +112,13 @@ const MyChits = () => {
                 />
             </Card>
 
-            <div className="mt-8 p-6 bg-blue-50 rounded-2xl flex items-start gap-4 border border-blue-100">
-                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+            <div className="mt-8 p-6 bg-slate-50 rounded-2xl flex items-start gap-4 border border-slate-100">
+                <div className="p-2 bg-slate-200 text-slate-700 rounded-lg">
                     <Info size={20} />
                 </div>
                 <div>
-                    <Title level={5} className="!m-0 text-blue-900">About Participation</Title>
-                    <Text className="text-blue-700/80 text-sm">
+                    <Title level={5} className="!m-0 text-slate-800">About Participation</Title>
+                    <Text className="text-slate-600 text-sm">
                         You can view more details about each group by clicking on the row. Prized tickets indicate that you have successfully won the auction for that group.
                     </Text>
                 </div>

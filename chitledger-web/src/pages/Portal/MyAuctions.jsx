@@ -107,7 +107,7 @@ const MyAuctions = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {auctions.filter(a => a.status === 'Open').map(auction => (
-                    <Card key={auction.auctionId} className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white overflow-hidden relative">
+                    <Card key={auction.auctionId} className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden relative">
                         <div className="relative z-10">
                             <Tag color="orange" className="mb-4 border-0 font-bold uppercase text-[10px]">Live Auction</Tag>
                             <Title level={3} className="!text-white !m-0 mb-1">{auction.groupName}</Title>
@@ -123,7 +123,7 @@ const MyAuctions = () => {
                             </div>
                             <Button
                                 onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
-                                className="mt-6 bg-white text-indigo-600 border-0 font-bold h-10 px-8 rounded-xl hover:!bg-slate-100 hover:!text-indigo-700"
+                                className="mt-6 bg-white text-slate-900 border-0 font-bold h-10 px-8 rounded-xl hover:!bg-slate-100 hover:!text-slate-800"
                             >
                                 Join Live Room
                             </Button>

@@ -1,5 +1,5 @@
 import { Typography, Card, Table, Tag, Spin, Result, Button, Tabs, Alert } from 'antd';
-import { Wallet, CreditCard, ChevronRight, Download, Clock, CheckCircle2 } from 'lucide-react';
+import { Wallet, CreditCard, ChevronRight, Download, Clock, CheckCircle2, History as HistoryIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../api/axios';
 
@@ -130,7 +130,7 @@ const MyPayments = () => {
                                 </Tag>
                             </div>
                         </div>
-                        <Button size="large" className="h-14 px-10 rounded-2xl bg-white text-slate-900 border-0 font-black text-lg hover:!bg-indigo-50 hover:!text-indigo-600 transition-all flex items-center justify-center gap-2">
+                        <Button size="large" className="h-14 px-10 rounded-2xl bg-white text-slate-900 border-0 font-black text-lg hover:!bg-slate-100 hover:!text-slate-800 transition-all flex items-center justify-center gap-2">
                             Pay All Dues <ChevronRight size={20} />
                         </Button>
                     </div>
@@ -176,7 +176,7 @@ const MyPayments = () => {
                             key: 'history',
                             label: (
                                 <span className="flex items-center gap-2 py-2 px-4">
-                                    <History size={18} /> Payment History
+                                    <HistoryIcon size={18} /> Payment History
                                 </span>
                             ),
                             children: (
