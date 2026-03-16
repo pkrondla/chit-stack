@@ -16,6 +16,7 @@ public class TicketDto
     public string? MemberName { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsPrized { get; set; }
+    public int? PrizedInstallment { get; set; }
     public bool IsForeman { get; set; }
 }
 

@@ -85,7 +85,7 @@ const Layout = () => {
                                 <Select
                                     value={activeBranch?.id}
                                     style={{ width: 180 }}
-                                    bordered={false}
+                                    variant="borderless"
                                     options={authorizedBranches.map(b => ({ label: b.name, value: b.id }))}
                                     onChange={(val) => {
                                         const branch = authorizedBranches.find(b => b.id === val);

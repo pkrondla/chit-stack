@@ -129,14 +129,21 @@ const Auctions = () => {
             render: (_, auction) => {
                 if (auction.auctionStatus === 'Closed') {
                     return (
-                        <div className="flex gap-4">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-400 uppercase font-bold">Winning Bid</span>
-                                <span className="text-sm font-mono font-bold text-slate-700">₹{auction.winningBidAmount?.toLocaleString()}</span>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                                <Badge status="success" />
+                                <span className="text-sm font-bold text-slate-800">{auction.winnerName || 'N/A'}</span>
+                                <Tag color="blue" className="m-0 text-[10px] leading-4 h-4 uppercase">Ticket #{auction.winningTicketNumber}</Tag>
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-400 uppercase font-bold">Dividend</span>
-                                <span className="text-sm font-mono font-bold text-green-600">₹{auction.dividendAmount?.toLocaleString()}</span>
+                            <div className="flex gap-4 border-t border-slate-100 pt-2">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold">Winning Bid</span>
+                                    <span className="text-sm font-mono font-bold text-slate-700">₹{auction.winningBidAmount?.toLocaleString()}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold">Dividend</span>
+                                    <span className="text-sm font-mono font-bold text-green-600">₹{auction.dividendAmount?.toLocaleString()}</span>
+                                </div>
                             </div>
                         </div>
                     );
@@ -170,17 +177,15 @@ const Auctions = () => {
                                 {isClosed ? 'View' : 'Open Console'}
                             </Button>
                         </Tooltip>
-                        {!isClosed && (
-                            <Button
-                                size="middle"
-                                disabled={isProposed}
-                                className="rounded-lg font-bold flex items-center gap-2 border-slate-200 text-slate-600 hover:text-indigo-600"
-                                icon={<Gavel size={16} />}
-                                onClick={() => navigate(`/auctions/live/${auction.id}`)}
-                            >
-                                Live Room
-                            </Button>
-                        )}
+                        <Button
+                            size="middle"
+                            disabled={isProposed}
+                            className="rounded-lg font-bold flex items-center gap-2 border-slate-200 text-slate-600 hover:text-indigo-600"
+                            icon={<Gavel size={16} />}
+                            onClick={() => navigate(`/auctions/live/${auction.id}`)}
+                        >
+                            Live Room
+                        </Button>
                     </Space>
                 );
             }

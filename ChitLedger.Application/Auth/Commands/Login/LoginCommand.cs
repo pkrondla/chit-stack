@@ -31,6 +31,8 @@ public class LoginCommand : IRequest<Result<LoginResponse>>
 {
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public string? LoginMode { get; set; } // "Password" or "OTP"
+    public string? Otp { get; set; }
 }
 
 public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
@@ -57,15 +59,30 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
     {
         var tenantId = _tenantService.TenantId;
         
-        // Simple password check (Hash should be used in real app)
+        // Simple password/OTP check (Hash should be used in real app)
         var user = await _context.Users
             .Include(u => u.UserBranches)
             .ThenInclude(ub => ub.Branch)
-            .FirstOrDefaultAsync(u => u.Username == request.Username && u.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(u => 
+                (u.Username == request.Username || u.Email == request.Username) 
+                && u.TenantId == tenantId, cancellationToken);
             
-        if (user == null || user.PasswordHash != request.Password) // TODO: Hash check
+        if (user == null)
         {
-            return Result<LoginResponse>.Failure("Invalid credentials");
+            return Result<LoginResponse>.Failure($"User '{request.Username}' not found in tenant '{tenantId}'.");
+        }
+
+        bool isOtp = string.Equals(request.LoginMode, "OTP", StringComparison.OrdinalIgnoreCase);
+
+        if (isOtp)
+        {
+            if (request.Otp != "123456") // Mock OTP check
+                return Result<LoginResponse>.Failure("Invalid OTP code.");
+        }
+        else
+        {
+            if (user.PasswordHash != request.Password) // TODO: Hash check
+                return Result<LoginResponse>.Failure("Invalid password.");
         }
         
         var token = _tokenService.GenerateToken(user, tenantId);

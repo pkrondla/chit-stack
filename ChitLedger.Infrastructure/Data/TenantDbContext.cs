@@ -40,6 +40,8 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<HolidayDate> HolidayDates => Set<HolidayDate>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<UserBranch> UserBranches => Set<UserBranch>();
+    public DbSet<AuctionAttendance> AuctionAttendances => Set<AuctionAttendance>();
+    public DbSet<AuctionBid> AuctionBids => Set<AuctionBid>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -76,6 +78,8 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         builder.Entity<Demand>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<JournalEntry>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<JournalEntryLine>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<AuctionAttendance>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<AuctionBid>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
         
         builder.Entity<Member>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<AccountHead>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);

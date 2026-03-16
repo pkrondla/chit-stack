@@ -1,3 +1,6 @@
+using ChitLedger.Application.Features.CustomerPortal.Queries.GetMyChits;
+using ChitLedger.Application.Features.CustomerPortal.Queries.GetMyAuctions;
+using ChitLedger.Application.Features.CustomerPortal.Queries.GetMyPayments;
 using ChitLedger.Application.Features.CustomerPortal.Queries.GetDashboard;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -18,9 +21,77 @@ public class CustomerController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet("dashboard")]
-    public async Task<ActionResult<Result<CustomerDashboardDto>>> GetDashboard()
+    [HttpGet("whoami")]
+    [AllowAnonymous] // Test if authentication itself is working
+    public IActionResult WhoAmI()
     {
-        return Ok(await _mediator.Send(new GetCustomerDashboardQuery()));
+        var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+        return Ok(new { 
+            IsAuthenticated = User?.Identity?.IsAuthenticated,
+            Name = User?.Identity?.Name,
+            AuthenticationType = User?.Identity?.AuthenticationType,
+            Claims = claims 
+        });
+    }
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult> GetDashboard()
+    {
+        try 
+        {
+            var result = await _mediator.Send(new GetCustomerDashboardQuery());
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] GetDashboard: {ex.Message}");
+            Console.WriteLine(ex.StackTrace);
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpGet("my-chits")]
+    public async Task<ActionResult> GetMyChits()
+    {
+        try 
+        {
+            var result = await _mediator.Send(new GetMyChitsQuery());
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] GetMyChits: {ex.Message}");
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpGet("my-auctions")]
+    public async Task<ActionResult> GetMyAuctions()
+    {
+        try 
+        {
+            var result = await _mediator.Send(new GetMyAuctionsQuery());
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] GetMyAuctions: {ex.Message}");
+            return StatusCode(500, ex.Message);
+        }
+    }
+
+    [HttpGet("my-payments")]
+    public async Task<ActionResult> GetMyPayments()
+    {
+        try 
+        {
+            var result = await _mediator.Send(new GetMyPaymentsQuery());
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERROR] GetMyPayments: {ex.Message}");
+            return StatusCode(500, ex.Message);
+        }
     }
 }

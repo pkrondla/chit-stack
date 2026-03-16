@@ -18,6 +18,7 @@ public class MemberDto
     public int TicketCount { get; set; }
     public DateTime JoinedDate { get; set; }
     public List<MemberTicketDto> Tickets { get; set; } = new();
+    public bool IsPortalEnabled { get; set; }
 
     private class Mapping : Profile
     {
@@ -27,7 +28,8 @@ public class MemberDto
                 .ForMember(d => d.TicketCount, opt => opt.MapFrom(s => s.Tickets.Count))
                 .ForMember(d => d.JoinedDate, opt => opt.MapFrom(s => s.CreatedAt))
                 .ForMember(d => d.RegistrationBranchName, opt => opt.MapFrom(s => s.RegistrationBranch != null ? s.RegistrationBranch.Name : null))
-                .ForMember(d => d.Tickets, opt => opt.MapFrom(s => s.Tickets));
+                .ForMember(d => d.Tickets, opt => opt.MapFrom(s => s.Tickets))
+                .ForMember(d => d.IsPortalEnabled, opt => opt.Ignore()); // Will be set manually or via projection if possible
 
             CreateMap<Ticket, MemberTicketDto>()
                 .ForMember(d => d.GroupName, opt => opt.MapFrom(s => s.ChitGroup.GroupName))

@@ -15,6 +15,7 @@ builder.Host.UseSerilog();
 // Add services to the container.
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddScoped<ChitLedger.Infrastructure.Data.Seeding.InitialDataSeeder>();
 
 // Context Accessor
 builder.Services.AddHttpContextAccessor();
@@ -120,6 +121,7 @@ app.UseMiddleware<BranchMiddleware>();
 
 app.UseCors("AllowClient");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -129,6 +131,9 @@ using (var scope = app.Services.CreateScope())
 {
     var tenantDb = scope.ServiceProvider.GetRequiredService<ChitLedger.Infrastructure.Data.TenantDbContext>();
     tenantDb.Database.EnsureCreated();
+    
+    var seeder = scope.ServiceProvider.GetRequiredService<ChitLedger.Infrastructure.Data.Seeding.InitialDataSeeder>();
+    await seeder.SeedAsync();
 }
 
 app.Run();

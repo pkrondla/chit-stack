@@ -1,4 +1,5 @@
 using ChitLedger.Application.Auth.Commands.Login;
+using ChitLedger.Application.Features.Auth.Commands.SendOtp;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -27,5 +28,12 @@ public class AuthController : ControllerBase
             return Unauthorized(result);
         }
         return Ok(result);
+    }
+
+    [HttpPost("send-otp")]
+    [AllowAnonymous]
+    public async Task<ActionResult<Result<string>>> SendOtp(SendOtpCommand command)
+    {
+        return Ok(await _mediator.Send(command));
     }
 }

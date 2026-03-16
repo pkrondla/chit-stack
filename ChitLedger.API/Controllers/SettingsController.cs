@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ChitLedger.API.Controllers;
 
-[Authorize(Roles = "Admin,Manager")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class SettingsController : ControllerBase
@@ -20,6 +20,7 @@ public class SettingsController : ControllerBase
     // ── Company Profile ──────────────────────────────────────────────────────
 
     /// <summary>Get the company/tenant profile settings used in statutory forms.</summary>
+    [Authorize(Roles = "Admin,Manager,Subscriber")]
     [HttpGet]
     public async Task<IActionResult> Get()
     {
@@ -28,6 +29,7 @@ public class SettingsController : ControllerBase
     }
 
     /// <summary>Create or update the company/tenant profile settings.</summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut]
     public async Task<IActionResult> Upsert([FromBody] UpsertTenantSettingsCommand command)
     {
@@ -38,6 +40,7 @@ public class SettingsController : ControllerBase
     // ── Holidays ─────────────────────────────────────────────────────────────
 
     /// <summary>Get all tenant-wide holidays.</summary>
+    [Authorize(Roles = "Admin,Manager,Subscriber")]
     [HttpGet("holidays")]
     public async Task<IActionResult> GetHolidays()
     {
@@ -46,6 +49,7 @@ public class SettingsController : ControllerBase
     }
 
     /// <summary>Add a new holiday.</summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("holidays")]
     public async Task<IActionResult> AddHoliday([FromBody] AddHolidayCommand command)
     {
@@ -54,6 +58,7 @@ public class SettingsController : ControllerBase
     }
 
     /// <summary>Delete a holiday.</summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpDelete("holidays/{id}")]
     public async Task<IActionResult> DeleteHoliday(int id)
     {

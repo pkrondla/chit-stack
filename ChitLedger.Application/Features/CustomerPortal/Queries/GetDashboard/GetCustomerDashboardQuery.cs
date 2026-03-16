@@ -29,6 +29,7 @@ public class DashboardAuctionDto
     public string GroupName { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public int Installment { get; set; }
+    public string Status { get; set; } = string.Empty;
 }
 
 public class GetCustomerDashboardQuery : IRequest<Result<CustomerDashboardDto>>
@@ -53,7 +54,7 @@ public class GetCustomerDashboardHandler : IRequestHandler<GetCustomerDashboardQ
         {
             return Result<CustomerDashboardDto>.Failure("User is not linked to a Member profile.");
         }
-
+        Console.WriteLine($"[DEBUG] Dashboard for MemberId: {memberId}");
         var dashboard = new CustomerDashboardDto();
 
         // 1. Get Tickets
@@ -61,12 +62,14 @@ public class GetCustomerDashboardHandler : IRequestHandler<GetCustomerDashboardQ
             .Include(t => t.ChitGroup)
             .Where(t => t.MemberId == memberId)
             .ToListAsync(cancellationToken);
+        
+        Console.WriteLine($"[DEBUG] Tickets found: {tickets.Count}");
 
         dashboard.MyTickets = tickets.Select(t => new MyTicketDto
         {
             TicketId = t.Id,
-            GroupName = t.ChitGroup.GroupName,
-            ChitValue = t.ChitGroup.ChitValue,
+            GroupName = t.ChitGroup?.GroupName ?? "Unknown Group",
+            ChitValue = t.ChitGroup?.ChitValue ?? 0,
             TicketNumber = t.TicketNumber,
             IsPrized = t.IsPrized
         }).ToList();
@@ -83,19 +86,23 @@ public class GetCustomerDashboardHandler : IRequestHandler<GetCustomerDashboardQ
         dashboard.TotalSavings = demands.Sum(d => d.DividendAmount);
 
         // 3. Upcoming Auctions
+        var now = DateTime.Now;
         var auctions = await _context.Auctions
             .Include(a => a.ChitGroup)
-            .Where(a => groupIds.Contains(a.ChitGroupId) && a.AuctionDate >= DateTime.Now)
+            .Where(a => groupIds.Contains(a.ChitGroupId) && a.AuctionDate >= now)
             .OrderBy(a => a.AuctionDate)
             .Take(5)
             .ToListAsync(cancellationToken);
 
+        Console.WriteLine($"[DEBUG] Auctions found: {auctions.Count}");
+
         dashboard.UpcomingAuctions = auctions.Select(a => new DashboardAuctionDto
         {
             AuctionId = a.Id,
-            GroupName = a.ChitGroup.GroupName,
+            GroupName = a.ChitGroup?.GroupName ?? "Unknown Group",
             Date = a.AuctionDate,
-            Installment = a.InstallmentNumber
+            Installment = a.InstallmentNumber,
+            Status = a.AuctionStatus
         }).ToList();
 
         return Result<CustomerDashboardDto>.Success(dashboard);

@@ -1,3 +1,4 @@
+using ChitLedger.Application.Features.Members.Commands.EnablePortalAccess;
 using ChitLedger.Application.Features.Members.Commands.CreateMember;
 using ChitLedger.Application.Features.Members.Queries.GetMembers;
 using ChitLedger.Application.Features.Members.Queries.GetMemberById;
@@ -116,6 +117,12 @@ public class MembersController : ControllerBase
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
+    }
+
+    [HttpPost("{id}/enable-portal")]
+    public async Task<ActionResult<Result<int>>> EnablePortalAccess(int id)
+    {
+        return Ok(await _mediator.Send(new EnablePortalAccessCommand { MemberId = id }));
     }
 }
 

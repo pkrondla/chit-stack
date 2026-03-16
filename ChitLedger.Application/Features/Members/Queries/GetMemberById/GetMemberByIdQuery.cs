@@ -26,7 +26,7 @@ public class GetMemberByIdHandler : IRequestHandler<GetMemberByIdQuery, Result<M
 
     public async Task<Result<MemberDto>> Handle(GetMemberByIdQuery request, CancellationToken cancellationToken)
     {
-        var member = await _context.Members
+        var memberDto = await _context.Members
             .Include(m => m.RegistrationBranch)
             .Include(m => m.Tickets)
                 .ThenInclude(t => t.ChitGroup)
@@ -34,11 +34,13 @@ public class GetMemberByIdHandler : IRequestHandler<GetMemberByIdQuery, Result<M
             .ProjectTo<MemberDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (member == null)
+        if (memberDto == null)
         {
             return Result<MemberDto>.Failure("Member not found");
         }
 
-        return Result<MemberDto>.Success(member);
+        memberDto.IsPortalEnabled = await _context.Users.AnyAsync(u => u.MemberId == request.Id, cancellationToken);
+
+        return Result<MemberDto>.Success(memberDto);
     }
 }

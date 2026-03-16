@@ -20,19 +20,33 @@ import CollectionEntry from './pages/Finance/CollectionEntry';
 import Payouts from './pages/Finance/Payouts';
 import FinancialReports from './pages/Reports/FinancialReports';
 import UserManagement from './pages/Admin/UserManagement';
-import PortalDashboard from './pages/Portal/PortalDashboard';
 import Settings from './pages/Settings/Settings';
-import CompanySettings from './pages/Settings/CompanySettings';
+import PortalDashboard from './pages/Portal/PortalDashboard';
+import MyChits from './pages/Portal/MyChits';
+import MyAuctions from './pages/Portal/MyAuctions';
+import MyPayments from './pages/Portal/MyPayments';
+import MemberLayout from './components/MemberLayout';
 
 // Placeholder Pages
-const Dashboard = () => <div><h2>Welcome to Dashboard</h2><p>Select a module from the sidebar.</p></div>;
+const Dashboard = () => {
+  const user = useAuthStore((state) => state.user);
+  if (user?.role === 'Subscriber') {
+    return <Navigate to="/portal" replace />;
+  }
+  return <div><h2>Welcome to Dashboard</h2><p>Select a module from the sidebar.</p></div>;
+};
 
-
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const user = useAuthStore((state) => state.user);
   const loading = useAuthStore((state) => state.loading);
+
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
@@ -43,7 +57,17 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        {/* Member Portal Routes */}
+        <Route path="/portal" element={<ProtectedRoute allowedRoles={['Subscriber']}><MemberLayout /></ProtectedRoute>}>
+          <Route index element={<PortalDashboard />} />
+          <Route path="my-chits" element={<MyChits />} />
+          <Route path="auctions" element={<MyAuctions />} />
+          <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
+          <Route path="payments" element={<MyPayments />} />
+        </Route>
+
+        {/* Staff / Admin Routes */}
+        <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Staff']}><Layout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="groups" element={<Groups />} />
@@ -64,11 +88,11 @@ function App() {
           <Route path="reports" element={<FinancialReports />} />
           {/* Admin */}
           <Route path="admin/users" element={<UserManagement />} />
-          <Route path="portal" element={<PortalDashboard />} />
           <Route path="settings" element={<Settings />} />
           <Route path="settings/company" element={<Settings />} />
-          {/* Add more routes here */}
         </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

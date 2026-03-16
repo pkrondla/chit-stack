@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Card, Typography, Button, Spin, Avatar, Descriptions, Tag, Divider, Table } from 'antd';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, Typography, Button, Spin, Avatar, Descriptions, Tag, Divider, Table, App } from 'antd';
 import { User, ArrowLeft, Phone, Mail, Hash, FileText, Edit } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -10,6 +10,8 @@ const { Title } = Typography;
 const MemberDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { message } = App.useApp();
 
     const { data: member, isLoading } = useQuery({
         queryKey: ['member', id],
@@ -18,6 +20,22 @@ const MemberDetails = () => {
             return res.data.data || res.data;
         },
         enabled: !!id
+    });
+
+    const { mutate: enablePortal, isLoading: isEnabling } = useMutation({
+        mutationFn: async () => {
+            const res = await api.post(`/Members/${id}/enable-portal`);
+            return res.data;
+        },
+        onSuccess: (res) => {
+            if (res.succeeded) {
+                message.success('Portal access enabled successfully.');
+                queryClient.invalidateQueries(['member', id]);
+            } else {
+                message.error(res.message || 'Failed to enable portal access.');
+            }
+        },
+        onError: () => message.error('Server error. Please try again later.')
     });
 
     if (isLoading) {
@@ -91,14 +109,44 @@ const MemberDetails = () => {
                 <Divider className="my-6" />
 
                 <Title level={4} className="mb-4 text-slate-700">Contact Information</Title>
-                <Descriptions column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }} className="mb-8">
-                    <Descriptions.Item label={<div className="flex items-center gap-2"><Phone size={14} /> Mobile</div>}>
-                        <span className="font-medium text-slate-800">{member.phoneNumber || 'Not Provided'}</span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label={<div className="flex items-center gap-2"><Mail size={14} /> Email</div>}>
-                        <span className="font-medium text-slate-800">{member.email || 'Not Provided'}</span>
-                    </Descriptions.Item>
-                </Descriptions>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <Descriptions column={1}>
+                        <Descriptions.Item label={<div className="flex items-center gap-2"><Phone size={14} /> Mobile</div>}>
+                            <span className="font-medium text-slate-800">{member.phoneNumber || 'Not Provided'}</span>
+                        </Descriptions.Item>
+                        <Descriptions.Item label={<div className="flex items-center gap-2"><Mail size={14} /> Email</div>}>
+                            <span className="font-medium text-slate-800">{member.email || 'Not Provided'}</span>
+                        </Descriptions.Item>
+                    </Descriptions>
+
+                    <Card className="bg-indigo-50 border-0 rounded-2xl p-2 h-fit">
+                        <div className="flex items-center justify-between mb-3 px-2">
+                            <div className="flex items-center gap-2 text-indigo-700 font-bold">
+                                <User size={18} /> Member Portal
+                            </div>
+                            {member.isPortalEnabled ? (
+                                <Tag color="green" className="m-0 rounded-full border-0 font-bold">Enabled</Tag>
+                            ) : (
+                                <Tag color="default" className="m-0 rounded-full border-0 font-bold">Disabled</Tag>
+                            )}
+                        </div>
+                        {!member.isPortalEnabled ? (
+                            <Button
+                                type="primary"
+                                block
+                                className="bg-indigo-600 hover:bg-indigo-700 h-10 font-bold rounded-xl"
+                                loading={isEnabling}
+                                onClick={() => enablePortal()}
+                            >
+                                Enable Portal Access
+                            </Button>
+                        ) : (
+                            <div className="text-xs text-indigo-600 font-medium px-2">
+                                Member can log in using their credentials.
+                            </div>
+                        )}
+                    </Card>
+                </div>
 
                 <Title level={4} className="mb-4 text-slate-700">Identity Documents</Title>
                 <Descriptions column={{ xxl: 2, xl: 2, lg: 2, md: 1, sm: 1, xs: 1 }} className="mb-8">

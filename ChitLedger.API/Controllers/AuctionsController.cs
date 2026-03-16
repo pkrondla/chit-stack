@@ -1,8 +1,13 @@
 using ChitLedger.Application.Features.Auctions.Commands.CloseAuction;
 using ChitLedger.Application.Features.Auctions.Commands.PlaceProxyBid;
+using ChitLedger.Application.Features.Auctions.Commands.MarkAttendance;
+using ChitLedger.Application.Features.Auctions.Commands.StartAuction;
 using ChitLedger.Application.Features.Auctions.Commands.PlaceBid;
 using ChitLedger.Application.Features.Auctions.Commands.ScheduleAuction;
+using ChitLedger.Application.Features.Auctions.Queries.GetAuctionAttendance;
 using ChitLedger.Application.Features.Auctions.Queries.GetAuctions;
+using ChitLedger.Application.Features.Auctions.Queries.GetAuctionBids;
+using ChitLedger.Application.Features.Auctions.Commands.UpdateAuctionCompletion;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +38,18 @@ public class AuctionsController : ControllerBase
         }));
     }
 
+    [HttpGet("{auctionId}/attendance")]
+    public async Task<ActionResult<Result<List<AttendanceDto>>>> GetAttendance(int auctionId)
+    {
+        return Ok(await _mediator.Send(new GetAuctionAttendanceQuery { AuctionId = auctionId }));
+    }
+
+    [HttpGet("{auctionId}/bids")]
+    public async Task<ActionResult<Result<List<BidDto>>>> GetBids(int auctionId)
+    {
+        return Ok(await _mediator.Send(new GetAuctionBidsQuery { AuctionId = auctionId }));
+    }
+
     [Authorize(Roles = "Admin,Manager")]
     [HttpPost("schedule")]
     public async Task<ActionResult<Result<int>>> Schedule(ScheduleAuctionCommand command)
@@ -42,9 +59,27 @@ public class AuctionsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin,Manager,Member")]
+    [Authorize(Roles = "Admin,Manager,Subscriber")]
     [HttpPost("bid")]
     public async Task<ActionResult<Result<bool>>> PlaceBid(PlaceBidCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPost("start")]
+    public async Task<ActionResult<Result<bool>>> Start(StartAuctionCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPost("attendance")]
+    public async Task<ActionResult<Result<bool>>> Attendance(MarkAttendanceCommand command)
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
@@ -63,6 +98,15 @@ public class AuctionsController : ControllerBase
     [Authorize(Roles = "Admin,Manager")]
     [HttpPost("close")]
     public async Task<ActionResult<Result<int>>> Close(CloseAuctionCommand command)
+    {
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPut("update-payout")]
+    public async Task<ActionResult<Result<int>>> UpdatePayout(UpdateAuctionCompletionCommand command)
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);

@@ -21,6 +21,8 @@ public class AuctionDto
     public decimal DividendAmount { get; set; }
     public decimal NetPayableAmount { get; set; }
     public int? WinningTicketId { get; set; }
+    public int? WinningTicketNumber { get; set; }
+    public string? WinnerName { get; set; }
     public bool IsPaid { get; set; }
     public DateTime? PaymentDate { get; set; }
     public string? GroupStatus { get; set; }
@@ -52,6 +54,8 @@ public class GetAuctionsHandler : IRequestHandler<GetAuctionsQuery, Result<List<
     {
         var query = _context.Auctions
             .Include(x => x.ChitGroup)
+            .Include(x => x.WinningTicket)
+                .ThenInclude(t => t.Member)
             .AsNoTracking();
 
         if (request.ChitGroupId.HasValue)
@@ -88,7 +92,11 @@ public class AuctionProfile : Profile
             .ForMember(d => d.ChitValue, opt => opt.MapFrom(s => s.ChitGroup.ChitValue))
             .ForMember(d => d.DurationMonths, opt => opt.MapFrom(s => s.ChitGroup.DurationMonths))
             .ForMember(d => d.ForemanCommissionPercent, opt => opt.MapFrom(s => s.ChitGroup.ForemanCommissionPercent))
-            .ForMember(d => d.AuctionVenueAddress, opt => opt.MapFrom(s => s.ChitGroup.AuctionVenueAddress));
+            .ForMember(d => d.AuctionVenueAddress, opt => opt.MapFrom(s => s.ChitGroup.AuctionVenueAddress))
+            .ForMember(d => d.WinnerName, opt => opt.MapFrom(s => s.WinningTicket != null
+                ? (s.WinningTicket.IsForeman ? "FOREMAN / COMPANY" : (s.WinningTicket.Member != null ? s.WinningTicket.Member.FullName : null))
+                : null))
+            .ForMember(d => d.WinningTicketNumber, opt => opt.MapFrom(s => s.WinningTicket != null ? s.WinningTicket.TicketNumber : (int?)null));
     }
 }
 

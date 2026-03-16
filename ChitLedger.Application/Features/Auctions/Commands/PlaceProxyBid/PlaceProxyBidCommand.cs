@@ -42,10 +42,17 @@ public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result
         if (ticket == null || ticket.ChitGroupId != auction.ChitGroupId)
             return Result<int>.Failure("Invalid Ticket for this group");
 
-        // Validate Bid Amount
-        decimal maxBid = auction.ChitGroup.ChitValue * 0.30m; // Max 30%
+        // Statutory Validations
+        var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
+        decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
+        decimal maxBid = auction.ChitGroup.ChitValue * (maxCapPercent / 100);
+        decimal minBid = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+
         if (request.BidAmount > maxBid)
-            return Result<int>.Failure($"Bid exceeds maximum limit ({maxBid:C})");
+            return Result<int>.Failure($"Bid exceeds maximum allowed discount of {maxCapPercent}% (₹{maxBid:N2})");
+
+        if (request.BidAmount < minBid && auction.InstallmentNumber > 1)
+            return Result<int>.Failure($"Bid must be at least the foreman commission of (₹{minBid:N2})");
 
         // Update Auction (Simple "Winning" Logic for V1)
         auction.WinningTicketId = ticket.Id;
@@ -58,6 +65,20 @@ public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result
         
         auction.DividendAmount = dividendPool / auction.ChitGroup.DurationMonths; // Per Member
         auction.NetPayableAmount = auction.ChitGroup.ChitValue - request.BidAmount;
+
+        // Record Bid History
+        var bid = new AuctionBid
+        {
+            AuctionId = auction.Id,
+            TicketId = request.TicketId,
+            BidAmount = request.BidAmount,
+            BidTime = DateTime.UtcNow,
+            Source = request.Source,
+            BranchId = auction.BranchId,
+            TenantId = auction.TenantId,
+            IsActive = true
+        };
+        _context.AuctionBids.Add(bid);
 
         await _context.SaveChangesAsync(cancellationToken);
 

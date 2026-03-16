@@ -21,6 +21,7 @@ public class TenantSettingsDto
     public decimal StatutoryFilingFees { get; set; }
     public string? GstNumber { get; set; }
     public string? PanNumber { get; set; }
+    public decimal MaxBiddingDiscountPercent { get; set; }
 }
 
 // Command: Upsert (create or update) the company profile
@@ -36,6 +37,7 @@ public class UpsertTenantSettingsCommand : IRequest<Result<TenantSettingsDto>>
     public decimal StatutoryFilingFees { get; set; }
     public string? GstNumber { get; set; }
     public string? PanNumber { get; set; }
+    public decimal MaxBiddingDiscountPercent { get; set; }
 }
 
 public class UpsertTenantSettingsValidator : AbstractValidator<UpsertTenantSettingsCommand>
@@ -79,6 +81,7 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         existing.StatutoryFilingFees = request.StatutoryFilingFees;
         existing.GstNumber = request.GstNumber;
         existing.PanNumber = request.PanNumber;
+        existing.MaxBiddingDiscountPercent = request.MaxBiddingDiscountPercent;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -98,6 +101,7 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         StatutoryFilingFees = s.StatutoryFilingFees,
         GstNumber = s.GstNumber,
         PanNumber = s.PanNumber,
+        MaxBiddingDiscountPercent = s.MaxBiddingDiscountPercent,
     };
 }
 
@@ -128,6 +132,7 @@ public class GetTenantSettingsHandler : IRequestHandler<GetTenantSettingsQuery, 
             StatutoryFilingFees = settings.StatutoryFilingFees,
             GstNumber = settings.GstNumber,
             PanNumber = settings.PanNumber,
+            MaxBiddingDiscountPercent = settings.MaxBiddingDiscountPercent,
         });
     }
 }

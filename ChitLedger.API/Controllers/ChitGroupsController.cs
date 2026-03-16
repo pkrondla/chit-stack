@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ChitLedger.API.Controllers;
 
-[Authorize(Roles = "Admin,Manager")]
+[Authorize(Roles = "Admin,Manager,Subscriber")]
 [ApiController]
 [Route("api/[controller]")]
 public class ChitGroupsController : ControllerBase
@@ -30,6 +30,7 @@ public class ChitGroupsController : ControllerBase
         return Ok(await _mediator.Send(new GetChitGroupsQuery()));
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public async Task<ActionResult<Result<int>>> Create(CreateChitGroupCommand command)
     {
@@ -38,6 +39,7 @@ public class ChitGroupsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id}")]
     public async Task<ActionResult<Result<int>>> Update(int id, UpdateChitGroupCommand command)
     {
@@ -48,6 +50,7 @@ public class ChitGroupsController : ControllerBase
     }
 
     /// <summary>Update the statutory/regulatory fields for a group.</summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id}/statutory")]
     public async Task<ActionResult<Result<int>>> UpdateStatutoryInfo(int id, UpdateChitGroupStatutoryInfoCommand command)
     {
@@ -75,6 +78,7 @@ public class ChitGroupsController : ControllerBase
     }
 
     /// <summary>Save (upsert) the auction schedule for a group.</summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("{id}/schedule")]
     public async Task<ActionResult<Result<bool>>> SaveSchedule(int id, [FromBody] SaveAuctionScheduleCommand command)
     {
@@ -84,6 +88,7 @@ public class ChitGroupsController : ControllerBase
     }
 
     /// <summary>Launch the group — validates all tickets enrolled and all N auction dates are set.</summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("{id}/launch")]
     public async Task<ActionResult<Result<int>>> Launch(int id)
     {

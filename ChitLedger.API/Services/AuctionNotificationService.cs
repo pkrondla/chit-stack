@@ -18,4 +18,22 @@ public class AuctionNotificationService : IAuctionNotificationService
         await _hubContext.Clients.Group(auctionId.ToString())
             .SendAsync("ReceiveBid", memberName, amount, photoUrl, source);
     }
+
+    public async Task NotifyAttendanceAsync(int auctionId, int ticketId, string memberName, bool isPresent)
+    {
+        await _hubContext.Clients.Group(auctionId.ToString())
+            .SendAsync("ReceiveAttendance", ticketId, memberName, isPresent);
+    }
+
+    public async Task NotifyAuctionStartedAsync(int auctionId, int durationMinutes)
+    {
+        await _hubContext.Clients.Group(auctionId.ToString())
+            .SendAsync("AuctionStarted", durationMinutes, DateTime.UtcNow.AddMinutes(durationMinutes));
+    }
+
+    public async Task NotifyAuctionClosedAsync(int auctionId, int winningTicketId, string winnerName, decimal winningBid)
+    {
+        await _hubContext.Clients.Group(auctionId.ToString())
+            .SendAsync("AuctionClosed", winningTicketId, winnerName, winningBid);
+    }
 }

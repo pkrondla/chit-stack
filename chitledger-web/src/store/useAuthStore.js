@@ -35,10 +35,10 @@ const useAuthStore = create((set) => ({
     ...getInitialState(),
     loading: false,
 
-    login: async (username, password) => {
+    login: async (username, password, loginMode = 'Password', otp = '') => {
         set({ loading: true });
         try {
-            const response = await api.post('/Auth/login', { username, password });
+            const response = await api.post('/Auth/login', { username, password, loginMode, otp });
             const data = response.data.data || response.data;
             const token = data.token;
 

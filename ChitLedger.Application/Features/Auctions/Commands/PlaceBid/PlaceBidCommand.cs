@@ -2,6 +2,7 @@ using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ChitLedger.Domain.Entities;
 
 namespace ChitLedger.Application.Features.Auctions.Commands.PlaceBid;
 
@@ -40,17 +41,17 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
             
         if (ticket == null) return Result<bool>.Failure("Ticket not found.");
         
-        // Validation: Max Bid Cap (Chit Act 1982 usually caps at 30% or 40%)
-        // Let's assume Max Bid = 30% of ChitValue
-        var maxBid = auction.ChitGroup.ChitValue * 0.30m; 
-        // Also Foreman Commission usually 5% is minimum bid implicitly? Or min bid = 5%.
-        var minBid = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+        // Statutory Validations
+        var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
+        decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
+        decimal maxBid = auction.ChitGroup.ChitValue * (maxCapPercent / 100);
+        decimal minBid = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
 
         if (request.BidAmount > maxBid)
-            return Result<bool>.Failure($"Bid amount cannot exceed 30% ({maxBid}) of Chit Value.");
+            return Result<bool>.Failure($"Bid amount cannot exceed {maxCapPercent}% (₹{maxBid:N2}) of Chit Value.");
             
-        if (request.BidAmount < minBid)
-             return Result<bool>.Failure($"Bid must be at least the foreman commission ({minBid}).");
+        if (request.BidAmount < minBid && auction.InstallmentNumber > 1)
+             return Result<bool>.Failure($"Bid must be at least the foreman commission (₹{minBid:N2}).");
 
         if (request.BidAmount <= auction.WinningBidAmount)
             return Result<bool>.Failure("Bid must be higher than the current highest bid.");
@@ -58,6 +59,20 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
         // Update Auction current high
         auction.WinningBidAmount = request.BidAmount;
         auction.WinningTicketId = request.BidderTicketId;
+        
+        // Record Bid History
+        var bid = new AuctionBid
+        {
+            AuctionId = auction.Id,
+            TicketId = request.BidderTicketId,
+            BidAmount = request.BidAmount,
+            BidTime = DateTime.UtcNow,
+            Source = request.Source,
+            BranchId = auction.BranchId,
+            TenantId = auction.TenantId,
+            IsActive = true
+        };
+        _context.AuctionBids.Add(bid);
         
         await _context.SaveChangesAsync(cancellationToken);
 

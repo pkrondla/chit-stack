@@ -27,4 +27,7 @@ public class TenantSettings : TenantEntity
     // Registrar-assigned GSTIN / PAN (optional, shown on receipts)
     public string? GstNumber { get; set; }
     public string? PanNumber { get; set; }
+
+    // Auction Rules
+    public decimal MaxBiddingDiscountPercent { get; set; } = 40; // Default 40% as per Tamil Nadu Chit Fund Act
 }

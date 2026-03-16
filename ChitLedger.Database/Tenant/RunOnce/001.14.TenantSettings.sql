@@ -11,6 +11,7 @@ CREATE TABLE [dbo].[TenantSettings] (
     [StatutoryFilingFees]      DECIMAL(18,2)     NOT NULL DEFAULT 0,
     [GstNumber]                NVARCHAR(20)      NULL,
     [PanNumber]                NVARCHAR(20)      NULL,
+    [MaxBiddingDiscountPercent] DECIMAL(18,2)     NOT NULL DEFAULT 40,
     [TenantId]                 INT               NOT NULL,
     [Created]                  DATETIME2         NOT NULL DEFAULT GETUTCDATE()
 );

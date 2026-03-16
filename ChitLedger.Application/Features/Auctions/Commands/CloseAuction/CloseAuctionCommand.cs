@@ -15,25 +15,41 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
     private readonly IApplicationDbContext _context;
     private readonly IGSTService _gstService;
     private readonly IJournalService _journalService;
+    private readonly IAuctionNotificationService _notificationService;
 
-    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService)
+    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAuctionNotificationService notificationService)
     {
         _context = context;
         _gstService = gstService;
         _journalService = journalService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<int>> Handle(CloseAuctionCommand request, CancellationToken cancellationToken)
     {
         var auction = await _context.Auctions
             .Include(a => a.ChitGroup)
-            .ThenInclude(g => g.Tickets) 
+            .ThenInclude(g => g.Tickets)
+            .Include(a => a.WinningTicket)
+            .ThenInclude(t => t.Member)
             .FirstOrDefaultAsync(a => a.Id == request.AuctionId, cancellationToken);
             
         if (auction == null) return Result<int>.Failure("Auction not found.");
         
         if (auction.WinningTicketId == null)
             return Result<int>.Failure("Cannot close auction without a winner.");
+
+        // Statutoty Validations
+        var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
+        decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
+        decimal maxBiddingAmount = auction.ChitGroup.ChitValue * (maxCapPercent / 100);
+        decimal minBiddingAmount = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+
+        if (auction.WinningBidAmount > maxBiddingAmount)
+            return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) exceeds the maximum allowed discount of {maxCapPercent}% (₹{maxBiddingAmount:N2}).");
+
+        if (auction.WinningBidAmount < minBiddingAmount && auction.InstallmentNumber > 1)
+            return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) is below the minimum foreman commission of {auction.ChitGroup.ForemanCommissionPercent}% (₹{minBiddingAmount:N2}).");
 
         // Calculate Dividend
         var commissionBase = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
@@ -115,6 +131,13 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify Room
+        await _notificationService.NotifyAuctionClosedAsync(
+            auction.Id, 
+            auction.WinningTicketId.Value, 
+            auction.WinningTicket?.Member?.FullName ?? "Member", 
+            auction.WinningBidAmount);
 
         return Result<int>.Success(auction.Id);
     }

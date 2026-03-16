@@ -145,6 +145,56 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.ToTable("Auctions");
                 });
 
+            modelBuilder.Entity("ChitLedger.Domain.Entities.AuctionAttendance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AttendanceTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("AuctionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPresent")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuctionId");
+
+                    b.HasIndex("TicketId");
+
+                    b.ToTable("AuctionAttendances");
+                });
+
             modelBuilder.Entity("ChitLedger.Domain.Entities.Branch", b =>
                 {
                     b.Property<int>("Id")
@@ -1047,6 +1097,25 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Navigation("ChitGroup");
 
                     b.Navigation("WinningTicket");
+                });
+
+            modelBuilder.Entity("ChitLedger.Domain.Entities.AuctionAttendance", b =>
+                {
+                    b.HasOne("ChitLedger.Domain.Entities.Auction", "Auction")
+                        .WithMany()
+                        .HasForeignKey("AuctionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ChitLedger.Domain.Entities.Ticket", "Ticket")
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Auction");
+
+                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("ChitLedger.Domain.Entities.Demand", b =>
