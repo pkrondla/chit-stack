@@ -22,6 +22,8 @@ public class TenantSettingsDto
     public string? GstNumber { get; set; }
     public string? PanNumber { get; set; }
     public decimal MaxBiddingDiscountPercent { get; set; }
+    public decimal TdsPercent { get; set; }
+    public decimal GstPercent { get; set; }
 }
 
 // Command: Upsert (create or update) the company profile
@@ -38,6 +40,8 @@ public class UpsertTenantSettingsCommand : IRequest<Result<TenantSettingsDto>>
     public string? GstNumber { get; set; }
     public string? PanNumber { get; set; }
     public decimal MaxBiddingDiscountPercent { get; set; }
+    public decimal TdsPercent { get; set; }
+    public decimal GstPercent { get; set; }
 }
 
 public class UpsertTenantSettingsValidator : AbstractValidator<UpsertTenantSettingsCommand>
@@ -82,6 +86,8 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         existing.GstNumber = request.GstNumber;
         existing.PanNumber = request.PanNumber;
         existing.MaxBiddingDiscountPercent = request.MaxBiddingDiscountPercent;
+        existing.TdsPercent = request.TdsPercent;
+        existing.GstPercent = request.GstPercent;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -102,6 +108,8 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         GstNumber = s.GstNumber,
         PanNumber = s.PanNumber,
         MaxBiddingDiscountPercent = s.MaxBiddingDiscountPercent,
+        TdsPercent = s.TdsPercent,
+        GstPercent = s.GstPercent,
     };
 }
 
@@ -133,6 +141,8 @@ public class GetTenantSettingsHandler : IRequestHandler<GetTenantSettingsQuery, 
             GstNumber = settings.GstNumber,
             PanNumber = settings.PanNumber,
             MaxBiddingDiscountPercent = settings.MaxBiddingDiscountPercent,
+            TdsPercent = settings.TdsPercent,
+            GstPercent = settings.GstPercent,
         });
     }
 }

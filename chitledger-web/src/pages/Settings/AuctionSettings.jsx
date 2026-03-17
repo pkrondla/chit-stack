@@ -81,7 +81,7 @@ const AuctionSettings = () => {
                         <Form.Item
                             name="tdsPercent"
                             label="TDS Percentage (%)"
-                            extra="TDS to be deducted from distributable dividend (Section 194)."
+                            extra="Deducted from dividend profit."
                             rules={[
                                 { type: 'number', min: 0, max: 20, message: 'Must be between 0 and 20.' }
                             ]}
@@ -92,6 +92,24 @@ const AuctionSettings = () => {
                                 suffix="%"
                                 className="w-full"
                                 placeholder="e.g., 5"
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="gstPercent"
+                            label="GST on Commission (%)"
+                            extra="Applied to Foreman's commission."
+                            rules={[
+                                { required: true, message: 'Please specify the GST rate.' },
+                                { type: 'number', min: 0, max: 30, message: 'Must be between 0 and 30.' }
+                            ]}
+                        >
+                            <InputNumber
+                                min={0}
+                                max={30}
+                                suffix="%"
+                                className="w-full"
+                                placeholder="e.g., 18"
                             />
                         </Form.Item>
                     </div>

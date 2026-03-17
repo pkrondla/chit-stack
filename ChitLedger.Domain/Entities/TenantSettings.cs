@@ -31,4 +31,5 @@ public class TenantSettings : TenantEntity
     // Auction Rules
     public decimal MaxBiddingDiscountPercent { get; set; } = 40; // Default 40% as per Tamil Nadu Chit Fund Act
     public decimal TdsPercent { get; set; } = 0; // TDS on Dividend/Prize
+    public decimal GstPercent { get; set; } = 18; // GST on Commission
 }

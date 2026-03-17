@@ -33,6 +33,13 @@ namespace ChitLedger.Infrastructure.Data.TenantMigrations
                 nullable: false,
                 defaultValue: 0m);
 
+            migrationBuilder.AddColumn<decimal>(
+                name: "GstPercent",
+                table: "TenantSettings",
+                type: "decimal(18,2)",
+                nullable: false,
+                defaultValue: 18m);
+
             migrationBuilder.AlterColumn<int>(
                 name: "BranchId",
                 table: "Receipts",

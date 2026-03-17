@@ -58,7 +58,8 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         var commissionBase = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
         
         // Calculate GST on Commission
-        var (cgst, sgst) = _gstService.CalculateSplitGST(commissionBase);
+        decimal gstRate = settings?.GstPercent ?? 18;
+        var (cgst, sgst) = _gstService.CalculateSplitGST(commissionBase, gstRate);
         var totalGst = cgst + sgst;
         
         // Distributable Surplus = WinningBid - (Commission + GST is typically NOT deducted from dividend pool, but collected from winner or paid by foreman? 
