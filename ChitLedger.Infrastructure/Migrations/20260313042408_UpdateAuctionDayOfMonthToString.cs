@@ -136,7 +136,8 @@ namespace ChitLedger.Infrastructure.Migrations
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     TenantId = table.Column<int>(type: "int", nullable: false),
-                    BranchId = table.Column<int>(type: "int", nullable: false)
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    InstrumentStatus = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "None")
                 },
                 constraints: table =>
                 {
@@ -184,7 +185,9 @@ namespace ChitLedger.Infrastructure.Migrations
                     LastModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    TenantId = table.Column<int>(type: "int", nullable: false)
+                    TenantId = table.Column<int>(type: "int", nullable: false),
+                    TdsPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0.0m),
+                    MaxBiddingDiscountPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 40.0m)
                 },
                 constraints: table =>
                 {
@@ -243,7 +246,9 @@ namespace ChitLedger.Infrastructure.Migrations
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     TenantId = table.Column<int>(type: "int", nullable: false),
-                    BranchId = table.Column<int>(type: "int", nullable: false)
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    IsReconciled = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    ReconciliationDate = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -356,7 +361,8 @@ namespace ChitLedger.Infrastructure.Migrations
                     LastModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     TenantId = table.Column<int>(type: "int", nullable: false),
-                    BranchId = table.Column<int>(type: "int", nullable: false)
+                    BranchId = table.Column<int>(type: "int", nullable: false),
+                    TdsAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0.0m)
                 },
                 constraints: table =>
                 {

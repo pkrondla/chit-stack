@@ -128,7 +128,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             journalLines.Add((tdsAccount.Data, 0, totalTds));
         }
         
-        await _journalService.CreateEntryAsync(
+        var journalResult = await _journalService.CreateEntryAsync(
             "Auction-Close", 
             DateTime.Now, 
             $"Commission for Auction {auction.Id}", 
@@ -137,6 +137,9 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             auction.BranchId,
             journalLines, 
             cancellationToken);
+
+        if (!journalResult.Succeeded)
+            return Result<int>.Failure($"Failed to create journal entry: {journalResult.Errors.First()}");
 
         // Schedule Next Auction or Close Group
         if (auction.InstallmentNumber < auction.ChitGroup.DurationMonths)

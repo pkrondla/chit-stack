@@ -30,11 +30,15 @@ public class AuctionDto
     public int DurationMonths { get; set; }
     public decimal ForemanCommissionPercent { get; set; }
     public string? AuctionVenueAddress { get; set; }
+    public string? PaymentMode { get; set; }
+    public string? PaymentReference { get; set; }
 }
 
 public class GetAuctionsQuery : IRequest<Result<List<AuctionDto>>>
 {
     public int? ChitGroupId { get; set; }
+    public int? MemberId { get; set; }
+    public bool? IsPaid { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
@@ -61,6 +65,16 @@ public class GetAuctionsHandler : IRequestHandler<GetAuctionsQuery, Result<List<
         if (request.ChitGroupId.HasValue)
         {
             query = query.Where(x => x.ChitGroupId == request.ChitGroupId);
+        }
+
+        if (request.MemberId.HasValue)
+        {
+            query = query.Where(x => x.WinningTicket.MemberId == request.MemberId.Value);
+        }
+
+        if (request.IsPaid.HasValue)
+        {
+            query = query.Where(x => x.IsPaid == request.IsPaid.Value);
         }
 
         if (request.FromDate.HasValue)

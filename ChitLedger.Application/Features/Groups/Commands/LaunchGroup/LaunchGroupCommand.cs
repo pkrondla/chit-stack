@@ -37,7 +37,8 @@ public class GenerateAuctionScheduleHandler : IRequestHandler<GenerateAuctionSch
     {
         var group = await _context.ChitGroups.FirstOrDefaultAsync(g => g.Id == request.GroupId, cancellationToken);
         if (group == null) return Result<List<AuctionScheduleSlotDto>>.Failure("Group not found.");
-        if (group.Status != GroupStatus.Proposed) return Result<List<AuctionScheduleSlotDto>>.Failure("Group is already launched.");
+        if (group.Status == GroupStatus.Completed || group.Status == GroupStatus.Closed) 
+            return Result<List<AuctionScheduleSlotDto>>.Failure("Group is already completed or closed.");
 
         if (!DateOnly.TryParse(request.FirstAuctionDate, out var firstDate))
             return Result<List<AuctionScheduleSlotDto>>.Failure("Invalid first auction date.");

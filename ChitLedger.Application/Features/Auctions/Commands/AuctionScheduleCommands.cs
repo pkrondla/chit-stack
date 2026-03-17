@@ -39,11 +39,14 @@ public class GetGroupAuctionScheduleHandler : IRequestHandler<GetGroupAuctionSch
         if (group == null) return Result<List<GroupAuctionSlotDto>>.Failure("Group not found.");
 
         var auctions = await _context.Auctions
-            .Where(a => a.ChitGroupId == request.GroupId)
+            .Where(a => a.ChitGroupId == request.GroupId && a.IsActive)
             .OrderBy(a => a.InstallmentNumber)
+            .ThenByDescending(a => a.Id)
             .ToListAsync(cancellationToken);
 
-        var auctionByInstallment = auctions.ToDictionary(a => a.InstallmentNumber);
+        var auctionByInstallment = auctions
+            .GroupBy(a => a.InstallmentNumber)
+            .ToDictionary(g => g.Key, g => g.First());
 
         var slots = Enumerable.Range(1, group.DurationMonths).Select(i =>
         {
@@ -93,10 +96,14 @@ public class SaveAuctionScheduleHandler : IRequestHandler<SaveAuctionScheduleCom
         if (group == null) return Result<bool>.Failure("Group not found.");
 
         var existingAuctions = await _context.Auctions
-            .Where(a => a.ChitGroupId == request.GroupId)
+            .Where(a => a.ChitGroupId == request.GroupId && a.IsActive)
+            .OrderBy(a => a.InstallmentNumber)
+            .ThenByDescending(a => a.Id)
             .ToListAsync(cancellationToken);
 
-        var byInstallment = existingAuctions.ToDictionary(a => a.InstallmentNumber);
+        var byInstallment = existingAuctions
+            .GroupBy(a => a.InstallmentNumber)
+            .ToDictionary(g => g.Key, g => g.First());
 
         foreach (var slot in request.Slots)
         {

@@ -45,7 +45,27 @@ BEGIN
 END
 GO
 
--- 5. Mark migration as applied
+-- 5. Add InstrumentStatus to JournalEntries
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[JournalEntries]') AND name = N'InstrumentStatus')
+BEGIN
+    ALTER TABLE [JournalEntries] ADD [InstrumentStatus] nvarchar(max) NOT NULL DEFAULT 'None';
+END
+GO
+
+-- 6. Add Reconciliation columns to JournalEntryLines
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[JournalEntryLines]') AND name = N'IsReconciled')
+BEGIN
+    ALTER TABLE [JournalEntryLines] ADD [IsReconciled] bit NOT NULL DEFAULT 0;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[JournalEntryLines]') AND name = N'ReconciliationDate')
+BEGIN
+    ALTER TABLE [JournalEntryLines] ADD [ReconciliationDate] datetime2 NULL;
+END
+GO
+
+-- 7. Mark migration as applied
 IF NOT EXISTS (SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20260316023140_AddAuditAndTds')
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])

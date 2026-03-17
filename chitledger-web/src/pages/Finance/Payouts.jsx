@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Typography, Button, Tag, Modal, Form, Input, InputNumber, Select, Alert, App, List, Divider } from 'antd';
-import { IndianRupee, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Card, Typography, Button, Tag, Modal, Form, Input, InputNumber, Select, Alert, App, List, Divider, DatePicker, Space, Table } from 'antd';
+import { IndianRupee, CheckCircle, ShieldAlert, Plus, User, Search, Eye, FileText, Filter, RotateCcw } from 'lucide-react';
 import api from '../../api/axios';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
@@ -11,6 +12,7 @@ const Payouts = () => {
     const queryClient = useQueryClient();
     const [selectedAuction, setSelectedAuction] = useState(null);
     const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     const [form] = Form.useForm();
     const paymentMode = Form.useWatch('paymentMode', form) || 'Bank';
@@ -19,10 +21,39 @@ const Payouts = () => {
     const [isGuarantorFormOpen, setIsGuarantorFormOpen] = useState(false);
     const [guarantorForm] = Form.useForm();
 
+    const [filters, setFilters] = useState({
+        chitGroupId: null,
+        memberId: null,
+        fromDate: null,
+        toDate: null
+    });
+
     const { data: auctions = [], isLoading } = useQuery({
-        queryKey: ['payouts'],
+        queryKey: ['payouts', filters],
         queryFn: async () => {
-            const res = await api.get('/Auctions');
+            const params = {
+                chitGroupId: filters.chitGroupId,
+                memberId: filters.memberId,
+                fromDate: filters.fromDate ? filters.fromDate.format('YYYY-MM-DD') : null,
+                toDate: filters.toDate ? filters.toDate.format('YYYY-MM-DD') : null
+            };
+            const res = await api.get('/Auctions', { params });
+            return res.data.data || res.data;
+        }
+    });
+
+    const { data: groups = [] } = useQuery({
+        queryKey: ['groups'],
+        queryFn: async () => {
+            const res = await api.get('/ChitGroups');
+            return res.data.data || res.data;
+        }
+    });
+
+    const { data: members = [] } = useQuery({
+        queryKey: ['members'],
+        queryFn: async () => {
+            const res = await api.get('/Members');
             return res.data.data || res.data;
         }
     });
@@ -98,21 +129,157 @@ const Payouts = () => {
     const openPayoutModal = (auction) => {
         setSelectedAuction(auction);
         setIsPayoutModalOpen(true);
+        setIsViewModalOpen(false);
         form.setFieldsValue({ paymentMode: 'Bank' });
         setIsGuarantorFormOpen(false);
+    };
+
+    const openViewModal = (auction) => {
+        setSelectedAuction(auction);
+        setIsViewModalOpen(true);
+        setIsPayoutModalOpen(false);
+    };
+
+    const handleReset = () => {
+        setFilters({
+            chitGroupId: null,
+            memberId: null,
+            fromDate: null,
+            toDate: null
+        });
     };
 
     const pendingPayouts = auctions.filter(a => a.auctionStatus === 'Closed' && a.winningTicketId && !a.isPaid);
     const completedPayouts = auctions.filter(a => a.isPaid);
 
+    const historyColumns = [
+        {
+            title: 'Chit Group',
+            dataIndex: 'groupName',
+            key: 'groupName',
+            render: (text) => <Text strong className="text-slate-800">{text}</Text>
+        },
+        {
+            title: 'Winner',
+            key: 'winner',
+            render: (_, record) => (
+                <div>
+                    <div className="font-semibold text-slate-700">{record.winnerName}</div>
+                    <div className="text-xs text-slate-500">Ticket #{record.winningTicketNumber}</div>
+                </div>
+            )
+        },
+        {
+            title: 'Payout Amount',
+            dataIndex: 'netPayableAmount',
+            key: 'netPayableAmount',
+            render: (val) => <span className="font-mono text-slate-900 font-bold">₹{val?.toLocaleString()}</span>
+        },
+        {
+            title: 'Payment Date',
+            dataIndex: 'paymentDate',
+            key: 'paymentDate',
+            render: (date) => <Text className="text-slate-600">{date ? dayjs(date).format('DD MMM YYYY') : 'N/A'}</Text>,
+            sorter: (a, b) => dayjs(a.paymentDate).unix() - dayjs(b.paymentDate).unix()
+        },
+        {
+            title: 'Status',
+            key: 'status',
+            render: () => (
+                <Tag color="success" className="rounded-full px-4 border-0 font-bold m-0 inline-flex items-center">
+                    <CheckCircle size={14} className="mr-1.5" /> PAID
+                </Tag>
+            )
+        },
+        {
+            title: 'Action',
+            key: 'action',
+            align: 'right',
+            render: (_, record) => (
+                <Button
+                    type="text"
+                    icon={<Eye size={18} className="text-slate-500" />}
+                    onClick={() => openViewModal(record)}
+                    className="hover:bg-indigo-50"
+                />
+            )
+        }
+    ];
+
     if (isLoading) return <div className="p-12 text-center text-slate-500 text-lg">Loading Payouts...</div>;
 
     return (
         <div className="max-w-6xl mx-auto pb-12">
-            <Title level={2} className="!mb-8 text-slate-800">Prize Money Payouts</Title>
+            <div className="flex justify-between items-center mb-8">
+                <Title level={2} className="!mb-0 text-slate-800">Prize Money Payouts</Title>
+            </div>
+
+            {/* Filters Bar */}
+            <Card className="mb-8 shadow-sm border-0 rounded-xl bg-slate-50">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="md:col-span-1">
+                        <Text className="text-slate-500 text-xs font-bold uppercase block mb-2 px-1">Chit Group</Text>
+                        <Select
+                            className="w-full"
+                            placeholder="All Groups"
+                            size="large"
+                            allowClear
+                            value={filters.chitGroupId}
+                            onChange={(val) => setFilters({ ...filters, chitGroupId: val })}
+                            options={groups.map(g => ({ label: g.groupName, value: g.id }))}
+                        />
+                    </div>
+                    <div className="md:col-span-1">
+                        <Text className="text-slate-500 text-xs font-bold uppercase block mb-2 px-1">Member</Text>
+                        <Select
+                            className="w-full"
+                            placeholder="All Members"
+                            size="large"
+                            allowClear
+                            showSearch
+                            optionFilterProp="label"
+                            value={filters.memberId}
+                            onChange={(val) => setFilters({ ...filters, memberId: val })}
+                            options={members.map(m => ({ label: m.fullName, value: m.id }))}
+                        />
+                    </div>
+                    <div className="md:col-span-1">
+                        <Text className="text-slate-500 text-xs font-bold uppercase block mb-2 px-1">From Date</Text>
+                        <DatePicker
+                            className="w-full"
+                            size="large"
+                            placeholder="Start Date"
+                            value={filters.fromDate}
+                            onChange={(date) => setFilters({ ...filters, fromDate: date })}
+                        />
+                    </div>
+                    <div className="md:col-span-1">
+                        <Text className="text-slate-500 text-xs font-bold uppercase block mb-2 px-1">To Date</Text>
+                        <DatePicker
+                            className="w-full"
+                            size="large"
+                            placeholder="End Date"
+                            value={filters.toDate}
+                            onChange={(date) => setFilters({ ...filters, toDate: date })}
+                        />
+                    </div>
+                    <div className="md:col-span-1 flex items-end">
+                        <Button
+                            className="w-full h-10 font-semibold"
+                            icon={<RotateCcw size={16} />}
+                            onClick={handleReset}
+                        >
+                            Reset
+                        </Button>
+                    </div>
+                </div>
+            </Card>
 
             <div className="mb-12">
-                <Title level={3} className="text-red-700 !mb-6 font-semibold border-b border-red-100 pb-2">Pending Disbursements</Title>
+                <Title level={3} className="text-red-700 !mb-6 font-semibold border-b border-red-100 pb-2 flex items-center gap-3">
+                    <span className="bg-red-100 w-2 h-8 rounded-full"></span>
+                    Pending Disbursements
+                </Title>
 
                 {pendingPayouts.length === 0 ? (
                     <Card className="bg-slate-50 border border-slate-200 text-center py-8">
@@ -151,32 +318,114 @@ const Payouts = () => {
             </div>
 
             <div>
-                <Title level={3} className="text-green-700 !mb-6 font-semibold border-b border-green-100 pb-2">Payment History</Title>
+                <Title level={3} className="text-green-700 !mb-6 font-semibold border-b border-green-100 pb-2 flex items-center gap-3">
+                    <span className="bg-green-100 w-2 h-8 rounded-full"></span>
+                    Payment History
+                </Title>
 
-                {completedPayouts.length === 0 ? (
-                    <Card className="bg-slate-50 border border-slate-200 text-center py-8">
-                        <Text className="text-slate-500 text-lg">No disbursement history available.</Text>
-                    </Card>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {completedPayouts.map(auction => (
-                            <div key={auction.id} className="bg-green-50 p-4 rounded-xl border border-green-200 flex justify-between items-center shadow-sm">
+                <Card className="shadow-sm border-0 rounded-xl overflow-hidden p-0" styles={{ body: { padding: 0 } }}>
+                    <Table
+                        columns={historyColumns}
+                        dataSource={completedPayouts}
+                        rowKey="id"
+                        pagination={{
+                            pageSize: 10,
+                            showSizeChanger: true,
+                            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} payments`
+                        }}
+                        locale={{ emptyText: <div className="py-12 text-slate-400">No payout history found matching filters.</div> }}
+                        className="payout-history-table cursor-pointer"
+                        onRow={(record) => ({
+                            onClick: () => openViewModal(record),
+                        })}
+                    />
+                </Card>
+            </div>
+
+            {/* View Payout Modal */}
+            <Modal
+                title={<Title level={3} className="!mb-0">Payout Details</Title>}
+                open={isViewModalOpen}
+                onCancel={() => setIsViewModalOpen(false)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setIsViewModalOpen(false)} className="bg-slate-900 font-bold px-8">
+                        Close
+                    </Button>
+                ]}
+                width={600}
+                destroyOnClose
+                className="top-10"
+            >
+                {selectedAuction && (
+                    <div className="mt-4">
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 mb-6">
+                            <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <div className="font-bold text-green-800 text-lg mb-1">{auction.groupName}</div>
-                                    <div className="text-sm text-green-700 flex items-center gap-2">
-                                        <span className="font-semibold bg-green-200 px-2 py-0.5 rounded text-xs">₹{auction.netPayableAmount?.toLocaleString()}</span>
-                                        Paid on {new Date(auction.paymentDate).toLocaleDateString()}
-                                    </div>
+                                    <Title level={4} className="!mb-1 text-slate-800">{selectedAuction.groupName}</Title>
+                                    <Text className="text-slate-500">Installment #{selectedAuction.installmentNumber}</Text>
                                 </div>
-                                <div className="flex items-center text-green-700 bg-white px-3 py-1 rounded-full shadow-sm font-bold border border-green-100">
-                                    <CheckCircle size={18} className="mr-2" />
-                                    Paid
+                                <div className="text-right">
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total Paid</Text>
+                                    <Title level={3} className="!mt-0 !mb-0 text-slate-900 font-mono">₹{selectedAuction.netPayableAmount?.toLocaleString()}</Title>
                                 </div>
                             </div>
-                        ))}
+
+                            <Divider className="my-4 opacity-50" />
+
+                            <div className="grid grid-cols-2 gap-y-4">
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Beneficiary</Text>
+                                    <Text strong className="text-slate-700">{selectedAuction.winnerName}</Text>
+                                </div>
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Payment Date</Text>
+                                    <Text strong className="text-slate-700">{dayjs(selectedAuction.paymentDate).format('DD MMMM YYYY')}</Text>
+                                </div>
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Disbursement Mode</Text>
+                                    <Tag color="blue" className="rounded-full px-3 border-0 font-bold m-0">{selectedAuction.paymentMode}</Tag>
+                                </div>
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Reference No</Text>
+                                    <Text strong className="text-slate-700 font-mono">{selectedAuction.paymentReference || 'N/A'}</Text>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Guarantors Section - Reused Logic */}
+                        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                            <Title level={5} className="!mb-4 flex items-center gap-2 text-slate-700">
+                                <ShieldAlert size={18} /> Security & Guarantors
+                            </Title>
+
+                            {guarantors.length === 0 ? (
+                                <div className="text-sm text-slate-500 italic bg-white px-4 py-3 rounded-lg border border-slate-100">
+                                    No guarantor records found for this disbursement.
+                                </div>
+                            ) : (
+                                <List
+                                    size="small"
+                                    dataSource={guarantors}
+                                    renderItem={(g) => (
+                                        <List.Item className="bg-white mb-2 rounded border border-slate-100 px-3 flex justify-between">
+                                            <div>
+                                                <Text strong className="text-slate-700 block">{g.name}</Text>
+                                                <Text className="text-slate-500 text-xs">Phone: {g.phoneNumber}</Text>
+                                            </div>
+                                            {g.aadhaarNumber && (
+                                                <div className="text-right">
+                                                    <Text className="text-slate-400 text-[10px] block uppercase">Aadhaar</Text>
+                                                    <Text className="text-slate-600 text-xs font-mono">{g.aadhaarNumber}</Text>
+                                                </div>
+                                            )}
+                                        </List.Item>
+                                    )}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
-            </div>
+            </Modal>
 
             {/* Payout Modal */}
             <Modal
@@ -316,6 +565,91 @@ const Payouts = () => {
                                 </Button>
                             </div>
                         </Form>
+                    </div>
+                )}
+            </Modal>
+
+            {/* View Payout Modal */}
+            <Modal
+                title={<Title level={3} className="!mb-0">Payout Details</Title>}
+                open={isViewModalOpen}
+                onCancel={() => setIsViewModalOpen(false)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setIsViewModalOpen(false)} className="bg-slate-900 font-bold px-8">
+                        Close
+                    </Button>
+                ]}
+                width={600}
+                destroyOnClose
+                className="top-10"
+            >
+                {selectedAuction && (
+                    <div className="mt-4">
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 mb-6">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <Title level={4} className="!mb-1 text-slate-800">{selectedAuction.groupName}</Title>
+                                    <Text className="text-slate-500">Installment #{selectedAuction.installmentNumber}</Text>
+                                </div>
+                                <div className="text-right">
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total Paid</Text>
+                                    <Title level={3} className="!mt-0 !mb-0 text-slate-900 font-mono">₹{selectedAuction.netPayableAmount?.toLocaleString()}</Title>
+                                </div>
+                            </div>
+
+                            <Divider className="my-4 opacity-50" />
+
+                            <div className="grid grid-cols-2 gap-y-4">
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Beneficiary</Text>
+                                    <Text strong className="text-slate-700">{selectedAuction.winnerName}</Text>
+                                </div>
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Payment Date</Text>
+                                    <Text strong className="text-slate-700">{dayjs(selectedAuction.paymentDate).format('DD MMMM YYYY')}</Text>
+                                </div>
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Disbursement Mode</Text>
+                                    <Tag color="blue" className="rounded-full px-3 border-0 font-bold m-0">{selectedAuction.paymentMode}</Tag>
+                                </div>
+                                <div>
+                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Reference No</Text>
+                                    <Text strong className="text-slate-700 font-mono">{selectedAuction.paymentReference || 'N/A'}</Text>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Guarantors Section */}
+                        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                            <Title level={5} className="!mb-4 flex items-center gap-2 text-slate-700">
+                                <ShieldAlert size={18} /> Security & Guarantors
+                            </Title>
+
+                            {guarantors.length === 0 ? (
+                                <div className="text-sm text-slate-500 italic bg-white px-4 py-3 rounded-lg border border-slate-100">
+                                    No guarantor records found for this disbursement.
+                                </div>
+                            ) : (
+                                <List
+                                    size="small"
+                                    dataSource={guarantors}
+                                    renderItem={(g) => (
+                                        <List.Item className="bg-white mb-2 rounded border border-slate-100 px-3 flex justify-between">
+                                            <div>
+                                                <Text strong className="text-slate-700 block">{g.name}</Text>
+                                                <Text className="text-slate-500 text-xs">Phone: {g.phoneNumber}</Text>
+                                            </div>
+                                            {g.aadhaarNumber && (
+                                                <div className="text-right">
+                                                    <Text className="text-slate-400 text-[10px] block uppercase">Aadhaar</Text>
+                                                    <Text className="text-slate-600 text-xs font-mono">{g.aadhaarNumber}</Text>
+                                                </div>
+                                            )}
+                                        </List.Item>
+                                    )}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
             </Modal>

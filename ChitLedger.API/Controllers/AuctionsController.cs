@@ -28,11 +28,18 @@ public class AuctionsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<Result<List<AuctionDto>>>> Get([FromQuery] int? chitGroupId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    public async Task<ActionResult<Result<List<AuctionDto>>>> Get(
+        [FromQuery] int? chitGroupId, 
+        [FromQuery] int? memberId,
+        [FromQuery] bool? isPaid,
+        [FromQuery] DateTime? fromDate, 
+        [FromQuery] DateTime? toDate)
     {
         return Ok(await _mediator.Send(new GetAuctionsQuery 
         { 
             ChitGroupId = chitGroupId,
+            MemberId = memberId,
+            IsPaid = isPaid,
             FromDate = fromDate,
             ToDate = toDate
         }));
