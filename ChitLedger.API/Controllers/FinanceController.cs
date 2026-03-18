@@ -87,4 +87,10 @@ public class FinanceController : ControllerBase
         
         return File(result.Data, "text/csv", $"GSTR1_{from:yyyyMMdd}_{to:yyyyMMdd}.csv");
     }
+
+    [HttpGet("gstr1-data")]
+    public async Task<ActionResult<Result<List<Gstr1EntryDto>>>> GetGstr1Data([FromQuery] DateTime from, [FromQuery] DateTime to)
+    {
+        return Ok(await _mediator.Send(new GetGstr1DataQuery { FromDate = from, ToDate = to }));
+    }
 }

@@ -6,6 +6,7 @@ using ChitLedger.Application.Features.Reporting.Queries.GetLedger;
 using ChitLedger.Application.Features.Reporting.Queries.GetProfitAndLoss;
 using ChitLedger.Application.Features.Reporting.Queries.GetTrialBalance;
 using ChitLedger.Application.Features.Reporting.Queries.GetBalanceSheet;
+using ChitLedger.Application.Features.Reporting.Queries.GetAuditorSummary;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -26,19 +27,21 @@ public class ReportingController : ControllerBase
     }
 
     [HttpGet("daybook")]
-    public async Task<ActionResult<Result<List<DayBookEntryDto>>>> GetDayBook([FromQuery] DateTime date, [FromQuery] DateTime? endDate)
+    public async Task<ActionResult<Result<List<DayBookEntryDto>>>> GetDayBook([FromQuery] DateTime? date, [FromQuery] DateTime? endDate, [FromQuery] int? limit)
     {
-        return Ok(await _mediator.Send(new GetDayBookQuery { Date = date, EndDate = endDate }));
+        return Ok(await _mediator.Send(new GetDayBookQuery { Date = date, EndDate = endDate, Limit = limit }));
     }
 
     [HttpGet("ledger/{accountHeadId}")]
-    public async Task<ActionResult<Result<List<LedgerEntryDto>>>> GetLedger(int accountHeadId, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    public async Task<ActionResult<Result<List<LedgerEntryDto>>>> GetLedger(int accountHeadId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool unreconciledOnly = false, [FromQuery] bool reconciledOnly = false)
     {
         return Ok(await _mediator.Send(new GetLedgerQuery 
         { 
             AccountHeadId = accountHeadId, 
             StartDate = startDate, 
-            EndDate = endDate 
+            EndDate = endDate,
+            UnreconciledOnly = unreconciledOnly,
+            ReconciledOnly = reconciledOnly
         }));
     }
 
@@ -77,9 +80,21 @@ public class ReportingController : ControllerBase
         return Ok(await _mediator.Send(new GetTrialBalanceQuery { AsOfDate = asOfDate, BranchId = branchId }));
     }
 
+    [HttpGet("profit-loss")]
+    public async Task<ActionResult<Result<ProfitAndLossDto>>> GetProfitLoss([FromQuery] DateTime start, [FromQuery] DateTime end, [FromQuery] int? branchId)
+    {
+        return Ok(await _mediator.Send(new GetProfitAndLossQuery { StartDate = start, EndDate = end, BranchId = branchId }));
+    }
+
     [HttpGet("balance-sheet")]
     public async Task<ActionResult<Result<BalanceSheetDto>>> GetBalanceSheet([FromQuery] DateTime asOfDate, [FromQuery] int? branchId)
     {
         return Ok(await _mediator.Send(new GetBalanceSheetQuery { AsOfDate = asOfDate, BranchId = branchId }));
+    }
+
+    [HttpGet("auditor-summary")]
+    public async Task<ActionResult<Result<AuditorSummaryDto>>> GetAuditorSummary()
+    {
+        return Ok(await _mediator.Send(new GetAuditorSummaryQuery()));
     }
 }

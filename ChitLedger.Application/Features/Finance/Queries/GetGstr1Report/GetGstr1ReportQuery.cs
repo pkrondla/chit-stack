@@ -1,4 +1,5 @@
 using System.Text;
+using ChitLedger.Application.Common.Constants;
 using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -25,26 +26,32 @@ public class GetGstr1ReportHandler : IRequestHandler<GetGstr1ReportQuery, Result
     {
         var incomeEntries = await _context.JournalEntries
             .Include(j => j.Lines)
+            .ThenInclude(l => l.AccountHead)
             .Where(j => j.EntryDate >= request.FromDate && j.EntryDate <= request.ToDate 
-                     && j.Description.Contains("Commission"))
+                     && (j.EntryType == "Auction-Close" || j.Description.Contains("Commission")))
             .ToListAsync(cancellationToken);
 
         var sb = new StringBuilder();
+        // GSTIN/UIN of Recipient,Receiver Name,Invoice Number,Invoice Date,Invoice Value,Place Of Supply,Rate,Taxable Value,Integrated Tax,Central Tax,State/UT Tax,Cess
         sb.AppendLine("GSTIN/UIN of Recipient,Receiver Name,Invoice Number,Invoice Date,Invoice Value,Place Of Supply,Rate,Taxable Value,Integrated Tax,Central Tax,State/UT Tax,Cess");
 
         foreach (var entry in incomeEntries)
         {
-            // Calculate Taxable Value from Credit Lines
-            var taxableValue = entry.Lines.Sum(l => l.CreditAmount);
+            var commissionLine = entry.Lines.FirstOrDefault(l => l.AccountHead.SystemRole == AccountRoles.CommissionIncome && l.CreditAmount > 0);
+            var cgstLine = entry.Lines.FirstOrDefault(l => (l.AccountHead.SystemRole == AccountRoles.CgstLiability || l.AccountHead.SystemRole == AccountRoles.GstLiability) && l.CreditAmount > 0);
+            var sgstLine = entry.Lines.FirstOrDefault(l => l.AccountHead.SystemRole == AccountRoles.SgstLiability && l.CreditAmount > 0);
+
+            var taxableValue = commissionLine?.CreditAmount ?? 0;
+            if (taxableValue == 0) continue;
+
+            var centralTax = cgstLine?.CreditAmount ?? (taxableValue * 0.09m);
+            var stateTax = sgstLine?.CreditAmount ?? (taxableValue * 0.09m);
+            var invoiceValue = taxableValue + centralTax + stateTax;
             
             var invoiceNo = $"INV-{entry.Id}";
             var invoiceDate = entry.EntryDate.ToString("dd-MMM-yyyy");
-            
-            // Assuming 18% Tax is INCLUDED or EXCLUDED? 
-            // If "Commission" description, usually it's the Income + Tax or just Income.
-            // Let's assume Taxable Value is the credit sum for simplicity in V1 report.
           
-            sb.AppendLine($",Scriber,{invoiceNo},{invoiceDate},{taxableValue},33-TN,18.0,{taxableValue},0,{(taxableValue*0.09m):F2},{(taxableValue*0.09m):F2},0");
+            sb.AppendLine($",Subscriber,{invoiceNo},{invoiceDate},{invoiceValue:F2},33-TN,18.0,{taxableValue:F2},0,{centralTax:F2},{stateTax:F2},0");
         }
 
         return Result<byte[]>.Success(Encoding.UTF8.GetBytes(sb.ToString()));

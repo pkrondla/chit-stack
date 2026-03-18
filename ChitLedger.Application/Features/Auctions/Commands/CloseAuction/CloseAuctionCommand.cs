@@ -104,19 +104,27 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         // Credit: Output CGST (Liability)
         // Credit: Output SGST (Liability)
         
-        var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.CommissionIncome, cancellationToken); // Using CommissionIncome role for receivable for now or define a new one
+        var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
+        var prizePayableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.PrizePayable, cancellationToken);
         var incomeAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.CommissionIncome, cancellationToken);
         var cgstAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.CgstLiability, cancellationToken);
         var sgstAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.SgstLiability, cancellationToken);
 
         if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
+        if (!prizePayableAccount.Succeeded) return Result<int>.Failure(prizePayableAccount.Errors.First());
         if (!incomeAccount.Succeeded) return Result<int>.Failure(incomeAccount.Errors.First());
         if (!cgstAccount.Succeeded) return Result<int>.Failure(cgstAccount.Errors.First());
         if (!sgstAccount.Succeeded) return Result<int>.Failure(sgstAccount.Errors.First());
 
         var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
         {
-            (receivableAccount.Data, commissionBase + totalGst, 0), 
+            // Total amount members contribute for this auction (Prize + Fee + GST)
+            (receivableAccount.Data, auction.NetPayableAmount + commissionBase + totalGst, 0), 
+            
+            // Amount we owe the winner
+            (prizePayableAccount.Data, 0, auction.NetPayableAmount),
+            
+            // Foreman's earnings
             (incomeAccount.Data, 0, commissionBase),
             (cgstAccount.Data, 0, cgst),
             (sgstAccount.Data, 0, sgst)

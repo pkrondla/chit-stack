@@ -40,6 +40,7 @@ const FinancialReports = () => {
 
     // GSTR State
     const [gstrDates, setGstrDates] = useState([dayjs().startOf('month'), dayjs()]);
+    const [gstrTrigger, setGstrTrigger] = useState(0);
 
     // Filters
     const [selectedBranch, setSelectedBranch] = useState(null);
@@ -79,9 +80,14 @@ const FinancialReports = () => {
         enabled: activeTab === 'Ledger' && !!selectedAccount && ledgerTrigger > 0
     });
 
-    const downloadGstr1 = async () => {
-        // ... existing downloadGstr1 logic ...
-    };
+    const { data: gstrData = [], isFetching: isLoadingGSTR } = useQuery({
+        queryKey: ['gstr1', gstrDates[0]?.format('YYYY-MM-DD'), gstrDates[1]?.format('YYYY-MM-DD'), gstrTrigger],
+        queryFn: async () => {
+            const res = await api.get(`/Finance/gstr1-data?from=${gstrDates[0].format('YYYY-MM-DD')}&to=${gstrDates[1].format('YYYY-MM-DD')}`);
+            return res.data.data || res.data;
+        },
+        enabled: activeTab === 'GSTR' && gstrTrigger > 0
+    });
 
     const { data: plData, isFetching: isLoadingPL } = useQuery({
         queryKey: ['profit-loss', ledgerDates[0]?.format('YYYY-MM-DD'), ledgerDates[1]?.format('YYYY-MM-DD'), selectedBranch],
@@ -101,9 +107,27 @@ const FinancialReports = () => {
         enabled: activeTab === 'TrialBalance'
     });
 
+    const downloadGstr1 = async () => {
+        try {
+            const from = gstrDates[0].format('YYYY-MM-DD');
+            const to = gstrDates[1].format('YYYY-MM-DD');
+            const res = await api.get(`/Finance/gstr1?from=${from}&to=${to}`, { responseType: 'blob' });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `GSTR1_${from}_${to}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            message.error('Failed to download GSTR-1 report');
+        }
+    };
+
     const dayBookColumns = [
         { title: 'Voucher No', dataIndex: 'voucherNumber', key: 'voucherNumber' },
-        { title: 'Time', dataIndex: 'transactionDate', key: 'time', render: (date) => new Date(date).toLocaleTimeString() },
+        { title: 'Time', dataIndex: 'transactionDate', key: 'time', render: (date) => dayjs(date).format('hh:mm A') },
         {
             title: 'Particulars',
             key: 'particulars',
@@ -131,7 +155,7 @@ const FinancialReports = () => {
     ];
 
     const ledgerColumns = [
-        { title: 'Date', dataIndex: 'transactionDate', key: 'date', render: (date) => new Date(date).toLocaleDateString() },
+        { title: 'Date', dataIndex: 'transactionDate', key: 'date', render: (date) => dayjs(date).format('DD-MM-YYYY') },
         { title: 'Particulars (Narration)', dataIndex: 'narration', key: 'narration', render: (text) => <span className="text-slate-700">{text}</span> },
         {
             title: 'Debit',
@@ -154,6 +178,16 @@ const FinancialReports = () => {
             align: 'right',
             render: (val) => <span className="font-bold text-slate-800">{val.toLocaleString()}</span>
         }
+    ];
+
+    const gstrColumns = [
+        { title: 'Invoice No', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
+        { title: 'Date', dataIndex: 'invoiceDate', key: 'invoiceDate', render: (date) => dayjs(date).format('DD-MM-YYYY') },
+        { title: 'Receiver', dataIndex: 'receiverName', key: 'receiverName' },
+        { title: 'Taxable Value', dataIndex: 'taxableValue', key: 'taxableValue', align: 'right', render: (val) => val.toLocaleString() },
+        { title: 'CGST (9%)', dataIndex: 'centralTax', key: 'centralTax', align: 'right', render: (val) => val.toLocaleString() },
+        { title: 'SGST (9%)', dataIndex: 'stateTax', key: 'stateTax', align: 'right', render: (val) => val.toLocaleString() },
+        { title: 'Total Value', dataIndex: 'invoiceValue', key: 'invoiceValue', align: 'right', render: (val) => val.toLocaleString() }
     ];
 
     const tabItems = [
@@ -186,7 +220,7 @@ const FinancialReports = () => {
                     <Table
                         columns={dayBookColumns}
                         dataSource={dayBookEntries}
-                        rowKey={(r, i) => `${r.voucherNumber}-${i}`}
+                        rowKey="id"
                         loading={{ indicator: <Spin />, spinning: isLoadingDayBook }}
                         pagination={false}
                         bordered
@@ -244,7 +278,7 @@ const FinancialReports = () => {
                     <Table
                         columns={ledgerColumns}
                         dataSource={ledgerEntries}
-                        rowKey={(r, i) => i}
+                        rowKey="id"
                         loading={{ indicator: <Spin />, spinning: isLoadingLedger }}
                         pagination={false}
                         bordered
@@ -282,6 +316,7 @@ const FinancialReports = () => {
                                 dataSource={plData?.income || []}
                                 pagination={false}
                                 size="small"
+                                rowKey="accountName"
                             />
                         </div>
                         <div>
@@ -291,6 +326,7 @@ const FinancialReports = () => {
                                 dataSource={plData?.expense || []}
                                 pagination={false}
                                 size="small"
+                                rowKey="accountName"
                             />
                         </div>
                     </div>
@@ -317,6 +353,7 @@ const FinancialReports = () => {
                         ]}
                         dataSource={trialBalance?.lines || []}
                         pagination={false}
+                        rowKey="accountCode"
                         summary={() => (
                             <Table.Summary fixed>
                                 <Table.Summary.Row className="bg-slate-50 font-bold">
@@ -340,7 +377,7 @@ const FinancialReports = () => {
                         Exports Commission & Fee entries in standard GSTR-1 CSV format.
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-6 items-end bg-slate-50 p-6 rounded-xl border border-slate-100">
+                    <div className="flex flex-col md:flex-row gap-6 items-end bg-slate-50 p-6 rounded-xl border border-slate-100 mb-6">
                         <div className="flex-1">
                             <div className="text-sm font-semibold text-slate-600 mb-2">Select Filing Period</div>
                             <RangePicker
@@ -350,16 +387,38 @@ const FinancialReports = () => {
                                 onChange={setGstrDates}
                             />
                         </div>
-                        <Button
-                            type="primary"
-                            size="large"
-                            icon={<Download size={18} />}
-                            onClick={downloadGstr1}
-                            className="bg-indigo-600 hover:bg-indigo-700 font-bold px-8 h-10 shadow-sm"
-                        >
-                            Download CSV
-                        </Button>
+                        <Space>
+                            <Button
+                                type="primary"
+                                size="large"
+                                onClick={() => setGstrTrigger(t => t + 1)}
+                                loading={isLoadingGSTR}
+                                className="bg-slate-900 font-bold px-8 h-10 shadow-sm"
+                            >
+                                View Report
+                            </Button>
+                            <Button
+                                size="large"
+                                icon={<Download size={18} />}
+                                onClick={downloadGstr1}
+                                disabled={gstrData.length === 0}
+                                className="font-bold px-8 h-10 shadow-sm border-slate-300"
+                            >
+                                Download CSV
+                            </Button>
+                        </Space>
                     </div>
+
+                    <Table
+                        columns={gstrColumns}
+                        dataSource={gstrData}
+                        rowKey="invoiceNumber"
+                        loading={isLoadingGSTR}
+                        pagination={false}
+                        bordered
+                        size="middle"
+                        locale={{ emptyText: 'Click "View Report" to fetch GSTR-1 data.' }}
+                    />
                 </Card>
             )
         }
