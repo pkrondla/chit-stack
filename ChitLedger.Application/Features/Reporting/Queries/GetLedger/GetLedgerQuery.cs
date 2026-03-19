@@ -27,6 +27,7 @@ public class GetLedgerQuery : IRequest<Result<List<LedgerEntryDto>>>
     public DateTime? EndDate { get; set; }
     public bool UnreconciledOnly { get; set; }
     public bool ReconciledOnly { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class GetLedgerHandler : IRequestHandler<GetLedgerQuery, Result<List<LedgerEntryDto>>>
@@ -46,6 +47,11 @@ public class GetLedgerHandler : IRequestHandler<GetLedgerQuery, Result<List<Ledg
         var query = _context.JournalEntryLines
             .Include(l => l.JournalEntry)
             .Where(l => l.AccountHeadId == request.AccountHeadId);
+
+        if (request.BranchId.HasValue)
+        {
+            query = query.Where(l => l.BranchId == request.BranchId);
+        }
 
         if (request.StartDate.HasValue)
         {

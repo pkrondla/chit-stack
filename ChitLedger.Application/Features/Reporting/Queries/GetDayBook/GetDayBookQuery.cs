@@ -25,6 +25,7 @@ public class GetDayBookQuery : IRequest<Result<List<DayBookEntryDto>>>
     public DateTime? Date { get; set; }
     public DateTime? EndDate { get; set; }
     public int? Limit { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class GetDayBookHandler : IRequestHandler<GetDayBookQuery, Result<List<DayBookEntryDto>>>
@@ -42,6 +43,11 @@ public class GetDayBookHandler : IRequestHandler<GetDayBookQuery, Result<List<Da
             .Include(l => l.JournalEntry)
             .Include(l => l.AccountHead)
             .AsQueryable();
+
+        if (request.BranchId.HasValue)
+        {
+            query = query.Where(l => l.BranchId == request.BranchId);
+        }
 
         if (request.Date.HasValue)
         {

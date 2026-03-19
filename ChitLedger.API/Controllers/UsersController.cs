@@ -1,4 +1,5 @@
 using ChitLedger.Application.Features.Users.Commands.CreateUser;
+using ChitLedger.Application.Features.Users.Commands.UpdateUser;
 using ChitLedger.Application.Features.Users.Queries.GetUsers;
 using ChitLedger.Domain.Common;
 using MediatR;

@@ -31,7 +31,7 @@ const FinancialReports = () => {
     };
 
     // Day Book State
-    const [dayBookDate, setDayBookDate] = useState(dayjs());
+    const [dayBookDates, setDayBookDates] = useState([dayjs(), dayjs()]);
     const [dayBookTrigger, setDayBookTrigger] = useState(0);
 
     // Ledger State
@@ -47,6 +47,13 @@ const FinancialReports = () => {
     const { user } = useAuthStore();
     const isAdmin = user?.role === 'Admin';
     const [selectedBranch, setSelectedBranch] = useState(null);
+
+    // Reset triggers on branch change
+    useEffect(() => {
+        setDayBookTrigger(0);
+        setLedgerTrigger(0);
+        setGstrTrigger(0);
+    }, [selectedBranch]);
 
     const { data: branches = [] } = useQuery({
         queryKey: ['branches'],
@@ -72,31 +79,34 @@ const FinancialReports = () => {
     });
 
     const { data: dayBookEntries = [], isFetching: isLoadingDayBook } = useQuery({
-        queryKey: ['daybook', dayBookDate.format('YYYY-MM-DD'), dayBookTrigger],
+        queryKey: ['daybook', dayBookDates?.[0]?.format('YYYY-MM-DD'), dayBookDates?.[1]?.format('YYYY-MM-DD'), dayBookTrigger, selectedBranch],
         queryFn: async () => {
-            const res = await api.get(`/Reporting/daybook?date=${dayBookDate.format('YYYY-MM-DD')}`);
+            if (!dayBookDates?.[0] || !dayBookDates?.[1]) return [];
+            const res = await api.get(`/Reporting/daybook?date=${dayBookDates[0].format('YYYY-MM-DD')}&endDate=${dayBookDates[1].format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
             return res.data.data || res.data;
         },
-        enabled: activeTab === 'DayBook'
+        enabled: activeTab === 'DayBook' && dayBookTrigger > 0 && !!dayBookDates?.[0] && !!dayBookDates?.[1]
     });
 
     const { data: ledgerEntries = [], isFetching: isLoadingLedger } = useQuery({
-        queryKey: ['ledger', selectedAccount, ledgerDates[0]?.format('YYYY-MM-DD'), ledgerDates[1]?.format('YYYY-MM-DD'), ledgerTrigger],
+        queryKey: ['ledger', selectedAccount, ledgerDates?.[0]?.format('YYYY-MM-DD'), ledgerDates?.[1]?.format('YYYY-MM-DD'), ledgerTrigger, selectedBranch],
         queryFn: async () => {
-            if (!selectedAccount) return [];
-            const res = await api.get(`/Reporting/ledger/${selectedAccount}?startDate=${ledgerDates[0].format('YYYY-MM-DD')}&endDate=${ledgerDates[1].format('YYYY-MM-DD')}`);
+            if (!selectedAccount || !ledgerDates?.[0] || !ledgerDates?.[1]) return [];
+            const branchParam = selectedBranch ? `&branchId=${selectedBranch}` : '';
+            const res = await api.get(`/Reporting/ledger/${selectedAccount}?startDate=${ledgerDates[0].format('YYYY-MM-DD')}&endDate=${ledgerDates[1].format('YYYY-MM-DD')}${branchParam}`);
             return res.data.data || res.data;
         },
-        enabled: activeTab === 'Ledger' && !!selectedAccount && ledgerTrigger > 0
+        enabled: activeTab === 'Ledger' && !!selectedAccount && ledgerTrigger > 0 && !!ledgerDates?.[0] && !!ledgerDates?.[1]
     });
 
     const { data: gstrData = [], isFetching: isLoadingGSTR } = useQuery({
-        queryKey: ['gstr1', gstrDates[0]?.format('YYYY-MM-DD'), gstrDates[1]?.format('YYYY-MM-DD'), gstrTrigger, selectedBranch],
+        queryKey: ['gstr1', gstrDates?.[0]?.format('YYYY-MM-DD'), gstrDates?.[1]?.format('YYYY-MM-DD'), gstrTrigger, selectedBranch],
         queryFn: async () => {
+            if (!gstrDates?.[0] || !gstrDates?.[1]) return [];
             const res = await api.get(`/Finance/gstr1-data?from=${gstrDates[0].format('YYYY-MM-DD')}&to=${gstrDates[1].format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
             return res.data.data || res.data;
         },
-        enabled: activeTab === 'GSTR' && gstrTrigger > 0
+        enabled: activeTab === 'GSTR' && gstrTrigger > 0 && !!gstrDates?.[0] && !!gstrDates?.[1]
     });
 
     const { data: plData, isFetching: isLoadingPL } = useQuery({
@@ -109,12 +119,13 @@ const FinancialReports = () => {
     });
 
     const { data: trialBalance, isFetching: isLoadingTB } = useQuery({
-        queryKey: ['trial-balance', dayBookDate.format('YYYY-MM-DD'), selectedBranch],
+        queryKey: ['trial-balance', dayBookDates?.[1]?.format('YYYY-MM-DD'), selectedBranch],
         queryFn: async () => {
-            const res = await api.get(`/Reporting/trial-balance?asOfDate=${dayBookDate.format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
+            if (!dayBookDates?.[1]) return null;
+            const res = await api.get(`/Reporting/trial-balance?asOfDate=${dayBookDates[1].format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
             return res.data.data || res.data;
         },
-        enabled: activeTab === 'TrialBalance'
+        enabled: activeTab === 'TrialBalance' && !!dayBookDates?.[1]
     });
 
     const downloadGstr1 = async () => {
@@ -138,7 +149,7 @@ const FinancialReports = () => {
 
     const dayBookColumns = [
         { title: 'Voucher No', dataIndex: 'voucherNumber', key: 'voucherNumber' },
-        { title: 'Time', dataIndex: 'transactionDate', key: 'time', render: (date) => dayjs(date).format('hh:mm A') },
+        { title: 'Date & Time', dataIndex: 'transactionDate', key: 'time', render: (date) => dayjs(date).format('DD-MM-YYYY hh:mm A') },
         {
             title: 'Particulars',
             key: 'particulars',
@@ -209,12 +220,12 @@ const FinancialReports = () => {
                 <div className="bg-white p-6 rounded-xl border border-slate-200">
                     <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <div className="flex-1">
-                            <div className="text-sm font-semibold text-slate-600 mb-2">Select Date</div>
-                            <DatePicker
+                            <div className="text-sm font-semibold text-slate-600 mb-2">Select Range</div>
+                            <RangePicker
                                 size="large"
-                                value={dayBookDate}
-                                onChange={(date) => setDayBookDate(date)}
-                                className="w-full md:w-64"
+                                value={dayBookDates}
+                                onChange={(dates) => setDayBookDates(dates)}
+                                className="w-full md:w-80"
                             />
                         </div>
                         <Button
@@ -230,13 +241,13 @@ const FinancialReports = () => {
 
                     <Table
                         columns={dayBookColumns}
-                        dataSource={dayBookEntries}
+                        dataSource={dayBookTrigger > 0 ? dayBookEntries : []}
                         rowKey="id"
                         loading={{ indicator: <Spin />, spinning: isLoadingDayBook }}
                         pagination={false}
                         bordered
                         size="middle"
-                        locale={{ emptyText: 'No transactions found for this date.' }}
+                        locale={{ emptyText: 'Click "View Report" to fetch data for the selected branch.' }}
                     />
                 </div>
             )
@@ -288,13 +299,13 @@ const FinancialReports = () => {
 
                     <Table
                         columns={ledgerColumns}
-                        dataSource={ledgerEntries}
+                        dataSource={ledgerTrigger > 0 ? ledgerEntries : []}
                         rowKey="id"
                         loading={{ indicator: <Spin />, spinning: isLoadingLedger }}
                         pagination={false}
                         bordered
                         size="middle"
-                        locale={{ emptyText: 'No records found for the selected criteria.' }}
+                        locale={{ emptyText: 'Click "Generate Ledger" to fetch records for the selected branch.' }}
                     />
                 </div>
             )
@@ -305,16 +316,16 @@ const FinancialReports = () => {
             children: (
                 <div className="bg-white p-6 rounded-xl border border-slate-200">
                     <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                        <div className="flex-1">
+                        <div className="flex-none">
                             <div className="text-sm font-semibold text-slate-600 mb-2">Period</div>
                             <RangePicker
                                 size="large"
-                                className="w-full"
+                                className="w-full md:w-80"
                                 value={ledgerDates}
                                 onChange={setLedgerDates}
                             />
                         </div>
-                        <Button type="primary" size="large" onClick={() => setActiveTab('ProfitLoss')} loading={isLoadingPL}>
+                        <Button type="primary" size="large" onClick={() => setActiveTab('ProfitLoss')} loading={isLoadingPL} className="bg-slate-900 font-bold px-8">
                             Refresh
                         </Button>
                     </div>
@@ -389,11 +400,11 @@ const FinancialReports = () => {
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-6 items-end bg-slate-50 p-6 rounded-xl border border-slate-100 mb-6">
-                        <div className="flex-1">
+                        <div className="flex-none">
                             <div className="text-sm font-semibold text-slate-600 mb-2">Select Filing Period</div>
                             <RangePicker
                                 size="large"
-                                className="w-full"
+                                className="w-full md:w-80"
                                 value={gstrDates}
                                 onChange={setGstrDates}
                             />

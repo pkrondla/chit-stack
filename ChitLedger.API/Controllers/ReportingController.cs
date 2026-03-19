@@ -27,13 +27,13 @@ public class ReportingController : ControllerBase
     }
 
     [HttpGet("daybook")]
-    public async Task<ActionResult<Result<List<DayBookEntryDto>>>> GetDayBook([FromQuery] DateTime? date, [FromQuery] DateTime? endDate, [FromQuery] int? limit)
+    public async Task<ActionResult<Result<List<DayBookEntryDto>>>> GetDayBook([FromQuery] DateTime? date, [FromQuery] DateTime? endDate, [FromQuery] int? limit, [FromQuery] int? branchId)
     {
-        return Ok(await _mediator.Send(new GetDayBookQuery { Date = date, EndDate = endDate, Limit = limit }));
+        return Ok(await _mediator.Send(new GetDayBookQuery { Date = date, EndDate = endDate, Limit = limit, BranchId = branchId }));
     }
 
     [HttpGet("ledger/{accountHeadId}")]
-    public async Task<ActionResult<Result<List<LedgerEntryDto>>>> GetLedger(int accountHeadId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool unreconciledOnly = false, [FromQuery] bool reconciledOnly = false)
+    public async Task<ActionResult<Result<List<LedgerEntryDto>>>> GetLedger(int accountHeadId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool unreconciledOnly = false, [FromQuery] bool reconciledOnly = false, [FromQuery] int? branchId = null)
     {
         return Ok(await _mediator.Send(new GetLedgerQuery 
         { 
@@ -41,7 +41,8 @@ public class ReportingController : ControllerBase
             StartDate = startDate, 
             EndDate = endDate,
             UnreconciledOnly = unreconciledOnly,
-            ReconciledOnly = reconciledOnly
+            ReconciledOnly = reconciledOnly,
+            BranchId = branchId
         }));
     }
 

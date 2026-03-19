@@ -8,6 +8,7 @@ const { Title } = Typography;
 
 const UserManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
 
@@ -39,12 +40,51 @@ const UserManagement = () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
         },
         onError: (error) => {
-            message.error("Failed: " + (error.response?.data?.error || error.message));
+            message.error("Creation failed: " + (error.response?.data?.error || error.message));
         }
     });
 
-    const handleCreate = (values) => {
-        createMutation.mutate(values);
+    const updateMutation = useMutation({
+        mutationFn: async (formData) => {
+            const res = await api.put(`/Users/${editingUser.id}`, formData);
+            return res.data.data || res.data;
+        },
+        onSuccess: () => {
+            message.success('User Updated Successfully');
+            setIsModalOpen(false);
+            setEditingUser(null);
+            form.resetFields();
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+        },
+        onError: (error) => {
+            message.error("Update failed: " + (error.response?.data?.error || error.message));
+        }
+    });
+
+    const handleSubmit = (values) => {
+        if (editingUser) {
+            updateMutation.mutate(values);
+        } else {
+            createMutation.mutate(values);
+        }
+    };
+
+    const openEditModal = (user) => {
+        setEditingUser(user);
+        form.setFieldsValue({
+            fullName: user.fullName,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            branchIds: user.branchIds || []
+        });
+        setIsModalOpen(true);
+    };
+
+    const openCreateModal = () => {
+        setEditingUser(null);
+        form.resetFields();
+        setIsModalOpen(true);
     };
 
     const columns = [
@@ -60,7 +100,20 @@ const UserManagement = () => {
                 </Tag>
             )
         },
-        { title: 'Email', dataIndex: 'email', key: 'email', className: 'text-slate-500' }
+        { title: 'Email', dataIndex: 'email', key: 'email', className: 'text-slate-500' },
+        {
+            title: 'Actions',
+            key: 'actions',
+            render: (_, record) => (
+                <Button
+                    type="link"
+                    onClick={() => openEditModal(record)}
+                    className="p-0 h-auto"
+                >
+                    Edit
+                </Button>
+            )
+        }
     ];
 
     return (
@@ -70,7 +123,7 @@ const UserManagement = () => {
                 <Button
                     type="primary"
                     icon={<Plus size={18} />}
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={openCreateModal}
                     size="large"
                     className="bg-slate-900"
                 >
@@ -88,16 +141,20 @@ const UserManagement = () => {
             />
 
             <Modal
-                title={<Title level={4}>Create New User</Title>}
+                title={<Title level={4}>{editingUser ? 'Edit User' : 'Create New User'}</Title>}
                 open={isModalOpen}
-                onCancel={() => setIsModalOpen(false)}
+                onCancel={() => {
+                    setIsModalOpen(false);
+                    setEditingUser(null);
+                    form.resetFields();
+                }}
                 footer={null}
                 destroyOnClose
             >
                 <Form
                     form={form}
                     layout="vertical"
-                    onFinish={handleCreate}
+                    onFinish={handleSubmit}
                     initialValues={{ role: 'Staff' }}
                     className="mt-6"
                 >
@@ -105,10 +162,14 @@ const UserManagement = () => {
                         <Input size="large" />
                     </Form.Item>
                     <Form.Item name="username" label="Username" rules={[{ required: true }]}>
-                        <Input size="large" />
+                        <Input size="large" disabled={!!editingUser} />
                     </Form.Item>
-                    <Form.Item name="password" label="Password" rules={[{ required: true }]}>
-                        <Input.Password size="large" />
+                    <Form.Item
+                        name="password"
+                        label={editingUser ? "New Password (leave blank to keep current)" : "Password"}
+                        rules={[{ required: !editingUser }]}
+                    >
+                        <Input.Password size="large" placeholder={editingUser ? "••••••••" : ""} />
                     </Form.Item>
                     <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
                         <Input size="large" />
@@ -137,15 +198,19 @@ const UserManagement = () => {
                         </Select>
                     </Form.Item>
                     <div className="flex justify-end gap-3 mt-8">
-                        <Button onClick={() => setIsModalOpen(false)} size="large">Cancel</Button>
+                        <Button onClick={() => {
+                            setIsModalOpen(false);
+                            setEditingUser(null);
+                            form.resetFields();
+                        }} size="large">Cancel</Button>
                         <Button
                             type="primary"
                             htmlType="submit"
                             size="large"
                             className="bg-slate-900"
-                            loading={createMutation.isPending}
+                            loading={createMutation.isPending || updateMutation.isPending}
                         >
-                            Create
+                            {editingUser ? 'Update' : 'Create'}
                         </Button>
                     </div>
                 </Form>
