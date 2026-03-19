@@ -44,9 +44,9 @@ const FinancialReports = () => {
     const [gstrTrigger, setGstrTrigger] = useState(0);
 
     // Filters
-    const { user } = useAuthStore();
+    const { user, activeBranch } = useAuthStore();
     const isAdmin = user?.role === 'Admin';
-    const [selectedBranch, setSelectedBranch] = useState(null);
+    const [selectedBranch, setSelectedBranch] = useState(activeBranch?.id || null);
 
     // Reset triggers on branch change
     useEffect(() => {
@@ -59,16 +59,20 @@ const FinancialReports = () => {
         queryKey: ['branches'],
         queryFn: async () => {
             const res = await api.get('/Reporting/branches');
-            const data = res.data.data || res.data;
-
-            // Auto-select first branch for non-admins if not already selected
-            if (!isAdmin && data.length > 0 && selectedBranch === null) {
-                setSelectedBranch(data[0].id);
-            }
-
-            return data;
+            return res.data.data || res.data;
         }
     });
+
+    // Handle initial branch selection and synchronization
+    useEffect(() => {
+        if (branches.length > 0 && !selectedBranch) {
+            if (activeBranch && branches.some(b => b.id === activeBranch.id)) {
+                setSelectedBranch(activeBranch.id);
+            } else if (!isAdmin) {
+                setSelectedBranch(branches[0].id);
+            }
+        }
+    }, [branches, activeBranch, isAdmin, selectedBranch]);
 
     const { data: accounts = [] } = useQuery({
         queryKey: ['accounts'],
