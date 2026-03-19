@@ -23,6 +23,7 @@ public class GetGstr1DataQuery : IRequest<Result<List<Gstr1EntryDto>>>
 {
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class GetGstr1DataHandler : IRequestHandler<GetGstr1DataQuery, Result<List<Gstr1EntryDto>>>
@@ -36,11 +37,22 @@ public class GetGstr1DataHandler : IRequestHandler<GetGstr1DataQuery, Result<Lis
 
     public async Task<Result<List<Gstr1EntryDto>>> Handle(GetGstr1DataQuery request, CancellationToken cancellationToken)
     {
-        var incomeEntries = await _context.JournalEntries
+        var toDate = request.ToDate.Date.AddDays(1);
+        var query = _context.JournalEntries
             .Include(j => j.Lines)
             .ThenInclude(l => l.AccountHead)
-            .Where(j => j.EntryDate >= request.FromDate && j.EntryDate <= request.ToDate 
-                     && (j.EntryType == "Auction-Close" || j.Description.Contains("Commission")))
+            .Where(j => j.EntryDate >= request.FromDate.Date && j.EntryDate < toDate);
+
+        if (request.BranchId.HasValue)
+        {
+            query = query.Where(j => j.BranchId == request.BranchId);
+        }
+
+        var incomeEntries = await query
+            .Where(j => j.EntryType == "Auction-Close" || j.Description.Contains("Commission") 
+                     || j.Lines.Any(l => l.AccountHead.SystemRole == AccountRoles.CgstLiability 
+                                     || l.AccountHead.SystemRole == AccountRoles.SgstLiability 
+                                     || l.AccountHead.SystemRole == AccountRoles.GstLiability))
             .ToListAsync(cancellationToken);
 
         var result = incomeEntries.Select(entry => 
@@ -50,8 +62,8 @@ public class GetGstr1DataHandler : IRequestHandler<GetGstr1DataQuery, Result<Lis
             var sgstLine = entry.Lines.FirstOrDefault(l => l.AccountHead.SystemRole == AccountRoles.SgstLiability && l.CreditAmount > 0);
 
             var taxableValue = commissionLine?.CreditAmount ?? 0;
-            var centralTax = cgstLine?.CreditAmount ?? (taxableValue * 0.09m);
-            var stateTax = sgstLine?.CreditAmount ?? (taxableValue * 0.09m);
+            var centralTax = cgstLine?.CreditAmount ?? 0;
+            var stateTax = sgstLine?.CreditAmount ?? 0;
 
             if (taxableValue == 0) return null;
 

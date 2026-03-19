@@ -11,6 +11,7 @@ public class GetGstr1ReportQuery : IRequest<Result<byte[]>>
 {
     public DateTime FromDate { get; set; }
     public DateTime ToDate { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class GetGstr1ReportHandler : IRequestHandler<GetGstr1ReportQuery, Result<byte[]>>
@@ -24,11 +25,22 @@ public class GetGstr1ReportHandler : IRequestHandler<GetGstr1ReportQuery, Result
 
     public async Task<Result<byte[]>> Handle(GetGstr1ReportQuery request, CancellationToken cancellationToken)
     {
-        var incomeEntries = await _context.JournalEntries
+        var toDate = request.ToDate.Date.AddDays(1);
+        var query = _context.JournalEntries
             .Include(j => j.Lines)
             .ThenInclude(l => l.AccountHead)
-            .Where(j => j.EntryDate >= request.FromDate && j.EntryDate <= request.ToDate 
-                     && (j.EntryType == "Auction-Close" || j.Description.Contains("Commission")))
+            .Where(j => j.EntryDate >= request.FromDate.Date && j.EntryDate < toDate);
+
+        if (request.BranchId.HasValue)
+        {
+            query = query.Where(j => j.BranchId == request.BranchId);
+        }
+
+        var incomeEntries = await query
+            .Where(j => j.EntryType == "Auction-Close" || j.Description.Contains("Commission") 
+                     || j.Lines.Any(l => l.AccountHead.SystemRole == AccountRoles.CgstLiability 
+                                     || l.AccountHead.SystemRole == AccountRoles.SgstLiability 
+                                     || l.AccountHead.SystemRole == AccountRoles.GstLiability))
             .ToListAsync(cancellationToken);
 
         var sb = new StringBuilder();
@@ -44,8 +56,8 @@ public class GetGstr1ReportHandler : IRequestHandler<GetGstr1ReportQuery, Result
             var taxableValue = commissionLine?.CreditAmount ?? 0;
             if (taxableValue == 0) continue;
 
-            var centralTax = cgstLine?.CreditAmount ?? (taxableValue * 0.09m);
-            var stateTax = sgstLine?.CreditAmount ?? (taxableValue * 0.09m);
+            var centralTax = cgstLine?.CreditAmount ?? 0;
+            var stateTax = sgstLine?.CreditAmount ?? 0;
             var invoiceValue = taxableValue + centralTax + stateTax;
             
             var invoiceNo = $"INV-{entry.Id}";

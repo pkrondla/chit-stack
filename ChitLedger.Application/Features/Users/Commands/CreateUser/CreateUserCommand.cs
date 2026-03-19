@@ -13,6 +13,7 @@ public class CreateUserCommand : IRequest<Result<int>>
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = "Staff"; // Admin, Manager, Staff
+    public List<int> BranchIds { get; set; } = new();
 }
 
 public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<int>>
@@ -40,6 +41,19 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<int>>
             FullName = request.FullName,
             Role = request.Role
         };
+
+        // 3. Map Branches if provided
+        if (request.BranchIds != null && request.BranchIds.Any())
+        {
+            foreach (var branchId in request.BranchIds)
+            {
+                user.UserBranches.Add(new UserBranch
+                {
+                    BranchId = branchId,
+                    IsPrimary = user.UserBranches.Count == 0 // First one is primary
+                });
+            }
+        }
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync(cancellationToken);

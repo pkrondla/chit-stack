@@ -5,6 +5,7 @@ import { Card, Typography, Tabs, DatePicker, Button, Select, Table, Space, messa
 import { FileText, Download } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
+import useAuthStore from '../../store/useAuthStore';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -43,13 +44,22 @@ const FinancialReports = () => {
     const [gstrTrigger, setGstrTrigger] = useState(0);
 
     // Filters
+    const { user } = useAuthStore();
+    const isAdmin = user?.role === 'Admin';
     const [selectedBranch, setSelectedBranch] = useState(null);
 
     const { data: branches = [] } = useQuery({
         queryKey: ['branches'],
         queryFn: async () => {
             const res = await api.get('/Reporting/branches');
-            return res.data.data || res.data;
+            const data = res.data.data || res.data;
+
+            // Auto-select first branch for non-admins if not already selected
+            if (!isAdmin && data.length > 0 && selectedBranch === null) {
+                setSelectedBranch(data[0].id);
+            }
+
+            return data;
         }
     });
 
@@ -81,9 +91,9 @@ const FinancialReports = () => {
     });
 
     const { data: gstrData = [], isFetching: isLoadingGSTR } = useQuery({
-        queryKey: ['gstr1', gstrDates[0]?.format('YYYY-MM-DD'), gstrDates[1]?.format('YYYY-MM-DD'), gstrTrigger],
+        queryKey: ['gstr1', gstrDates[0]?.format('YYYY-MM-DD'), gstrDates[1]?.format('YYYY-MM-DD'), gstrTrigger, selectedBranch],
         queryFn: async () => {
-            const res = await api.get(`/Finance/gstr1-data?from=${gstrDates[0].format('YYYY-MM-DD')}&to=${gstrDates[1].format('YYYY-MM-DD')}`);
+            const res = await api.get(`/Finance/gstr1-data?from=${gstrDates[0].format('YYYY-MM-DD')}&to=${gstrDates[1].format('YYYY-MM-DD')}${selectedBranch ? `&branchId=${selectedBranch}` : ''}`);
             return res.data.data || res.data;
         },
         enabled: activeTab === 'GSTR' && gstrTrigger > 0
@@ -111,7 +121,8 @@ const FinancialReports = () => {
         try {
             const from = gstrDates[0].format('YYYY-MM-DD');
             const to = gstrDates[1].format('YYYY-MM-DD');
-            const res = await api.get(`/Finance/gstr1?from=${from}&to=${to}`, { responseType: 'blob' });
+            const branchParam = selectedBranch ? `&branchId=${selectedBranch}` : '';
+            const res = await api.get(`/Finance/gstr1?from=${from}&to=${to}${branchParam}`, { responseType: 'blob' });
 
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
@@ -418,6 +429,31 @@ const FinancialReports = () => {
                         bordered
                         size="middle"
                         locale={{ emptyText: 'Click "View Report" to fetch GSTR-1 data.' }}
+                        summary={pageData => {
+                            let totalTaxable = 0;
+                            let totalCGST = 0;
+                            let totalSGST = 0;
+                            let totalInvoice = 0;
+
+                            pageData.forEach(({ taxableValue, centralTax, stateTax, invoiceValue }) => {
+                                totalTaxable += taxableValue;
+                                totalCGST += centralTax;
+                                totalSGST += stateTax;
+                                totalInvoice += invoiceValue;
+                            });
+
+                            return (
+                                <Table.Summary fixed>
+                                    <Table.Summary.Row className="bg-slate-50 font-bold">
+                                        <Table.Summary.Cell index={0} colSpan={3}>Total</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">₹{totalTaxable.toLocaleString()}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} align="right">₹{totalCGST.toLocaleString()}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={3} align="right">₹{totalSGST.toLocaleString()}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={4} align="right">₹{totalInvoice.toLocaleString()}</Table.Summary.Cell>
+                                    </Table.Summary.Row>
+                                </Table.Summary>
+                            );
+                        }}
                     />
                 </Card>
             )
@@ -426,9 +462,26 @@ const FinancialReports = () => {
 
     return (
         <div className="max-w-7xl mx-auto pb-12">
-            <Title level={2} className="!mb-8 text-slate-800 flex items-center gap-3">
-                <FileText size={32} className="text-slate-600" /> Financial Reports
-            </Title>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <Title level={2} className="!mb-0 text-slate-800 flex items-center gap-3">
+                    <FileText size={32} className="text-slate-600" /> Financial Reports
+                </Title>
+
+                <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-lg border border-slate-200 shadow-sm">
+                    <span className="text-sm font-semibold text-slate-500">Branch:</span>
+                    <Select
+                        placeholder={isAdmin ? "All Branches" : "Select Branch"}
+                        allowClear={isAdmin}
+                        className="w-48"
+                        value={selectedBranch}
+                        onChange={setSelectedBranch}
+                    >
+                        {branches.map(b => (
+                            <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>
+                        ))}
+                    </Select>
+                </div>
+            </div>
 
             <Tabs
                 activeKey={activeTab}

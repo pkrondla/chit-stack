@@ -80,17 +80,17 @@ public class FinanceController : ControllerBase
     }
 
     [HttpGet("gstr1")]
-    public async Task<IActionResult> GetGstr1([FromQuery] DateTime from, [FromQuery] DateTime to)
+    public async Task<IActionResult> GetGstr1([FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? branchId)
     {
-        var result = await _mediator.Send(new GetGstr1ReportQuery { FromDate = from, ToDate = to });
+        var result = await _mediator.Send(new GetGstr1ReportQuery { FromDate = from, ToDate = to, BranchId = branchId });
         if (!result.Succeeded) return BadRequest(result);
         
         return File(result.Data, "text/csv", $"GSTR1_{from:yyyyMMdd}_{to:yyyyMMdd}.csv");
     }
 
     [HttpGet("gstr1-data")]
-    public async Task<ActionResult<Result<List<Gstr1EntryDto>>>> GetGstr1Data([FromQuery] DateTime from, [FromQuery] DateTime to)
+    public async Task<ActionResult<Result<List<Gstr1EntryDto>>>> GetGstr1Data([FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? branchId)
     {
-        return Ok(await _mediator.Send(new GetGstr1DataQuery { FromDate = from, ToDate = to }));
+        return Ok(await _mediator.Send(new GetGstr1DataQuery { FromDate = from, ToDate = to, BranchId = branchId }));
     }
 }

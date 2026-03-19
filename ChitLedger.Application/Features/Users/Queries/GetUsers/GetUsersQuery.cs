@@ -15,6 +15,7 @@ public class UserDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public List<int> BranchIds { get; set; } = new();
 }
 
 public class GetUsersQuery : IRequest<Result<List<UserDto>>>
@@ -35,6 +36,7 @@ public class GetUsersHandler : IRequestHandler<GetUsersQuery, Result<List<UserDt
     public async Task<Result<List<UserDto>>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
         var users = await _context.Users
+            .Include(u => u.UserBranches)
             .ProjectTo<UserDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
@@ -46,6 +48,7 @@ public class UserProfile : Profile
 {
     public UserProfile()
     {
-        CreateMap<User, UserDto>();
+        CreateMap<User, UserDto>()
+            .ForMember(d => d.BranchIds, opt => opt.MapFrom(s => s.UserBranches.Select(ub => ub.BranchId).ToList()));
     }
 }

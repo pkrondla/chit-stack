@@ -19,6 +19,14 @@ const UserManagement = () => {
         }
     });
 
+    const { data: branches = [] } = useQuery({
+        queryKey: ['branches'],
+        queryFn: async () => {
+            const res = await api.get('/Reporting/branches');
+            return res.data.data || res.data;
+        }
+    });
+
     const createMutation = useMutation({
         mutationFn: async (formData) => {
             const res = await api.post('/Users', formData);
@@ -110,6 +118,22 @@ const UserManagement = () => {
                             <Select.Option value="Staff">Staff</Select.Option>
                             <Select.Option value="Manager">Manager</Select.Option>
                             <Select.Option value="Admin">Admin</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        name="branchIds"
+                        label="Mapped Branches"
+                        extra="Users will only be able to view data for selected branches (except Admins)"
+                    >
+                        <Select
+                            mode="multiple"
+                            size="large"
+                            placeholder="Select Branches"
+                            className="w-full"
+                        >
+                            {branches.map(b => (
+                                <Select.Option key={b.id} value={b.id}>{b.name}</Select.Option>
+                            ))}
                         </Select>
                     </Form.Item>
                     <div className="flex justify-end gap-3 mt-8">

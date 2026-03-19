@@ -32,4 +32,13 @@ public class UsersController : ControllerBase
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
     }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<Result<int>>> Update(int id, UpdateUserCommand command)
+    {
+        command.Id = id;
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
 }
