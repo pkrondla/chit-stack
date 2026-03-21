@@ -13,10 +13,10 @@ public class AuctionNotificationService : IAuctionNotificationService
         _hubContext = hubContext;
     }
 
-    public async Task NotifyBidAsync(int auctionId, string memberName, decimal amount, string? photoUrl, string source)
+    public async Task NotifyBidAsync(int auctionId, int ticketId, string memberName, decimal amount, string? photoUrl, string source)
     {
         await _hubContext.Clients.Group(auctionId.ToString())
-            .SendAsync("ReceiveBid", memberName, amount, photoUrl, source);
+            .SendAsync("ReceiveBid", memberName, amount, photoUrl, source, ticketId);
     }
 
     public async Task NotifyAttendanceAsync(int auctionId, int ticketId, string memberName, bool isPresent)
@@ -35,5 +35,17 @@ public class AuctionNotificationService : IAuctionNotificationService
     {
         await _hubContext.Clients.Group(auctionId.ToString())
             .SendAsync("AuctionClosed", winningTicketId, winnerName, winningBid);
+    }
+
+    public async Task NotifyLotteryStartedAsync(int auctionId, IEnumerable<object> participants, int winnerTicketId)
+    {
+        await _hubContext.Clients.Group(auctionId.ToString())
+            .SendAsync("LotteryStarted", participants, winnerTicketId);
+    }
+
+    public async Task NotifyTieBreakerDetectedAsync(int auctionId, int secondsRemaining)
+    {
+        await _hubContext.Clients.Group(auctionId.ToString())
+            .SendAsync("TieBreakerDetected", secondsRemaining);
     }
 }

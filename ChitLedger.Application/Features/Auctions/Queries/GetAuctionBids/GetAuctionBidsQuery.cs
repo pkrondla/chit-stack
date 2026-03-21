@@ -18,6 +18,7 @@ public class BidDto
     public decimal BidAmount { get; set; }
     public DateTime BidTime { get; set; }
     public string Source { get; set; } = string.Empty;
+    public bool IsLotteryWinner { get; set; }
 }
 
 public class GetAuctionBidsQuery : IRequest<Result<List<BidDto>>>

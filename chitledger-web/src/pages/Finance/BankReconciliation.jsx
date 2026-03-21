@@ -21,10 +21,11 @@ const BankReconciliation = () => {
             const res = await api.get('/Reporting/accounts');
             const data = res.data.data || res.data;
             return data.filter(a =>
-                (a.accountCode?.toUpperCase().includes('BANK')) ||
-                (a.accountName?.toUpperCase().includes('BANK')) ||
-                (a.type === 'Asset' && (a.accountName?.toLowerCase().includes('cash') || a.accountName?.toLowerCase().includes('bank'))) ||
-                a.bankDetails
+                a.type === 'Asset' && (
+                    a.systemRole === 'Bank' ||
+                    a.bankDetails ||
+                    (a.accountName?.toLowerCase().includes('bank') && !a.accountName?.toLowerCase().includes('charges'))
+                )
             );
         }
     });

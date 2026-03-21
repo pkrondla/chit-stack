@@ -32,6 +32,8 @@ public class AuctionDto
     public string? AuctionVenueAddress { get; set; }
     public string? PaymentMode { get; set; }
     public string? PaymentReference { get; set; }
+    public DateTime? SessionStartedAt { get; set; }
+    public int SessionDurationMinutes { get; set; }
 }
 
 public class GetAuctionsQuery : IRequest<Result<List<AuctionDto>>>
@@ -110,7 +112,9 @@ public class AuctionProfile : Profile
             .ForMember(d => d.WinnerName, opt => opt.MapFrom(s => s.WinningTicket != null
                 ? (s.WinningTicket.IsForeman ? "FOREMAN / COMPANY" : (s.WinningTicket.Member != null ? s.WinningTicket.Member.FullName : null))
                 : null))
-            .ForMember(d => d.WinningTicketNumber, opt => opt.MapFrom(s => s.WinningTicket != null ? s.WinningTicket.TicketNumber : (int?)null));
+            .ForMember(d => d.WinningTicketNumber, opt => opt.MapFrom(s => s.WinningTicket != null ? s.WinningTicket.TicketNumber : (int?)null))
+            .ForMember(d => d.SessionStartedAt, opt => opt.MapFrom(s => s.SessionStartedAt))
+            .ForMember(d => d.SessionDurationMinutes, opt => opt.MapFrom(s => s.SessionDurationMinutes));
     }
 }
 

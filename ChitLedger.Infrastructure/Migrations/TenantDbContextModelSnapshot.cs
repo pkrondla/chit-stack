@@ -62,6 +62,9 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SystemRole")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
@@ -231,6 +234,9 @@ namespace ChitLedger.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLotteryWinner")
                         .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastModifiedAt")
@@ -1009,6 +1015,9 @@ namespace ChitLedger.Infrastructure.Migrations
 
                     b.Property<string>("GstNumber")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("GstPercent")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");

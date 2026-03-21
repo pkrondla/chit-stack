@@ -17,7 +17,8 @@ const getInitialState = () => {
                 id: payload.sub,
                 username: payload.email,
                 fullName: payload.FullName,
-                role: payload.role
+                role: payload.role,
+                memberId: payload.MemberId ? parseInt(payload.MemberId) : null
             };
             activeBranch = activeBranchStr ? JSON.parse(activeBranchStr) : null;
             authorizedBranches = authBranchesStr ? JSON.parse(authBranchesStr) : [];
@@ -61,7 +62,8 @@ const useAuthStore = create((set) => ({
                 id: payload.sub,
                 username: payload.email,
                 fullName: payload.FullName,
-                role: payload.role
+                role: payload.role,
+                memberId: payload.MemberId ? parseInt(payload.MemberId) : null
             };
 
             set({

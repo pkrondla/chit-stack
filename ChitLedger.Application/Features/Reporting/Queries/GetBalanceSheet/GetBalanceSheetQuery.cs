@@ -38,10 +38,11 @@ public class GetBalanceSheetHandler : IRequestHandler<GetBalanceSheetQuery, Resu
 
     public async Task<Result<BalanceSheetDto>> Handle(GetBalanceSheetQuery request, CancellationToken cancellationToken)
     {
+        var toDate = request.AsOfDate.Date.AddDays(1);
         var lines = _context.JournalEntryLines
             .Include(l => l.AccountHead)
             .Include(l => l.JournalEntry)
-            .Where(l => l.JournalEntry.EntryDate <= request.AsOfDate);
+            .Where(l => l.JournalEntry.EntryDate < toDate);
 
         if (request.BranchId.HasValue)
         {

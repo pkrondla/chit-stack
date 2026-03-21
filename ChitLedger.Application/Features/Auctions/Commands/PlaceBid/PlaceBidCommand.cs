@@ -53,12 +53,26 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
         if (request.BidAmount < minBid && auction.InstallmentNumber > 1)
              return Result<bool>.Failure($"Bid must be at least the foreman commission (₹{minBid:N2}).");
 
-        if (request.BidAmount <= auction.WinningBidAmount)
+        if (request.BidAmount < auction.WinningBidAmount)
             return Result<bool>.Failure("Bid must be higher than the current highest bid.");
 
-        // Update Auction current high
-        auction.WinningBidAmount = request.BidAmount;
-        auction.WinningTicketId = request.BidderTicketId;
+        if (request.BidAmount == auction.WinningBidAmount && request.BidAmount != maxBid)
+            return Result<bool>.Failure("Bid must be higher than the current highest bid unless the maximum limit is reached.");
+
+        // Prevent duplicate max bid from same member
+        if (request.BidAmount == maxBid)
+        {
+            var alreadyAtMax = await _context.AuctionBids
+                .AnyAsync(b => b.AuctionId == auction.Id && b.TicketId == request.BidderTicketId && b.BidAmount == maxBid, cancellationToken);
+            if (alreadyAtMax)
+                return Result<bool>.Failure("You have already entered the maximum bid.");
+        }
+
+        if (request.BidAmount > auction.WinningBidAmount)
+        {
+            auction.WinningBidAmount = request.BidAmount;
+            auction.WinningTicketId = request.BidderTicketId;
+        }
         
         // Record Bid History
         var bid = new AuctionBid
@@ -79,6 +93,7 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
         // Notify Real-time
         await _notificationService.NotifyBidAsync(
             auction.Id, 
+            ticket.Id,
             ticket.Member?.FullName ?? $"Ticket #{ticket.TicketNumber}", 
             request.BidAmount,
             ticket.Member?.PhotoUrl,

@@ -54,10 +54,28 @@ public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result
         if (request.BidAmount < minBid && auction.InstallmentNumber > 1)
             return Result<int>.Failure($"Bid must be at least the foreman commission of (₹{minBid:N2})");
 
-        // Update Auction (Simple "Winning" Logic for V1)
-        auction.WinningTicketId = ticket.Id;
-        auction.WinningBidAmount = request.BidAmount;
-        
+        if (request.BidAmount < auction.WinningBidAmount)
+            return Result<int>.Failure($"Bid amount must be at least ₹{auction.WinningBidAmount:N2}");
+
+        if (request.BidAmount == auction.WinningBidAmount && request.BidAmount != maxBid)
+            return Result<int>.Failure("Bid must be higher than the current highest bid unless the maximum limit is reached.");
+
+        // Prevent duplicate max bid from same member
+        if (request.BidAmount == maxBid)
+        {
+            var alreadyAtMax = await _context.AuctionBids
+                .AnyAsync(b => b.AuctionId == auction.Id && b.TicketId == request.TicketId && b.BidAmount == maxBid, cancellationToken);
+            if (alreadyAtMax)
+                return Result<int>.Failure("This member has already entered the maximum bid.");
+        }
+
+        // If it's a new high, update current winner
+        if (request.BidAmount > auction.WinningBidAmount)
+        {
+            auction.WinningTicketId = ticket.Id;
+            auction.WinningBidAmount = request.BidAmount;
+        }
+
         // Calculate Dividend & Payable
         decimal commission = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
         decimal dividendPool = request.BidAmount - commission;
@@ -85,6 +103,7 @@ public class PlaceProxyBidHandler : IRequestHandler<PlaceProxyBidCommand, Result
         // Notify Real-time
         await _notificationService.NotifyBidAsync(
             auction.Id,
+            ticket.Id,
             ticket.Member?.FullName ?? $"Ticket #{ticket.TicketNumber}",
             request.BidAmount,
             ticket.Member?.PhotoUrl,

@@ -31,6 +31,9 @@ public class StartAuctionHandler : IRequestHandler<StartAuctionCommand, Result<b
             return Result<bool>.Failure("Auction is already closed.");
 
         auction.AuctionStatus = "Live";
+        auction.SessionStartedAt = DateTime.UtcNow;
+        auction.SessionDurationMinutes = request.DurationMinutes;
+        
         await _context.SaveChangesAsync(cancellationToken);
 
         // Notify room that auction has started with timer

@@ -13,4 +13,5 @@ public class AuctionBid : BranchEntity
     public decimal BidAmount { get; set; }
     public DateTime BidTime { get; set; }
     public string Source { get; set; } = "Web"; // Web, Mobile, Office
+    public bool IsLotteryWinner { get; set; }
 }

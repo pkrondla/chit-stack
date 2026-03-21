@@ -39,10 +39,13 @@ public class GetProfitAndLossHandler : IRequestHandler<GetProfitAndLossQuery, Re
 
     public async Task<Result<ProfitAndLossDto>> Handle(GetProfitAndLossQuery request, CancellationToken cancellationToken)
     {
+        var startDate = request.StartDate.Date;
+        var endDate = request.EndDate.Date.AddDays(1);
+
         var lines = _context.JournalEntryLines
             .Include(l => l.AccountHead)
             .Include(l => l.JournalEntry)
-            .Where(l => l.JournalEntry.EntryDate >= request.StartDate && l.JournalEntry.EntryDate <= request.EndDate);
+            .Where(l => l.JournalEntry.EntryDate >= startDate && l.JournalEntry.EntryDate < endDate);
 
         if (request.BranchId.HasValue)
         {

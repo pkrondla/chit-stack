@@ -24,4 +24,8 @@ public class Auction : BranchEntity
     public DateTime? PaymentDate { get; set; }
     public string? PaymentMode { get; set; } // Cheque/NEFT
     public string? PaymentReference { get; set; }
+
+    // Session Timing for synchronized timer
+    public DateTime? SessionStartedAt { get; set; }
+    public int SessionDurationMinutes { get; set; }
 }
