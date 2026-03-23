@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Typography, Button, Tag, Modal, Form, Input, DatePicker, Select, message, Spin, Table, Dropdown, Space } from 'antd';
-import { UserMinus, UserPlus, FileText, CheckCircle, Clock, MoreVertical, ShieldAlert } from 'lucide-react';
+import { UserMinus, UserPlus, Users, FileText, CheckCircle, Clock, MoreVertical, ShieldAlert } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -214,6 +214,13 @@ const GroupTickets = () => {
                                 <Dropdown
                                     menu={{
                                         items: [
+                                            {
+                                                key: 'details',
+                                                label: <span className="font-semibold text-slate-700">Member Details</span>,
+                                                icon: <Users size={16} className="text-slate-600" />,
+                                                onClick: () => navigate(`/members/${ticket.memberId}`)
+                                            },
+                                            { type: 'divider' },
                                             {
                                                 key: 'remove',
                                                 label: <span className="text-red-600 font-semibold">Remove Subscriber</span>,

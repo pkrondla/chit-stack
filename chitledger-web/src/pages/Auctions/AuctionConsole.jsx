@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as signalR from '@microsoft/signalr';
-import { Card, Typography, Button, Form, InputNumber, Select, Tag, App, Spin, Divider, Tabs, List, Switch, Avatar } from 'antd';
-import { Calculator, ArrowLeft, CheckCircle, FileText, UserCheck, Users, Gavel, Activity, Globe, Smartphone, Building2, Clock, RotateCcw } from 'lucide-react';
+import { Card, Typography, Button, Form, InputNumber, Select, Tag, App, Spin, Divider, Tabs, List, Switch, Avatar, Table } from 'antd';
+import { Calculator, ArrowLeft, CheckCircle, FileText, UserCheck, Users, Gavel, Activity, Globe, Smartphone, Building2, Clock, RotateCcw, ListChecks } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -34,6 +34,9 @@ const AuctionConsole = () => {
     const [bidHistory, setBidHistory] = useState([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [quickBids, setQuickBids] = useState({});
+
+    const [demands, setDemands] = useState([]);
+    const [isDemandsLoading, setIsDemandsLoading] = useState(false);
 
     const startMutation = useMutation({
         mutationFn: async (payload) => {
@@ -201,6 +204,36 @@ const AuctionConsole = () => {
             setIsHistoryLoading(false);
         }
     };
+
+    const fetchDemands = async () => {
+        setIsDemandsLoading(true);
+        try {
+            const res = await api.get(`/Auctions/${auctionId}/demands`);
+            setDemands(res.data.data || []);
+        } catch (e) {
+            console.error("Failed to fetch demands", e);
+        } finally {
+            setIsDemandsLoading(false);
+        }
+    };
+
+    const generateDemandsMutation = useMutation({
+        mutationFn: async () => {
+            const res = await api.post('/Finance/generate-demands', { auctionId: parseInt(auctionId) });
+            return res.data;
+        },
+        onSuccess: () => {
+            message.success('Demands generated successfully');
+            fetchDemands();
+        },
+        onError: (err) => {
+            message.error(err.response?.data?.error || 'Failed to generate demands');
+        }
+    });
+
+    useEffect(() => {
+        if (activeTab === '4') fetchDemands();
+    }, [activeTab]);
 
     useEffect(() => {
         if (!auctionId) return;
@@ -624,7 +657,7 @@ const AuctionConsole = () => {
                                                     </div>
                                                     <div className="text-center">
                                                         <Text className="text-slate-400 block mb-1 text-xs">Total Dividend pool</Text>
-                                                        <Text className="text-xl font-bold text-green-700">₹{(auction.winningBidAmount - auction.foremanCommissionAmount).toLocaleString()}</Text>
+                                                        <Text className="text-xl font-bold text-green-700">₹{Math.max(0, (auction.winningBidAmount || 0) - (auction.foremanCommissionAmount || 0)).toLocaleString()}</Text>
                                                     </div>
                                                     <div className="text-center">
                                                         <Text className="text-slate-400 block mb-1 text-xs">Dividend / Member</Text>
@@ -746,6 +779,13 @@ const AuctionConsole = () => {
                                                                     <InputNumber
                                                                         placeholder="Amount"
                                                                         className="w-28 font-semibold"
+                                                                        precision={0}
+                                                                        step={1}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === '.' || e.key === 'e' || e.key === '+' || e.key === '-') {
+                                                                                e.preventDefault();
+                                                                            }
+                                                                        }}
                                                                         value={quickBids[person.ticketId]}
                                                                         onChange={(val) => setQuickBids(prev => ({ ...prev, [person.ticketId]: val }))}
                                                                         onPressEnter={() => handleQuickBid(person.ticketId, quickBids[person.ticketId])}
@@ -866,7 +906,14 @@ const AuctionConsole = () => {
                                                             <InputNumber
                                                                 className="w-full font-bold text-blue-600"
                                                                 size="middle"
-                                                                placeholder="0.00"
+                                                                placeholder="0"
+                                                                precision={0}
+                                                                step={1}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === '.' || e.key === 'e' || e.key === '+' || e.key === '-') {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
                                                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                                                 parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
                                                             />
@@ -1063,6 +1110,102 @@ const AuctionConsole = () => {
                                         ))
                                     )}
                                 </div>
+                            </div>
+                        )
+                    },
+                    {
+                        key: '4',
+                        label: (
+                            <span className="flex items-center gap-2 px-2">
+                                <ListChecks size={18} />
+                                Demands
+                            </span>
+                        ),
+                        children: (
+                            <div className="pt-4 max-w-4xl mx-auto">
+                                <div className="mb-6 flex justify-between items-center">
+                                    <div>
+                                        <Title level={4} className="!mb-1">Installment Demands</Title>
+                                        <Text className="text-slate-500">Auto-generated monthly dues based on finalized auction dividend.</Text>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {(demands.length === 0 && isClosed) && (
+                                            <Button
+                                                type="primary"
+                                                onClick={() => generateDemandsMutation.mutate()}
+                                                loading={generateDemandsMutation.isPending}
+                                                icon={<Calculator size={16} />}
+                                            >
+                                                Generate Demands
+                                            </Button>
+                                        )}
+                                        {/* A faux visual regenerate button as requested, although Edit Auction does this automatically */}
+                                        {(demands.length > 0 && isClosed) && (
+                                            <Button
+                                                onClick={() => {
+                                                    message.info('Demands are dynamically auto-regenerated whenever you click "Edit Completion Details" and update results.');
+                                                }}
+                                                icon={<RotateCcw size={16} />}
+                                            >
+                                                Auto-Regenerate Active
+                                            </Button>
+                                        )}
+                                        <Button icon={<Activity size={16} />} onClick={fetchDemands} loading={isDemandsLoading}>Refresh</Button>
+                                    </div>
+                                </div>
+                                <Table
+                                    dataSource={demands}
+                                    rowKey="id"
+                                    loading={isDemandsLoading}
+                                    pagination={false}
+                                    className="border border-slate-200 rounded-xl"
+                                    columns={[
+                                        {
+                                            title: 'Member',
+                                            dataIndex: 'memberName',
+                                            key: 'memberName',
+                                            render: (text, record) => (
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar size={32} className="bg-slate-100 text-slate-500">{text.charAt(0)}</Avatar>
+                                                    <div>
+                                                        <div className="font-bold text-slate-800">{text}</div>
+                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Ticket #{record.ticketNumber}</div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        },
+                                        {
+                                            title: 'Gross Inst.',
+                                            dataIndex: 'grossAmount',
+                                            key: 'grossAmount',
+                                            render: val => <span className="text-slate-500">₹{val.toLocaleString()}</span>
+                                        },
+                                        {
+                                            title: 'Dividend Discount',
+                                            dataIndex: 'dividendAmount',
+                                            key: 'dividendAmount',
+                                            render: val => <span className="text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">-₹{val.toLocaleString()}</span>
+                                        },
+                                        {
+                                            title: 'Net Payable',
+                                            dataIndex: 'netAmount',
+                                            key: 'netAmount',
+                                            render: val => <span className="font-black text-slate-800 text-lg">₹{val.toLocaleString()}</span>
+                                        },
+                                        {
+                                            title: 'Status',
+                                            dataIndex: 'status',
+                                            key: 'status',
+                                            render: val => <Tag color={val === 'Paid' ? 'success' : val === 'Partial' ? 'warning' : 'processing'} className="m-0 font-bold uppercase tracking-wider text-[10px]">{val}</Tag>
+                                        }
+                                    ]}
+                                />
+                                {demands.length === 0 && !isClosed && (
+                                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 mt-4">
+                                        <Calculator size={48} className="text-slate-200 mx-auto mb-4" />
+                                        <Text className="text-slate-500 block">Close the auction to calculate and generate demands.</Text>
+                                    </div>
+                                )}
                             </div>
                         )
                     }

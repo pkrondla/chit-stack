@@ -12,6 +12,8 @@ CREATE TABLE [dbo].[TenantSettings] (
     [GstNumber]                NVARCHAR(20)      NULL,
     [PanNumber]                NVARCHAR(20)      NULL,
     [MaxBiddingDiscountPercent] DECIMAL(18,2)     NOT NULL DEFAULT 40,
+    [DefaultLateFeePercent]    DECIMAL(18,2)     NOT NULL DEFAULT 2,
+    [DefaultGracePeriodDays]   INT               NOT NULL DEFAULT 5,
     [TenantId]                 INT               NOT NULL,
     [Created]                  DATETIME2         NOT NULL DEFAULT GETUTCDATE()
 );

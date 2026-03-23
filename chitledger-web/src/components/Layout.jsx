@@ -26,18 +26,54 @@ const Layout = () => {
 
     if (!user) return null;
 
+    const dashboardItem = user.role === 'Admin' ? {
+        key: 'dashboardGrp',
+        icon: <LayoutDashboard size={18} />,
+        label: 'Dashboard',
+        children: [
+            { key: '/dashboard', label: 'Staff' },
+            { key: '/admin/auditor', label: 'Auditor' }
+        ]
+    } : {
+        key: user.role === 'Auditor' ? '/admin/auditor' : '/dashboard',
+        icon: <LayoutDashboard size={18} />,
+        label: 'Dashboard'
+    };
+
     const adminItems = [
-        { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-        { key: '/groups', icon: <Users size={18} />, label: 'Chit Groups' },
-        { key: '/auctions', icon: <Gavel size={18} />, label: 'Auctions' },
+        dashboardItem,
+        {
+            key: 'groupsGrp',
+            icon: <Users size={18} />,
+            label: 'Chit Groups',
+            children: [
+                { key: '/groups', label: 'Group List' },
+                { key: '/reports/statutory', label: 'Statutory Forms' }
+            ]
+        },
+        {
+            key: 'auctionsGrp',
+            icon: <Gavel size={18} />,
+            label: 'Auctions',
+            children: [
+                { key: '/auctions', label: 'Auctions Board' },
+                { key: '/finance/payouts', label: 'Payout Entry' }
+            ]
+        },
         { key: '/members', icon: <Users size={18} />, label: 'Members' },
+        {
+            key: 'collectionsGrp',
+            icon: <IndianRupee size={18} />,
+            label: 'Collections',
+            children: [
+                { key: '/finance', label: 'Collection Entry' }
+            ]
+        },
         {
             key: 'financeGrp',
             icon: <FileText size={18} />,
             label: 'Accounts',
             children: [
-                { key: '/finance', label: 'Collection Entry' },
-                { key: '/finance/payouts', label: 'Payout Entry' },
                 { key: '/finance/vouchers', label: 'Voucher Entry' },
                 { key: '/finance/accounts', label: 'Chart of Accounts' },
                 { key: '/finance/reconciliation', label: 'Bank Reconciliation' },
@@ -48,18 +84,17 @@ const Layout = () => {
             icon: <ScrollText size={18} />,
             label: 'Reports',
             children: [
-                { key: '/reports', label: 'Day Book & Ledger' },
+                { key: '/reports', label: 'Day Book' },
+                { key: '/reports?tab=Ledger', label: 'General Ledger' },
                 { key: '/reports?tab=ProfitLoss', label: 'Profit & Loss' },
                 { key: '/reports?tab=TrialBalance', label: 'Trial Balance' },
-                { key: '/reports/statutory', label: 'Statutory Forms' },
             ]
         },
         { type: 'divider' },
         {
             key: 'setupGrp', label: 'Setup', type: 'group', children: [
                 { key: '/settings', icon: <Settings size={18} />, label: 'Settings' },
-                { key: '/admin/users', icon: <Users size={18} />, label: 'Staff Users' },
-                { key: '/admin/auditor', icon: <Building2 size={18} />, label: 'Auditor Panel' },
+                { key: '/admin/users', icon: <Users size={18} />, label: 'Users' },
             ]
         },
     ];
@@ -68,7 +103,7 @@ const Layout = () => {
         { key: '/portal', icon: <LayoutDashboard size={18} />, label: 'My Dashboard' }
     ];
 
-    const menuItems = (user.role === 'Admin' || user.role === 'Manager') ? adminItems : portalItems;
+    const menuItems = (['Admin', 'Manager', 'Staff', 'Auditor'].includes(user.role)) ? adminItems : portalItems;
 
     return (
         <AntLayout className="h-screen font-sans">

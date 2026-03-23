@@ -7,6 +7,7 @@ using ChitLedger.Application.Features.Auctions.Commands.ScheduleAuction;
 using ChitLedger.Application.Features.Auctions.Queries.GetAuctionAttendance;
 using ChitLedger.Application.Features.Auctions.Queries.GetAuctions;
 using ChitLedger.Application.Features.Auctions.Queries.GetAuctionBids;
+using ChitLedger.Application.Features.Auctions.Queries.GetAuctionDemands;
 using ChitLedger.Application.Features.Auctions.Commands.UpdateAuctionCompletion;
 using ChitLedger.Application.Features.Auctions.Commands.RevertAuction;
 using ChitLedger.Application.Features.Auctions.Commands.RunLottery;
@@ -52,6 +53,12 @@ public class AuctionsController : ControllerBase
     public async Task<ActionResult<Result<List<AttendanceDto>>>> GetAttendance(int auctionId)
     {
         return Ok(await _mediator.Send(new GetAuctionAttendanceQuery { AuctionId = auctionId }));
+    }
+
+    [HttpGet("{id}/demands")]
+    public async Task<ActionResult<Result<List<AuctionDemandDto>>>> GetDemands(int id)
+    {
+        return Ok(await _mediator.Send(new GetAuctionDemandsQuery { AuctionId = id }));
     }
 
     [HttpGet("{auctionId}/bids")]

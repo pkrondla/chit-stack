@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Typography, Tag, Space, Spin, Alert, DatePicker, Select, Row, Col, Tooltip, Badge, Table } from 'antd';
@@ -11,14 +11,43 @@ const { RangePicker } = DatePicker;
 
 const Auctions = () => {
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useState({
-        dateRange: [dayjs().startOf('day'), dayjs().endOf('day')],
-        groupId: null
-    });
+    const getInitialState = () => {
+        const saved = sessionStorage.getItem('auctionSearchState');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                return {
+                    dateRange: parsed.dateRange ? [dayjs(parsed.dateRange[0]), dayjs(parsed.dateRange[1])] : null,
+                    groupId: parsed.groupId || null
+                };
+            } catch (e) {
+                console.error("Failed to parse saved search state", e);
+            }
+        }
+        return {
+            dateRange: [dayjs().startOf('day'), dayjs().endOf('day')],
+            groupId: null
+        };
+    };
+
+    const initialState = getInitialState();
+
+    const [searchParams, setSearchParams] = useState(initialState);
 
     // Local state for UI inputs
-    const [localDateRange, setLocalDateRange] = useState([dayjs().startOf('day'), dayjs().endOf('day')]);
-    const [localGroupId, setLocalGroupId] = useState(null);
+    const [localDateRange, setLocalDateRange] = useState(initialState.dateRange);
+    const [localGroupId, setLocalGroupId] = useState(initialState.groupId);
+
+    useEffect(() => {
+        const stateToSave = {
+            dateRange: searchParams.dateRange ? [
+                searchParams.dateRange[0]?.toISOString(),
+                searchParams.dateRange[1]?.toISOString()
+            ] : null,
+            groupId: searchParams.groupId
+        };
+        sessionStorage.setItem('auctionSearchState', JSON.stringify(stateToSave));
+    }, [searchParams]);
 
     const { data: groups = [] } = useQuery({
         queryKey: ['groups'],
@@ -70,8 +99,11 @@ const Auctions = () => {
     const columns = [
         {
             title: 'Time',
+            dataIndex: 'auctionDate',
             key: 'time',
             width: 120,
+            sorter: (a, b) => dayjs(a.auctionDate).unix() - dayjs(b.auctionDate).unix(),
+            defaultSortOrder: 'ascend',
             render: (_, auction) => {
                 const date = dayjs(auction.auctionDate);
                 const isToday = date.isSame(dayjs(), 'day');

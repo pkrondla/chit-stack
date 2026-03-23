@@ -36,12 +36,11 @@ public class RunLotteryHandler : IRequestHandler<RunLotteryCommand, Result<int>>
 
             if (auction == null) return Result<int>.Failure("Auction not found");
             if (auction.AuctionStatus == "Closed") return Result<int>.Failure("Auction is already closed");
-            if (auction.WinningTicketId != null) return Result<int>.Failure("A winner is already declared for this auction. Revert first if you need to re-run.");
 
             // Statutory Validations
             var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
             decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
-            decimal maxBid = auction.ChitGroup.ChitValue * (maxCapPercent / 100);
+            decimal maxBid = Math.Round(auction.ChitGroup.ChitValue * (maxCapPercent / 100), 0, MidpointRounding.AwayFromZero);
 
             if (auction.WinningBidAmount < maxBid)
                 return Result<int>.Failure($"Cannot run lottery. Bid hasn't reached the maximum value of ₹{maxBid:N2}.");
@@ -54,7 +53,7 @@ public class RunLotteryHandler : IRequestHandler<RunLotteryCommand, Result<int>>
             var tiedBids = await _context.AuctionBids
                 .Include(b => b.Ticket)
                 .ThenInclude(t => t.Member)
-                .Where(b => b.AuctionId == auction.Id && b.BidAmount == maxBid)
+                .Where(b => b.AuctionId == auction.Id && Math.Abs(b.BidAmount - maxBid) < 1)
                 .ToListAsync(cancellationToken);
 
             // Deduplicate by TicketId (a member may have bid several times, but the limit is their max participation)

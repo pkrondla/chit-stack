@@ -81,14 +81,31 @@ const CompanySettings = () => {
                 </Card>
 
                 <Card className="mb-6 rounded-xl shadow-sm border-slate-100">
-                    <Title level={5} className="!mb-5 text-slate-700">Statutory Filing</Title>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
-                        <Form.Item name="statutoryFilingFees" label="Default Filing Fees (₹) paid to Registrar">
+                    <Title level={5} className="!mb-5 text-slate-700">Statutory Filing & Penalties</Title>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5">
+                        <Form.Item name="statutoryFilingFees" label="Default Filing Fees paid to Registrar">
                             <InputNumber
                                 min={0}
                                 prefix="₹"
                                 className="w-full"
                                 placeholder="e.g., 500"
+                            />
+                        </Form.Item>
+                        <Form.Item name="defaultLateFeePercent" label="Default Late Fee (%)">
+                            <InputNumber
+                                min={0}
+                                max={100}
+                                addonAfter="%"
+                                className="w-full"
+                                placeholder="e.g., 2"
+                            />
+                        </Form.Item>
+                        <Form.Item name="defaultGracePeriodDays" label="Grace Period (Days)">
+                            <InputNumber
+                                min={0}
+                                addonAfter="Days"
+                                className="w-full"
+                                placeholder="e.g., 5"
                             />
                         </Form.Item>
                     </div>

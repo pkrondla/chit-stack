@@ -1,5 +1,6 @@
 using ChitLedger.Application.Common.Constants;
 using ChitLedger.Application.Common.Interfaces;
+using ChitLedger.Application.Features.Financials.Commands.GenerateDemands;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +19,16 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
     private readonly IAuctionNotificationService _notificationService;
+    private readonly ISender _sender;
 
-    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService)
+    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService, ISender sender)
     {
         _context = context;
         _gstService = gstService;
         _journalService = journalService;
         _accountService = accountService;
         _notificationService = notificationService;
+        _sender = sender;
     }
 
     public async Task<Result<int>> Handle(CloseAuctionCommand request, CancellationToken cancellationToken)
@@ -45,17 +48,29 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         // Statutoty Validations
         var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
         decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
-        decimal maxBiddingAmount = auction.ChitGroup.ChitValue * (maxCapPercent / 100);
-        decimal minBiddingAmount = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+        decimal maxBiddingAmount = Math.Round(auction.ChitGroup.ChitValue * (maxCapPercent / 100), 0, MidpointRounding.AwayFromZero);
+        decimal minBiddingAmount = Math.Round(auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
 
         if (auction.WinningBidAmount > maxBiddingAmount)
             return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) exceeds the maximum allowed discount of {maxCapPercent}% (₹{maxBiddingAmount:N2}).");
 
-        if (auction.WinningBidAmount < minBiddingAmount && auction.InstallmentNumber > 1)
+        // Enforce Foreman (Ticket 1) for first installment
+        if (auction.InstallmentNumber == 1)
+        {
+            var foremanTicket = auction.ChitGroup.Tickets.FirstOrDefault(t => t.TicketNumber == 1);
+            if (auction.WinningTicketId != foremanTicket?.Id)
+                return Result<int>.Failure("As per Chit Fund rules, the first installment must be awarded to the Foreman (Ticket #1).");
+            
+            if (auction.WinningBidAmount > 0)
+                return Result<int>.Failure("The first installment is drawn by the Foreman without any discount (₹0 bid).");
+        }
+        else if (auction.WinningBidAmount < minBiddingAmount)
+        {
             return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) is below the minimum foreman commission of {auction.ChitGroup.ForemanCommissionPercent}% (₹{minBiddingAmount:N2}).");
+        }
 
         // Calculate Dividend
-        var commissionBase = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+        var commissionBase = Math.Round(auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
         
         // Calculate GST on Commission
         decimal gstRate = settings?.GstPercent ?? 18;
@@ -150,22 +165,8 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         if (!journalResult.Succeeded)
             return Result<int>.Failure($"Failed to create journal entry: {journalResult.Errors.First()}");
 
-        // Schedule Next Auction or Close Group
-        if (auction.InstallmentNumber < auction.ChitGroup.DurationMonths)
-        {
-            var nextAuction = new Domain.Entities.Auction
-            {
-                ChitGroupId = auction.ChitGroupId,
-                InstallmentNumber = auction.InstallmentNumber + 1,
-                AuctionDate = auction.AuctionDate.AddMonths(1),
-                AuctionStatus = "Scheduled",
-                WinningBidAmount = 0,
-                DividendAmount = 0,
-                NetPayableAmount = 0
-            };
-            _context.Auctions.Add(nextAuction);
-        }
-        else
+        // Close Group if this is the final installment
+        if (auction.InstallmentNumber >= auction.ChitGroup.DurationMonths)
         {
             auction.ChitGroup.Status = Domain.Entities.GroupStatus.Completed;
         }
@@ -178,6 +179,9 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             auction.WinningTicketId.Value, 
             auction.WinningTicket?.Member?.FullName ?? "Member", 
             auction.WinningBidAmount);
+
+        // Auto-Generate Demands!
+        var demandsResult = await _sender.Send(new GenerateDemandsCommand { AuctionId = auction.Id }, cancellationToken);
 
         return Result<int>.Success(auction.Id);
     }

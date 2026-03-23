@@ -11,6 +11,7 @@ public class TicketDuesDto
     public decimal PendingPrincipal { get; set; }
     public decimal PendingPenalty { get; set; }
     public decimal TotalDue => PendingPrincipal + PendingPenalty;
+    public decimal AdvanceBalance { get; set; }
     public string MemberName { get; set; } = string.Empty;
     public string GroupName { get; set; } = string.Empty;
 }
@@ -85,7 +86,8 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
             MemberName = ticket.Member.FullName,
             GroupName = ticket.ChitGroup.GroupName,
             PendingPrincipal = principal,
-            PendingPenalty = penalty
+            PendingPenalty = penalty,
+            AdvanceBalance = ticket.AdvanceBalance
         });
     }
 }

@@ -73,7 +73,7 @@ function App() {
           </Route>
 
           {/* Staff / Admin Routes */}
-          <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Staff']}><Layout /></ProtectedRoute>}>
+          <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Staff', 'Auditor']}><Layout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="groups" element={<Groups />} />

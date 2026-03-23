@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { Card, Typography, Button, Form, Input, Select, InputNumber, App, Divider, Space } from 'antd';
-import { Printer, CheckCircle, Calculator } from 'lucide-react';
+import { Card, Typography, Button, Form, Input, Select, InputNumber, App, Divider, Space, Tabs, Table, Tag, Alert } from 'antd';
+import { Printer, CheckCircle, Calculator, Users, LayoutList, Info } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
 
@@ -16,7 +16,36 @@ const CollectionEntry = () => {
     const [duesInfo, setDuesInfo] = useState(null);
     const [lastReceiptId, setLastReceiptId] = useState(null);
     const [isCheckingDues, setIsCheckingDues] = useState(false);
+    const [searchMode, setSearchMode] = useState('member'); // 'member' or 'group'
+    const [selectedMember, setSelectedMember] = useState(null);
+    const [selectedGroup, setSelectedGroup] = useState(null);
     const paymentMode = Form.useWatch('paymentMode', form) || 'Cash';
+
+    const { data: members = [], isLoading: isLoadingMembers } = useQuery({
+        queryKey: ['members'],
+        queryFn: async () => {
+            const res = await api.get('/Members');
+            return res.data?.data || res.data;
+        }
+    });
+
+    const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
+        queryKey: ['groups'],
+        queryFn: async () => {
+            const res = await api.get('/ChitGroups');
+            return res.data?.data || res.data;
+        }
+    });
+
+    const { data: groupTickets = [], isLoading: isLoadingGroupTickets } = useQuery({
+        queryKey: ['groupTickets', selectedGroup],
+        queryFn: async () => {
+            if (!selectedGroup) return [];
+            const res = await api.get(`/ChitGroups/${selectedGroup}/tickets`);
+            return res.data?.data || res.data;
+        },
+        enabled: !!selectedGroup
+    });
 
     const calcMutation = useMutation({
         mutationFn: async () => await api.post('/Finance/calc-penalties'),
@@ -33,21 +62,41 @@ const CollectionEntry = () => {
     });
 
     const handleCheckDues = async () => {
-        const ticketId = form.getFieldValue('ticketId');
-        if (!ticketId) {
-            message.warning("Please enter a Ticket ID");
-            return;
-        }
-        setIsCheckingDues(true);
-        try {
-            const res = await api.get(`/Tickets/dues/${ticketId}`);
-            setDuesInfo(res.data);
-            form.setFieldsValue({ amount: res.data.totalDue });
-        } catch (e) {
-            message.error("Ticket not found or error fetching dues.");
-            setDuesInfo(null);
-        } finally {
-            setIsCheckingDues(false);
+        if (searchMode === 'member') {
+            if (!selectedMember) {
+                message.warning("Please select a Member");
+                return;
+            }
+            setIsCheckingDues(true);
+            try {
+                const res = await api.get(`/Members/${selectedMember}/dues`);
+                const data = res.data?.data || res.data;
+                setDuesInfo({ type: 'member', ...data });
+                form.setFieldsValue({ amount: data?.totalDue });
+            } catch (e) {
+                message.error("Error fetching dues.");
+                setDuesInfo(null);
+            } finally {
+                setIsCheckingDues(false);
+            }
+        } else {
+            const ticketId = form.getFieldValue('ticketId');
+            if (!ticketId) {
+                message.warning("Please select a Ticket");
+                return;
+            }
+            setIsCheckingDues(true);
+            try {
+                const res = await api.get(`/Tickets/dues/${ticketId}`);
+                const data = res.data?.data || res.data;
+                setDuesInfo({ type: 'ticket', ...data });
+                form.setFieldsValue({ amount: data?.totalDue });
+            } catch (e) {
+                message.error("Error fetching dues.");
+                setDuesInfo(null);
+            } finally {
+                setIsCheckingDues(false);
+            }
         }
     };
 
@@ -68,13 +117,20 @@ const CollectionEntry = () => {
     });
 
     const handlePaymentSubmit = (values) => {
-        paymentMutation.mutate({
-            ticketId: parseInt(values.ticketId),
+        const payload = {
             amount: parseFloat(values.amount),
             paymentMode: values.paymentMode,
             referenceNumber: values.referenceNumber || '',
             accountHeadId: values.accountHeadId
-        });
+        };
+
+        if (searchMode === 'member') {
+            payload.memberId = selectedMember;
+        } else {
+            payload.ticketId = parseInt(values.ticketId);
+        }
+
+        paymentMutation.mutate(payload);
     };
 
     const handleReset = () => {
@@ -107,47 +163,115 @@ const CollectionEntry = () => {
                         initialValues={{ paymentMode: 'Cash' }}
                     >
                         <Form.Item
-                            label={<span className="font-semibold text-slate-700">Ticket ID</span>}
+                            label={<span className="font-semibold text-slate-700">Ticket Selection</span>}
                             required
+                            className="bg-slate-50 p-4 rounded-xl border border-slate-200"
                         >
-                            <Space.Compact className="w-full">
-                                <Form.Item
-                                    name="ticketId"
-                                    noStyle
-                                    rules={[{ required: true, message: 'Ticket ID is required' }]}
-                                >
-                                    <Input size="large" placeholder="Enter Ticket ID" className="flex-1" />
-                                </Form.Item>
-                                <Button
-                                    size="large"
-                                    onClick={handleCheckDues}
-                                    loading={isCheckingDues}
-                                    className="bg-slate-100 font-semibold text-slate-700"
-                                >
-                                    Check Dues
-                                </Button>
-                            </Space.Compact>
+                            <Tabs
+                                activeKey={searchMode}
+                                onChange={(key) => {
+                                    setSearchMode(key);
+                                    form.setFieldsValue({ ticketId: undefined });
+                                    setSelectedMember(null);
+                                    setSelectedGroup(null);
+                                    setDuesInfo(null);
+                                    setLastReceiptId(null);
+                                }}
+                                type="card"
+                                items={[
+                                    {
+                                        label: <span className="flex items-center gap-2"><Users size={16} />Search by Member</span>,
+                                        key: 'member',
+                                        children: (
+                                            <div className="flex flex-col gap-3 mt-2">
+                                                <Space.Compact className="w-full">
+                                                    <Select
+                                                        showSearch
+                                                        allowClear
+                                                        size="large"
+                                                        className="flex-1"
+                                                        placeholder="Search by Member Name or Mobile..."
+                                                        optionFilterProp="children"
+                                                        loading={isLoadingMembers}
+                                                        filterOption={(input, option) =>
+                                                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase()) ||
+                                                            (option?.mobile ?? '').includes(input)
+                                                        }
+                                                        options={members.map(m => ({
+                                                            value: m.id,
+                                                            label: m.fullName + (m.phoneNumber ? ` (${m.phoneNumber})` : ''),
+                                                            mobile: m.phoneNumber
+                                                        }))}
+                                                        onChange={setSelectedMember}
+                                                        value={selectedMember}
+                                                    />
+                                                    <Button
+                                                        size="large"
+                                                        onClick={handleCheckDues}
+                                                        loading={isCheckingDues}
+                                                        className="bg-slate-200 font-semibold text-slate-700 hover:bg-slate-300"
+                                                    >
+                                                        Check Dues
+                                                    </Button>
+                                                </Space.Compact>
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        label: <span className="flex items-center gap-2"><LayoutList size={16} />Search by Group</span>,
+                                        key: 'group',
+                                        children: (
+                                            <div className="flex flex-col gap-3 mt-2">
+                                                <Select
+                                                    showSearch
+                                                    allowClear
+                                                    size="large"
+                                                    placeholder="Select Chit Group"
+                                                    optionFilterProp="label"
+                                                    loading={isLoadingGroups}
+                                                    options={groups.map(g => ({
+                                                        value: g.id,
+                                                        label: g.groupName
+                                                    }))}
+                                                    onChange={setSelectedGroup}
+                                                    value={selectedGroup}
+                                                />
+                                                {selectedGroup && (
+                                                    <Space.Compact className="w-full">
+                                                        <Form.Item
+                                                            name="ticketId"
+                                                            noStyle
+                                                            rules={[{ required: true, message: 'Please select a ticket' }]}
+                                                        >
+                                                            <Select
+                                                                size="large"
+                                                                placeholder="Select Ticket Number"
+                                                                className="flex-1"
+                                                                loading={isLoadingGroupTickets}
+                                                                options={groupTickets.map(t => ({
+                                                                    value: t.id,
+                                                                    label: `Ticket #${t.ticketNumber} - ${t.memberName || 'Vacant'} ${t.isPrized ? '(Prized)' : ''}`
+                                                                }))}
+                                                                showSearch
+                                                                optionFilterProp="label"
+                                                            />
+                                                        </Form.Item>
+                                                        <Button
+                                                            size="large"
+                                                            onClick={handleCheckDues}
+                                                            loading={isCheckingDues}
+                                                            className="bg-slate-200 font-semibold text-slate-700 hover:bg-slate-300"
+                                                        >
+                                                            Check Dues
+                                                        </Button>
+                                                    </Space.Compact>
+                                                )}
+                                            </div>
+                                        )
+                                    }
+                                ]}
+                            />
                         </Form.Item>
-
-                        {duesInfo && (
-                            <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-lg">
-                                <Text strong className="text-orange-900 block mb-3 text-base">
-                                    {duesInfo.memberName} ({duesInfo.groupName})
-                                </Text>
-                                <div className="flex justify-between text-sm mb-1 text-slate-600">
-                                    <span>Principal:</span>
-                                    <span>₹{duesInfo.pendingPrincipal.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-sm mb-3 font-semibold text-red-600">
-                                    <span>Penalty:</span>
-                                    <span>₹{duesInfo.pendingPenalty.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between pt-3 border-t border-orange-200 border-dashed font-bold text-base text-slate-800">
-                                    <span>Total Due:</span>
-                                    <span>₹{duesInfo.totalDue.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        )}
 
                         <Form.Item
                             label={<span className="font-semibold text-slate-700">Amount Received</span>}
@@ -155,7 +279,7 @@ const CollectionEntry = () => {
                             rules={[{ required: true, message: 'Amount is required' }]}
                         >
                             <InputNumber
-                                className="w-full text-lg"
+                                className="w-full text-lg font-bold text-slate-800"
                                 size="large"
                                 placeholder="0.00"
                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -208,42 +332,168 @@ const CollectionEntry = () => {
                             htmlType="submit"
                             size="large"
                             block
-                            className="bg-slate-900 h-12 text-lg font-bold mt-4 shadow-md"
+                            className="bg-slate-900 h-12 text-lg font-bold mt-4 shadow-md hover:bg-slate-800"
                             loading={paymentMutation.isPending}
+                            disabled={searchMode === 'member' && duesInfo && (!duesInfo.ticketDues || duesInfo.ticketDues.length === 0)}
                         >
                             Record Payment
                         </Button>
                     </Form>
                 </Card>
 
-                {/* Receipt Preview Section */}
-                <div>
+                {/* Information / Receipt Pane (Right Side) */}
+                <div className="flex flex-col h-full">
                     {lastReceiptId ? (
-                        <Card className="bg-green-50 border border-green-200 text-center rounded-xl shadow-sm" styles={{ body: { padding: '3rem 2rem' } }}>
-                            <CheckCircle size={64} className="text-green-700 mx-auto mb-4" />
-                            <Title level={3} className="text-green-800 !mb-2">Payment Successful</Title>
-                            <Text className="text-green-700 block mb-8 text-base">Receipt #{lastReceiptId} generated.</Text>
+                        <Card className="bg-green-50 border border-green-200 text-center rounded-xl shadow-sm h-full flex items-center justify-center flex-col min-h-[500px]" styles={{ body: { padding: '3rem 2rem', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' } }}>
+                            <CheckCircle size={80} className="text-green-600 mb-6" />
+                            <Title level={2} className="text-green-800 !mb-2">Payment Successful</Title>
+                            <Text className="text-green-700 block mb-8 text-lg font-medium">Receipt #{lastReceiptId} generated.</Text>
 
                             <Button
                                 type="primary"
                                 size="large"
-                                icon={<Printer size={18} />}
+                                icon={<Printer size={20} />}
                                 onClick={() => downloadFile(`/forms/receipt/${lastReceiptId}`, `Receipt_${lastReceiptId}.pdf`)}
-                                className="bg-green-700 border-none hover:bg-green-800 mb-6 px-8 shadow-md"
+                                className="bg-green-600 hover:bg-green-700 border-none mb-8 px-10 h-14 text-lg shadow-lg hover:shadow-xl transition-all"
                             >
                                 Print Receipt
                             </Button>
 
-                            <div>
-                                <Button type="link" onClick={handleReset} className="text-green-800 underline hover:text-green-600 font-semibold">
-                                    Make Another Entry
-                                </Button>
-                            </div>
+                            <Button type="link" onClick={handleReset} className="text-green-700 underline hover:text-green-900 font-semibold text-base">
+                                Make Another Entry
+                            </Button>
                         </Card>
                     ) : (
-                        <Card className="bg-slate-50 border border-slate-200 text-center rounded-xl h-full flex items-center justify-center flex-col min-h-[400px]">
-                            <Printer size={64} className="text-slate-300 mb-6" />
-                            <Text className="text-slate-500 text-lg">Receipt download will appear here<br />after payment is recorded.</Text>
+                        <Card className="shadow-lg border-0 rounded-xl h-full flex flex-col min-h-[500px]" styles={{ body: { padding: '2rem', flex: 1, display: 'flex', flexDirection: 'column' } }}>
+                            <Title level={4} className="!mb-6 text-slate-700 border-b border-slate-100 pb-4">
+                                Account Overview
+                            </Title>
+
+                            {duesInfo ? (
+                                <div className="flex-1 flex flex-col">
+                                    {(duesInfo.type === 'member' && (!duesInfo.ticketDues || duesInfo.ticketDues.length === 0)) || (duesInfo.type === 'ticket' && duesInfo.totalDue <= 0) ? (
+                                        <div className="flex-1 flex flex-col items-center justify-center text-center px-4 bg-green-50/50 rounded-xl border border-dashed border-green-200 p-8">
+                                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                                                <CheckCircle size={32} />
+                                            </div>
+                                            <Title level={4} className="text-green-800 !mb-2">No Outstanding Dues</Title>
+                                            <Text className="text-slate-500 text-sm">
+                                                This {duesInfo.type} is fully up-to-date with all installments.
+                                            </Text>
+                                            {duesInfo.type === 'member' ? (
+                                                <div className="flex flex-col gap-4 mt-6">
+                                                    <Alert
+                                                        message="Advance Allocation Required"
+                                                        description="Because this member has no pending dues, please explicitly select a Ticket using 'Search by Group' on the left to allocate an advance payment."
+                                                        type="warning"
+                                                        showIcon
+                                                        className="text-left rounded-lg bg-orange-50 border border-orange-200 text-orange-800 shadow-sm"
+                                                    />
+                                                    <Button
+                                                        type="default"
+                                                        size="large"
+                                                        onClick={() => {
+                                                            setSearchMode('group');
+                                                            form.setFieldsValue({ ticketId: undefined });
+                                                            setSelectedMember(null);
+                                                            setSelectedGroup(null);
+                                                            setDuesInfo(null);
+                                                            setLastReceiptId(null);
+                                                        }}
+                                                        className="font-bold text-amber-600 bg-amber-50 border-amber-300 mx-auto"
+                                                    >
+                                                        Switch to Search by Group
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Alert
+                                                    message="Advance Payment Notice"
+                                                    description="Any amount recorded here will be safely banked as an Advance Payment against this specific ticket. The system will automatically sweep these advances to cover future auction installments!"
+                                                    type="info"
+                                                    showIcon
+                                                    icon={<Info className="mt-1" />}
+                                                    className="mt-6 text-left rounded-lg bg-white border border-blue-100 text-slate-600 shadow-sm"
+                                                />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex flex-col">
+                                            <div className="flex items-center gap-3 mb-6 p-4 bg-orange-50/50 rounded-xl border border-orange-100">
+                                                <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shrink-0">
+                                                    <Users size={24} />
+                                                </div>
+                                                <div>
+                                                    <Text className="text-xs font-bold text-orange-600 uppercase tracking-wider block mb-1">
+                                                        {duesInfo.type === 'member' ? 'Member Aggregated Dues' : 'Ticket Outstanding'}
+                                                    </Text>
+                                                    <Text className="text-lg font-bold text-slate-800">
+                                                        {duesInfo.memberName} {duesInfo.type === 'ticket' && <span className="text-slate-400 font-normal text-sm">({duesInfo.groupName})</span>}
+                                                    </Text>
+                                                </div>
+                                            </div>
+
+                                            {duesInfo.type === 'member' && (
+                                                <div className="flex-1 border border-slate-200 rounded-xl overflow-hidden mb-6 flex flex-col shadow-sm">
+                                                    <Table
+                                                        dataSource={duesInfo.ticketDues}
+                                                        rowKey="ticketId"
+                                                        pagination={{ pageSize: 5, hideOnSinglePage: true, simple: true }}
+                                                        size="middle"
+                                                        className="flex-1"
+                                                        columns={[
+                                                            { title: 'Chit Group', dataIndex: 'groupName', key: 'groupName', render: (text, record) => <div className="font-semibold text-slate-700 flex items-center flex-wrap gap-1">{text} <Tag className="m-0">#{record.ticketNumber}</Tag>{record.advanceBalance > 0 && <Tag color="success" className="m-0 text-[10px] border-green-200 bg-green-50 text-green-700">Adv: ₹{record.advanceBalance.toLocaleString()}</Tag>}</div> },
+                                                            { title: 'Due Amount', key: 'due', align: 'right', render: (_, r) => <span className="font-bold text-slate-700">₹{((r.pendingPrincipal || 0) + (r.pendingPenalty || 0)).toLocaleString()}</span> }
+                                                        ]}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="mt-auto bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
+                                                {duesInfo.type === 'ticket' && (
+                                                    <>
+                                                        <div className="flex justify-between text-slate-600 mb-2 text-base">
+                                                            <span>Principal Due:</span>
+                                                            <span className="font-semibold">₹{(duesInfo.pendingPrincipal || 0).toLocaleString()}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-red-500 mb-4 pb-4 border-b border-slate-200 text-base">
+                                                            <span>Late Penalties:</span>
+                                                            <span className="font-semibold">₹{(duesInfo.pendingPenalty || 0).toLocaleString()}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {((duesInfo.type === 'member' && duesInfo.totalAdvanceBalance > 0) || (duesInfo.type === 'ticket' && duesInfo.advanceBalance > 0)) && (
+                                                    <div className="flex justify-between items-center mb-4 p-3 bg-green-50 rounded-lg border border-green-200 shadow-sm">
+                                                        <Text className="text-green-700 font-semibold text-sm">Stored Advance Balance</Text>
+                                                        <Text className="text-xl font-bold text-green-700">+₹{((duesInfo.totalAdvanceBalance || duesInfo.advanceBalance) || 0).toLocaleString()}</Text>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between items-center">
+                                                    <Text className="text-slate-500 font-medium text-lg">Total Outstanding</Text>
+                                                    <Text className="text-4xl font-black text-rose-600">₹{(duesInfo.totalDue || 0).toLocaleString()}</Text>
+                                                </div>
+
+                                                {duesInfo.type === 'member' && (
+                                                    <Text type="secondary" className="text-[10px] uppercase font-bold tracking-widest block mt-4 text-center text-slate-400">
+                                                        Payments auto-settle via FIFO logic across all tickets
+                                                    </Text>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
+                                    <div className="w-24 h-24 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                        <Calculator size={48} className="text-slate-300" />
+                                    </div>
+                                    <Title level={4} className="text-slate-600 !mb-2">Awaiting Selection</Title>
+                                    <Text className="text-slate-400 max-w-xs text-sm">
+                                        Select a member or specify a ticket group on the left to instantly load their current financial standing and metrics.
+                                    </Text>
+                                </div>
+                            )}
                         </Card>
                     )}
                 </div>

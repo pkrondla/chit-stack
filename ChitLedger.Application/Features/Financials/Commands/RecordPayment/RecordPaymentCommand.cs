@@ -9,7 +9,8 @@ namespace ChitLedger.Application.Features.Financials.Commands.RecordPayment;
 
 public class RecordPaymentCommand : IRequest<Result<int>>
 {
-    public int TicketId { get; set; }
+    public int? TicketId { get; set; }
+    public int? MemberId { get; set; }
     public decimal Amount { get; set; }
     public string PaymentMode { get; set; } = "Cash";
     public string ReferenceNumber { get; set; } = string.Empty;
@@ -32,22 +33,54 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
 
     public async Task<Result<int>> Handle(RecordPaymentCommand request, CancellationToken cancellationToken)
     {
-        // 1. Validate Ticket
-        var ticket = await _context.Tickets.FindAsync(new object[] { request.TicketId }, cancellationToken);
-        if (ticket == null) return Result<int>.Failure("Ticket not found.");
+        // 1. Validate Input
+        if (request.TicketId == null && request.MemberId == null)
+            return Result<int>.Failure("TicketId or MemberId is required.");
 
-        // 2. Determine which Demand to pay? (FIFO usually)
-        // Find oldest pending demands
-        var pendingDemands = await _context.Demands
-            .Where(d => d.TicketId == ticket.Id && d.Status != "Paid")
-            .OrderBy(d => d.InstallmentNumber)
+        // 2. Find pending demands (FIFO by Due Date/Installment)
+        var pendingDemandsQuery = _context.Demands.Where(d => d.Status != "Paid");
+
+        if (request.TicketId.HasValue)
+        {
+            pendingDemandsQuery = pendingDemandsQuery.Where(d => d.TicketId == request.TicketId.Value)
+                                                     .OrderBy(d => d.InstallmentNumber);
+        }
+        else if (request.MemberId.HasValue)
+        {
+            pendingDemandsQuery = pendingDemandsQuery.Where(d => d.Ticket.MemberId == request.MemberId.Value)
+                                                     .OrderBy(d => d.DueDate).ThenBy(d => d.InstallmentNumber);
+        }
+
+        var pendingDemands = await pendingDemandsQuery
+            .Include(d => d.Ticket) // Needed for branch id and numbers
             .ToListAsync(cancellationToken);
 
-        if (!pendingDemands.Any()) 
-            return Result<int>.Failure("No pending demands for this ticket.");
-
-        decimal amountRemaining = request.Amount;
         var transactionDate = request.PaymentDate;
+        decimal amountRemaining = request.Amount;
+        
+        Ticket targetTicket = null;
+        int? branchId = null;
+        
+        if (!pendingDemands.Any()) 
+        {
+            // Advance Payment Logic
+            if (request.TicketId.HasValue)
+            {
+                targetTicket = await _context.Tickets.FirstOrDefaultAsync(t => t.Id == request.TicketId.Value);
+            }
+            else 
+            {
+                return Result<int>.Failure("To record a pure advance payment with no outstanding dues, you must explicitly specify the target Ticket/Group.");
+            }
+            
+            if (targetTicket == null) return Result<int>.Failure("No active ticket found to accept this advance payment.");
+            branchId = targetTicket.BranchId;
+        }
+        else
+        {
+            targetTicket = pendingDemands.First().Ticket;
+            branchId = targetTicket.BranchId;
+        }
 
         // Auto-allocate against demands
         foreach (var demand in pendingDemands)
@@ -72,16 +105,35 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             }
         }
         
-        // 3. Create Receipt
-        // Ideally we link Receipt to one or more demands. But for MVP, we link to Ticket+Auction(Latest?).
-        // Or just Ticket.
-        // Let's link to the *last* auction/installment covered? 
-        // For simplicity, we just log the receipt. The Demand updates are the source of truth for "Paid/Not Paid".
+        // Log excess to Advance Balance
+        if (amountRemaining > 0 && targetTicket != null)
+        {
+            targetTicket.AdvanceBalance += amountRemaining;
+        }
         
+        // 3. Create Receipt
+        int auctionIdToLink = 0;
+        if (pendingDemands.Any())
+        {
+            auctionIdToLink = pendingDemands.First().AuctionId;
+        }
+        else
+        {
+            var latestAuction = await _context.Auctions
+                .Where(a => a.ChitGroupId == targetTicket.ChitGroupId)
+                .OrderByDescending(a => a.InstallmentNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+            
+            if (latestAuction == null) return Result<int>.Failure("Chit Group has no auctions to tie the advance payment to.");
+            auctionIdToLink = latestAuction.Id;
+        }
+
         var receipt = new Receipt
         {
-            TicketId = request.TicketId,
-            AuctionId = pendingDemands.First().AuctionId, // Link to the first demand served? Arbitrary.
+            TenantId = targetTicket.TenantId,
+            BranchId = targetTicket.BranchId,
+            TicketId = targetTicket.Id,
+            AuctionId = auctionIdToLink,
             AmountReceived = request.Amount,
             PaymentMode = request.PaymentMode,
             ReferenceNumber = request.ReferenceNumber,
@@ -123,10 +175,10 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         await _journalService.CreateEntryAsync(
             "Receipt", 
             transactionDate, 
-            $"Receipt #{receipt.Id} from Ticket {ticket.TicketNumber}", 
-            receipt.Id, 
+            $"Receipt #{receipt.Id} {(request.MemberId.HasValue ? "from Member" : "from Ticket " + targetTicket.TicketNumber)} {(amountRemaining > 0 ? "(Includes Advance)" : "")}", 
+            receipt.Id,  
             "Receipt", 
-            ticket.BranchId,
+            branchId,
             journalLines, 
             cancellationToken);
 

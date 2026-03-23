@@ -2,6 +2,7 @@ using ChitLedger.Application.Features.Members.Commands.EnablePortalAccess;
 using ChitLedger.Application.Features.Members.Commands.CreateMember;
 using ChitLedger.Application.Features.Members.Queries.GetMembers;
 using ChitLedger.Application.Features.Members.Queries.GetMemberById;
+using ChitLedger.Application.Features.Members.Queries.GetMemberDues;
 using ChitLedger.Application.Features.Tickets.Commands.AllocateTicket;
 using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Domain.Common;
@@ -123,6 +124,12 @@ public class MembersController : ControllerBase
     public async Task<ActionResult<Result<int>>> EnablePortalAccess(int id)
     {
         return Ok(await _mediator.Send(new EnablePortalAccessCommand { MemberId = id }));
+    }
+
+    [HttpGet("{id}/dues")]
+    public async Task<ActionResult<Result<MemberDuesDto>>> GetDues(int id)
+    {
+        return Ok(await _mediator.Send(new GetMemberDuesQuery { MemberId = id }));
     }
 }
 

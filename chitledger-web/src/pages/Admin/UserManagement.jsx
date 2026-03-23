@@ -178,6 +178,7 @@ const UserManagement = () => {
                         <Select size="large">
                             <Select.Option value="Staff">Staff</Select.Option>
                             <Select.Option value="Manager">Manager</Select.Option>
+                            <Select.Option value="Auditor">Auditor</Select.Option>
                             <Select.Option value="Admin">Admin</Select.Option>
                         </Select>
                     </Form.Item>

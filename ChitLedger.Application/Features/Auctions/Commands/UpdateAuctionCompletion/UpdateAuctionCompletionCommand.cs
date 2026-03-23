@@ -78,6 +78,21 @@ public class UpdateAuctionCompletionHandler : IRequestHandler<UpdateAuctionCompl
         winningTicket.IsPrized = true;
         winningTicket.PrizedInstallment = auction.InstallmentNumber;
 
+        // Recalculate demands if they exist
+        var demands = await _context.Demands.Where(d => d.AuctionId == auction.Id).ToListAsync(cancellationToken);
+        
+        bool canUpdateDemands = !demands.Any(d => d.CollectedAmount > 0);
+        if (!canUpdateDemands && dividendPerTicket != demands.FirstOrDefault()?.DividendAmount)
+        {
+            return Result<int>.Failure("Cannot change auction results because some members have already paid their dues based on the previous calculations. Reverse those payments first.");
+        }
+
+        foreach(var demand in demands)
+        {
+            demand.DividendAmount = dividendPerTicket;
+            demand.NetAmount = demand.GrossAmount - demand.DividendAmount;
+        }
+
         // Note: In a real system, we'd also reverse/recreate Journal Entries. 
         // For now, we update the Auction entity which the UI consumes.
 

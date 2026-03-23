@@ -449,6 +449,13 @@ const LiveAuction = () => {
         );
     }
 
+    const chitValue = auctionData?.chitValue || 0;
+    const maxBidAmount = Math.round(chitValue * (maxCapPercent / 100));
+    const tiedBidsHistory = (bids || []).filter(h => Math.abs(Number(h.amount) - maxBidAmount) < 1);
+    const uniqueTiedMembersCount = new Set(tiedBidsHistory.map(h => Number(h.ticketId))).size;
+    const isStatutoryMaxReached = Math.round(currentBid) >= maxBidAmount;
+    const isTieBreakerActive = isStatutoryMaxReached && uniqueTiedMembersCount > 1;
+
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -479,6 +486,14 @@ const LiveAuction = () => {
                             <div className={`text-6xl md:text-7xl font-bold font-mono tracking-tight ${auctionStatus === 'Closed' ? 'text-slate-800' : 'text-green-700'}`}>
                                 ₹{currentBid.toLocaleString()}
                             </div>
+                            {isTieBreakerActive && auctionStatus !== 'Closed' && (
+                                <Tag color="warning" className="mt-4 px-4 py-1.5 rounded-full font-black border-amber-200 uppercase tracking-wider shadow-sm animate-pulse">
+                                    <div className="flex items-center gap-2">
+                                        <Users size={14} />
+                                        TIE DETECTED: {uniqueTiedMembersCount} Members at Max
+                                    </div>
+                                </Tag>
+                            )}
                         </div>
 
                         <div className="flex justify-center items-center gap-4 text-red-600 font-bold text-2xl mb-8">
@@ -539,8 +554,19 @@ const LiveAuction = () => {
                         <div className="flex gap-4">
                             <Input
                                 type="number"
+                                step="1"
                                 value={inputBid}
-                                onChange={(e) => setInputBid(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === '.' || e.key === 'e' || e.key === '+' || e.key === '-') {
+                                        e.preventDefault();
+                                    }
+                                }}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || /^\d+$/.test(val)) {
+                                        setInputBid(val);
+                                    }
+                                }}
                                 onPressEnter={handleBid}
                                 placeholder="Enter Bid Amount..."
                                 size="large"
@@ -686,10 +712,13 @@ const LiveAuction = () => {
                         <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
                             <Gavel size={32} className="text-amber-600 animate-bounce" />
                         </div>
-                        <Title level={3} className="!mb-2">Tie-Breaker Detected!</Title>
-                        <Text className="text-slate-500 block mb-8 text-lg leading-relaxed">
-                            Maximum statutory bid reached. Anyone wishing to participate in the lottery must enter the
-                            <Text strong className="text-amber-600"> max bid now</Text>.
+                        <Title level={3} className="!mb-2 uppercase tracking-tight">Tie-Breaker Draw!</Title>
+                        <div className="bg-amber-50 px-4 py-2 rounded-full border border-amber-200 mb-6 font-bold text-amber-700 text-sm">
+                            {uniqueTiedMembersCount} members have hit the maximum discount limit
+                        </div>
+                        <Text className="text-slate-500 block mb-8 text-base leading-relaxed">
+                            Statutory maximum reached. Everyone wishing to participate in the lottery must enter the
+                            <Text strong className="text-amber-600"> max bid now</Text> before the timer expires.
                         </Text>
 
                         <div className="relative w-32 h-32 mb-8">

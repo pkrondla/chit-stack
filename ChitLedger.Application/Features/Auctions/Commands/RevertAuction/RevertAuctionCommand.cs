@@ -58,6 +58,14 @@ public class RevertAuctionHandler : IRequestHandler<RevertAuctionCommand, Result
         var bids = await _context.AuctionBids.Where(b => b.AuctionId == auction.Id).ToListAsync(cancellationToken);
         _context.AuctionBids.RemoveRange(bids);
 
+        // 2.2 Delete Demands safely
+        var demands = await _context.Demands.Where(d => d.AuctionId == auction.Id).ToListAsync(cancellationToken);
+        if (demands.Any(d => d.CollectedAmount > 0))
+        {
+            return Result<int>.Failure("Cannot revert auction because payments have already been collected against its demands. Reverse the payments first.");
+        }
+        _context.Demands.RemoveRange(demands);
+
         // 2.2 Delete Attendance
         var attendance = await _context.AuctionAttendances.Where(a => a.AuctionId == auction.Id).ToListAsync(cancellationToken);
         _context.AuctionAttendances.RemoveRange(attendance);

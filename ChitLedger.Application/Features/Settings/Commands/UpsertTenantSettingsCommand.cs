@@ -24,6 +24,8 @@ public class TenantSettingsDto
     public decimal MaxBiddingDiscountPercent { get; set; }
     public decimal TdsPercent { get; set; }
     public decimal GstPercent { get; set; }
+    public decimal DefaultLateFeePercent { get; set; }
+    public int DefaultGracePeriodDays { get; set; }
 }
 
 // Command: Upsert (create or update) the company profile
@@ -42,6 +44,8 @@ public class UpsertTenantSettingsCommand : IRequest<Result<TenantSettingsDto>>
     public decimal MaxBiddingDiscountPercent { get; set; }
     public decimal TdsPercent { get; set; }
     public decimal GstPercent { get; set; }
+    public decimal DefaultLateFeePercent { get; set; } = 2;
+    public int DefaultGracePeriodDays { get; set; } = 5;
 }
 
 public class UpsertTenantSettingsValidator : AbstractValidator<UpsertTenantSettingsCommand>
@@ -88,6 +92,8 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         existing.MaxBiddingDiscountPercent = request.MaxBiddingDiscountPercent;
         existing.TdsPercent = request.TdsPercent;
         existing.GstPercent = request.GstPercent;
+        existing.DefaultLateFeePercent = request.DefaultLateFeePercent;
+        existing.DefaultGracePeriodDays = request.DefaultGracePeriodDays;
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -110,6 +116,8 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         MaxBiddingDiscountPercent = s.MaxBiddingDiscountPercent,
         TdsPercent = s.TdsPercent,
         GstPercent = s.GstPercent,
+        DefaultLateFeePercent = s.DefaultLateFeePercent,
+        DefaultGracePeriodDays = s.DefaultGracePeriodDays,
     };
 }
 
@@ -143,6 +151,8 @@ public class GetTenantSettingsHandler : IRequestHandler<GetTenantSettingsQuery, 
             MaxBiddingDiscountPercent = settings.MaxBiddingDiscountPercent,
             TdsPercent = settings.TdsPercent,
             GstPercent = settings.GstPercent,
+            DefaultLateFeePercent = settings.DefaultLateFeePercent,
+            DefaultGracePeriodDays = settings.DefaultGracePeriodDays,
         });
     }
 }

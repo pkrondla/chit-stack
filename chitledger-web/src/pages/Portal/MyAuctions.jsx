@@ -1,4 +1,5 @@
-import { Typography, Card, Table, Tag, Spin, Result, Button } from 'antd';
+import React, { useState } from 'react';
+import { Typography, Card, Table, Tag, Spin, Result, Button, Select } from 'antd';
 import { Gavel, Calendar, Clock, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,13 @@ const MyAuctions = () => {
             return res.data.data || res.data;
         }
     });
+
+    const [selectedGroup, setSelectedGroup] = useState('All');
+    const uniqueGroups = Array.from(new Set(auctions.map(a => a.groupName)));
+
+    const filteredAuctions = selectedGroup === 'All'
+        ? auctions
+        : auctions.filter(a => a.groupName === selectedGroup);
 
     const columns = [
         {
@@ -33,6 +41,8 @@ const MyAuctions = () => {
             title: 'Auction Date',
             dataIndex: 'auctionDate',
             key: 'auctionDate',
+            sorter: (a, b) => new Date(a.auctionDate) - new Date(b.auctionDate),
+            defaultSortOrder: 'ascend',
             render: (date) => (
                 <div className="flex items-center gap-2 text-slate-600">
                     <Calendar size={14} />
@@ -103,10 +113,23 @@ const MyAuctions = () => {
                         <Text className="text-slate-500 font-medium">Participate in live bidding and view auction history.</Text>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-4">
+                    <Text className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Filter By Group:</Text>
+                    <Select
+                        className="w-64"
+                        value={selectedGroup}
+                        onChange={setSelectedGroup}
+                        options={[
+                            { label: 'All Groups', value: 'All' },
+                            ...uniqueGroups.map(g => ({ label: g, value: g }))
+                        ]}
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {auctions.filter(a => a.status === 'Open').map(auction => (
+                {filteredAuctions.filter(a => a.status === 'Open').map(auction => (
                     <Card key={auction.auctionId} className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden relative">
                         <div className="relative z-10">
                             <Tag color="orange" className="mb-4 border-0 font-bold uppercase text-[10px]">Live Auction</Tag>
@@ -139,13 +162,13 @@ const MyAuctions = () => {
                 </div>
                 <Table
                     columns={columns}
-                    dataSource={auctions}
+                    dataSource={filteredAuctions}
                     rowKey="auctionId"
                     pagination={{ pageSize: 10 }}
                     className="member-portal-table"
                 />
             </Card>
-        </div>
+        </div >
     );
 };
 

@@ -44,8 +44,8 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<bool>>
         // Statutory Validations
         var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
         decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
-        decimal maxBid = auction.ChitGroup.ChitValue * (maxCapPercent / 100);
-        decimal minBid = auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100);
+        decimal maxBid = Math.Round(auction.ChitGroup.ChitValue * (maxCapPercent / 100), 0, MidpointRounding.AwayFromZero);
+        decimal minBid = Math.Round(auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
 
         if (request.BidAmount > maxBid)
             return Result<bool>.Failure($"Bid amount cannot exceed {maxCapPercent}% (₹{maxBid:N2}) of Chit Value.");

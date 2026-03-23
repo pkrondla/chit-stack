@@ -52,16 +52,26 @@ public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Re
             // Chit Fund Act: "Dividend is distributed to ALL subscribers" (unless defaulting).
             // Let's assume Dividend applies to ALL tickets.
             
+            var netDemand = auction.ChitGroup.InstallmentAmount - auction.DividendAmount;
+            decimal advanceDeducted = 0;
+            if (ticket.AdvanceBalance > 0)
+            {
+                advanceDeducted = Math.Min(ticket.AdvanceBalance, netDemand);
+                ticket.AdvanceBalance -= advanceDeducted;
+            }
+
             var demand = new Demand
             {
+                TenantId = auction.TenantId,
+                BranchId = auction.BranchId,
                 TicketId = ticket.Id,
                 AuctionId = auction.Id,
                 InstallmentNumber = auction.InstallmentNumber,
                 GrossAmount = auction.ChitGroup.InstallmentAmount,
                 DividendAmount = auction.DividendAmount, 
-                NetAmount = auction.ChitGroup.InstallmentAmount - auction.DividendAmount,
-                CollectedAmount = 0,
-                Status = "Pending",
+                NetAmount = netDemand,
+                CollectedAmount = advanceDeducted,
+                Status = advanceDeducted >= netDemand ? "Paid" : (advanceDeducted > 0 ? "Partial" : "Pending"),
                 DueDate = dueDate
             };
             
