@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Card, Typography, Button, Form, Input, Select, InputNumber, App, Divider, Space, Tabs, Table, Tag, Alert } from 'antd';
-import { Printer, CheckCircle, Calculator, Users, LayoutList, Info } from 'lucide-react';
+import { Printer, CheckCircle, Calculator, Users, LayoutList, Info, Clock, Timer } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
 
@@ -380,6 +380,15 @@ const CollectionEntry = () => {
                                             <Text className="text-slate-500 text-sm">
                                                 This {duesInfo.type} is fully up-to-date with all installments.
                                             </Text>
+
+                                            {(duesInfo.type === 'ticket' && duesInfo.advanceBalance > 0) && (
+                                                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl w-full">
+                                                    <div className="flex justify-between items-center">
+                                                        <Text className="text-green-800 font-medium">Current Advance Balance</Text>
+                                                        <Text className="text-2xl font-black text-green-700">₹{duesInfo.advanceBalance.toLocaleString()}</Text>
+                                                    </div>
+                                                </div>
+                                            )}
                                             {duesInfo.type === 'member' ? (
                                                 <div className="flex flex-col gap-4 mt-6">
                                                     <Alert
@@ -441,7 +450,7 @@ const CollectionEntry = () => {
                                                         size="middle"
                                                         className="flex-1"
                                                         columns={[
-                                                            { title: 'Chit Group', dataIndex: 'groupName', key: 'groupName', render: (text, record) => <div className="font-semibold text-slate-700 flex items-center flex-wrap gap-1">{text} <Tag className="m-0">#{record.ticketNumber}</Tag>{record.advanceBalance > 0 && <Tag color="success" className="m-0 text-[10px] border-green-200 bg-green-50 text-green-700">Adv: ₹{record.advanceBalance.toLocaleString()}</Tag>}</div> },
+                                                            { title: 'Chit Group', dataIndex: 'groupName', key: 'groupName', render: (text, record) => <div className="font-semibold text-slate-700 flex flex-col gap-1"><div>{text} <Tag className="m-0">#{record.ticketNumber}</Tag></div><div className="flex gap-1 flex-wrap">{record.advanceBalance > 0 && <Tag color="success" className="m-0 text-[10px] border-green-200 bg-green-50 text-green-700">Adv: ₹{record.advanceBalance.toLocaleString()}</Tag>}{record.overdueDays > 0 && <Tag color="warning" className="m-0 text-[10px] border-orange-200 bg-orange-50 text-orange-700 flex items-center gap-1"><Clock size={10} />{record.overdueDays}d Late</Tag>}</div></div> },
                                                             { title: 'Due Amount', key: 'due', align: 'right', render: (_, r) => <span className="font-bold text-slate-700">₹{((r.pendingPrincipal || 0) + (r.pendingPenalty || 0)).toLocaleString()}</span> }
                                                         ]}
                                                     />
@@ -452,20 +461,28 @@ const CollectionEntry = () => {
                                                 {duesInfo.type === 'ticket' && (
                                                     <>
                                                         <div className="flex justify-between text-slate-600 mb-2 text-base">
-                                                            <span>Principal Due:</span>
+                                                            <span>Principal Installment:</span>
                                                             <span className="font-semibold">₹{(duesInfo.pendingPrincipal || 0).toLocaleString()}</span>
                                                         </div>
-                                                        <div className="flex justify-between text-red-500 mb-4 pb-4 border-b border-slate-200 text-base">
-                                                            <span>Late Penalties:</span>
-                                                            <span className="font-semibold">₹{(duesInfo.pendingPenalty || 0).toLocaleString()}</span>
+                                                        <div className="flex justify-between text-rose-500 mb-4 pb-4 border-b border-slate-200 text-base">
+                                                            <div className="flex flex-col">
+                                                                <span className="flex items-center gap-1">Live Late Fee <Tag color="warning" className="m-0 h-4 flex items-center text-[10px] uppercase border-orange-200">Dynamic</Tag></span>
+                                                                {duesInfo.overdueDays > 0 && <Text className="text-[10px] text-slate-400 italic font-normal">Calculated for {duesInfo.overdueDays} days delay</Text>}
+                                                            </div>
+                                                            <span className="font-bold">₹{(duesInfo.pendingPenalty || 0).toLocaleString()}</span>
                                                         </div>
                                                     </>
                                                 )}
 
                                                 {((duesInfo.type === 'member' && duesInfo.totalAdvanceBalance > 0) || (duesInfo.type === 'ticket' && duesInfo.advanceBalance > 0)) && (
-                                                    <div className="flex justify-between items-center mb-4 p-3 bg-green-50 rounded-lg border border-green-200 shadow-sm">
-                                                        <Text className="text-green-700 font-semibold text-sm">Stored Advance Balance</Text>
-                                                        <Text className="text-xl font-bold text-green-700">+₹{((duesInfo.totalAdvanceBalance || duesInfo.advanceBalance) || 0).toLocaleString()}</Text>
+                                                    <div className="flex justify-between items-center mb-4 p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+                                                        <div>
+                                                            <Text className="text-green-700 font-bold text-xs uppercase tracking-wider block mb-1">Stored Advance Balance</Text>
+                                                            <Text className="text-2xl font-black text-green-700">+₹{((duesInfo.type === 'member' ? duesInfo.totalAdvanceBalance : duesInfo.advanceBalance) || 0).toLocaleString()}</Text>
+                                                        </div>
+                                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                                                            <CheckCircle size={20} />
+                                                        </div>
                                                     </div>
                                                 )}
 

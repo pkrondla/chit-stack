@@ -10,6 +10,7 @@ public class TicketDuesDto
     public int TicketId { get; set; }
     public decimal PendingPrincipal { get; set; }
     public decimal PendingPenalty { get; set; }
+    public int OverdueDays { get; set; }
     public decimal TotalDue => PendingPrincipal + PendingPenalty;
     public decimal AdvanceBalance { get; set; }
     public string MemberName { get; set; } = string.Empty;
@@ -45,34 +46,47 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
 
         decimal principal = 0;
         decimal penalty = 0;
+        int maxOverdueDays = 0;
+        var today = DateTime.Today;
 
         foreach (var d in demands)
         {
-            // Calculate how much is pending
-            // Formula in RecordPayment: pending = (Net + Penalty) - Collected.
-            // But we don't track "Collected Principal" vs "Collected Penalty" separately in DB field.
-            // Assumption: Collected Amount pays Penalty FIRST.
+            // Unpaid principal is Gross Principal minus whatever was collected AFTER paying the penalty
+            decimal principalAlreadyPaid = Math.Max(0, d.CollectedAmount - d.PenaltyAmount);
+            decimal livePenaltyBase = Math.Max(0, d.NetAmount - principalAlreadyPaid);
+
+            if (livePenaltyBase <= 0 && (d.NetAmount + d.PenaltyAmount - d.CollectedAmount) <= 0) continue;
+
+            // Live Pro-Rata Penalty Calculation on the remaining principal balance
+            int daysPastDue = (today - d.DueDate).Days;
+            decimal livePenalty = 0;
+            if (daysPastDue > ticket.ChitGroup.GracePeriodDays && livePenaltyBase > 0)
+            {
+                decimal monthlyRate = ticket.ChitGroup.LateFeePercent;
+                decimal dailyRate = (monthlyRate / 100m) / 30m;
+                livePenalty = Math.Round(livePenaltyBase * dailyRate * daysPastDue, 2);
+                if (daysPastDue > maxOverdueDays) maxOverdueDays = daysPastDue;
+            }
+
+            // Use the higher of already recorded penalty or live penalty
+            decimal effectivePenalty = Math.Max(d.PenaltyAmount, livePenalty);
             
-            decimal totalDemand = d.NetAmount + d.PenaltyAmount;
+            decimal totalDemand = d.NetAmount + effectivePenalty;
             decimal remaining = totalDemand - d.CollectedAmount;
             
-            if (remaining <= 0) continue; // Should be 'Paid' status but double check
-            
-            // Re-derive split
-            // If Collected < Penalty, then Penalty is partially paid, Principal is fully pending.
-            // If Collected >= Penalty, Penalty is fully paid, Principal is partially paid.
+            if (remaining <= 0) continue;
             
             decimal penaltyUnpaid = 0;
             decimal principalUnpaid = 0;
             
-            if (d.CollectedAmount >= d.PenaltyAmount)
+            if (d.CollectedAmount >= effectivePenalty)
             {
                  penaltyUnpaid = 0;
-                 principalUnpaid = remaining; // All remaining is principal
+                 principalUnpaid = remaining;
             }
             else
             {
-                 penaltyUnpaid = d.PenaltyAmount - d.CollectedAmount;
+                 penaltyUnpaid = effectivePenalty - d.CollectedAmount;
                  principalUnpaid = d.NetAmount;
             }
             
@@ -87,6 +101,7 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
             GroupName = ticket.ChitGroup.GroupName,
             PendingPrincipal = principal,
             PendingPenalty = penalty,
+            OverdueDays = maxOverdueDays,
             AdvanceBalance = ticket.AdvanceBalance
         });
     }

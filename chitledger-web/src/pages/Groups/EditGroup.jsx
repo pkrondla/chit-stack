@@ -67,6 +67,8 @@ const EditGroup = () => {
                 durationMonths: group.durationMonths,
                 installmentAmount: group.installmentAmount || (group.chitValue / group.durationMonths),
                 commissionPercentage: group.foremanCommissionPercent || 5,
+                lateFeePercent: group.lateFeePercent || 2.0,
+                gracePeriodDays: group.gracePeriodDays || 5,
                 // Schedule
                 auctionScheduleMode: mode,
                 auctionDayOfMonth: group.auctionDayOfMonth ? group.auctionDayOfMonth.split(',').map(v => parseInt(v.trim())) : [],
@@ -128,6 +130,8 @@ const EditGroup = () => {
                 durationMonths: isRunning ? group.durationMonths : parseInt(values.durationMonths),
                 installmentAmount: isRunning ? group.installmentAmount : parseFloat(values.installmentAmount),
                 foremanCommissionPercent: parseFloat(values.commissionPercentage),
+                lateFeePercent: parseFloat(values.lateFeePercent || 2.0),
+                gracePeriodDays: parseInt(values.gracePeriodDays || 5),
                 auctionScheduleMode: values.auctionScheduleMode || null,
                 auctionDayOfMonth: values.auctionScheduleMode === 'FixedDay'
                     ? (Array.isArray(values.auctionDayOfMonth) ? values.auctionDayOfMonth.sort((a, b) => a - b).join(',') : values.auctionDayOfMonth)
@@ -268,14 +272,31 @@ const EditGroup = () => {
                         </div>
                     </div>
 
-                    <Form.Item
-                        name="commissionPercentage"
-                        label={<span className="font-medium text-slate-700">Commission (%)</span>}
-                        rules={[{ required: true, message: 'Required' }]}
-                        className="max-w-xs mt-4"
-                    >
-                        <InputNumber size="large" style={{ width: '100%' }} step={0.1} min={0} max={100} placeholder="5.0" />
-                    </Form.Item>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                        <Form.Item
+                            name="commissionPercentage"
+                            label={<span className="font-medium text-slate-700">Commission (%)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber size="large" style={{ width: '100%' }} step={0.1} min={0} max={100} placeholder="5.0" />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="lateFeePercent"
+                            label={<span className="font-medium text-slate-700">Late Fee (% / Month)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber size="large" style={{ width: '100%' }} step={0.5} min={0} placeholder="2.0" />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="gracePeriodDays"
+                            label={<span className="font-medium text-slate-700">Grace Period (Days)</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                        >
+                            <InputNumber size="large" style={{ width: '100%' }} min={0} placeholder="5" />
+                        </Form.Item>
+                    </div>
                 </Card>
 
                 {/* ── 2. Auction Schedule Preference ───────────────────────── */}

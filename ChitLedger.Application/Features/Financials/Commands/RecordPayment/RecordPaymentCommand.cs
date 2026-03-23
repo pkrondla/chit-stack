@@ -52,7 +52,8 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         }
 
         var pendingDemands = await pendingDemandsQuery
-            .Include(d => d.Ticket) // Needed for branch id and numbers
+            .Include(d => d.Ticket)
+            .Include(d => d.Ticket.ChitGroup)
             .ToListAsync(cancellationToken);
 
         var transactionDate = request.PaymentDate;
@@ -82,23 +83,63 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             branchId = targetTicket.BranchId;
         }
 
-        // Auto-allocate against demands
+        // Live Accrual of Penalties before processing payment
         foreach (var demand in pendingDemands)
         {
-            if (amountRemaining <= 0) break;
+            var group = demand.Ticket.ChitGroup;
+            int daysPastDue = (request.PaymentDate.Date - demand.DueDate.Date).Days;
+            
+            // Calculate penalty ONLY on unpaid principal
+            decimal principalAlreadyPaid = Math.Max(0, demand.CollectedAmount - demand.PenaltyAmount);
+            decimal livePenaltyBase = Math.Max(0, demand.NetAmount - principalAlreadyPaid);
+            
+            if (daysPastDue > group.GracePeriodDays && livePenaltyBase > 0)
+            {
+                decimal monthlyRate = group.LateFeePercent;
+                decimal dailyRate = (monthlyRate / 100m) / 30m;
+                decimal livePenalty = Math.Round(livePenaltyBase * dailyRate * daysPastDue, 2);
+                
+                if (livePenalty > demand.PenaltyAmount)
+                {
+                    decimal delta = livePenalty - demand.PenaltyAmount;
+                    demand.PenaltyAmount = livePenalty;
+                    
+                    // Journal Entry: Accrue Additional Penalty
+                    var recAcc = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
+                    var incAcc = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.LateFeeIncome, cancellationToken);
+                    
+                    if (recAcc.Succeeded && incAcc.Succeeded)
+                    {
+                         var lines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+                         {
+                             (recAcc.Data, delta, 0),
+                             (incAcc.Data, 0, delta)
+                         };
+                         await _journalService.CreateEntryAsync(
+                             "Penalty", 
+                             transactionDate, 
+                             $"Auto-Accrual (Principal-Base Pro-Rata): Ticket #{demand.Ticket.TicketNumber} (Inst {demand.InstallmentNumber}) - {daysPastDue} days", 
+                             demand.Id, 
+                             "Demand", 
+                             group.BranchId,
+                             lines, 
+                             cancellationToken);
+                    }
+                }
+            }
+
+            if (amountRemaining <= 0) continue;
 
             var pendingOnDemand = (demand.NetAmount + demand.PenaltyAmount) - demand.CollectedAmount;
             
             if (amountRemaining >= pendingOnDemand)
             {
-                // Full settle this demand
                 demand.CollectedAmount += pendingOnDemand;
                 demand.Status = "Paid";
                 amountRemaining -= pendingOnDemand;
             }
             else
             {
-                // Partial settle
                 demand.CollectedAmount += amountRemaining;
                 demand.Status = "Partial";
                 amountRemaining = 0;
@@ -144,9 +185,6 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         await _context.SaveChangesAsync(cancellationToken);
         
         // 4. Journal Entry: Cash Receipt
-        // Debit: Cash/Bank (Asset)
-        // Credit: Member Receivable (Asset - reducing)
-        
         string debitAccountCode;
 
         if (request.AccountHeadId.HasValue)

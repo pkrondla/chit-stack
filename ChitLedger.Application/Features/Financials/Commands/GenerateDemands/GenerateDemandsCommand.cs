@@ -37,7 +37,7 @@ public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Re
         if (existing) return Result<int>.Failure("Demands already generated for this auction.");
 
         var demands = new List<Demand>();
-        var dueDate = auction.AuctionDate.AddDays(10); // Example: Due 10 days after auction? Or manual.
+        var dueDate = auction.AuctionDate; // Due date is exactly the auction date.
 
         foreach (var ticket in auction.ChitGroup.Tickets)
         {
