@@ -23,5 +23,6 @@ public enum TicketStatus
 {
     Active,
     Removed,
-    Vacant
+    Vacant,
+    Pending
 }

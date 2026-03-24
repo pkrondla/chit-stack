@@ -25,6 +25,10 @@ public interface IApplicationDbContext
     DbSet<AuctionAttendance> AuctionAttendances { get; }
     DbSet<AuctionBid> AuctionBids { get; }
     
+    // Collections
+    DbSet<CollectionRoute> CollectionRoutes { get; }
+    DbSet<CollectionSubmission> CollectionSubmissions { get; }
+    
     DbSet<AuditLog> AuditLogs { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);

@@ -43,6 +43,8 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<AuctionAttendance> AuctionAttendances => Set<AuctionAttendance>();
     public DbSet<AuctionBid> AuctionBids => Set<AuctionBid>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CollectionRoute> CollectionRoutes => Set<CollectionRoute>();
+    public DbSet<CollectionSubmission> CollectionSubmissions => Set<CollectionSubmission>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -81,9 +83,12 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         builder.Entity<JournalEntryLine>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<AuctionAttendance>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<AuctionBid>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<CollectionRoute>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<CollectionSubmission>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
         
         builder.Entity<Member>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<AccountHead>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        builder.Entity<User>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
 
         builder.Entity<JournalEntryLine>()
             .HasOne(l => l.JournalEntry)

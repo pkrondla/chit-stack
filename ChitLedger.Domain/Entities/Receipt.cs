@@ -14,4 +14,16 @@ public class Receipt : BranchEntity
     public DateTime ReceiptDate { get; set; }
     public string PaymentMode { get; set; } = "Cash"; // Cash, Bank, UPI
     public string? ReferenceNumber { get; set; }
+    
+    // Collection Agent tracking
+    public string Status { get; set; } = "Submitted"; // Pending, Submitted, Cancelled
+    public int? AgentId { get; set; }
+    public User? Agent { get; set; }
+    
+    public string? TransactionPhotoUrl { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    
+    public int? CollectionSubmissionId { get; set; }
+    public CollectionSubmission? CollectionSubmission { get; set; }
 }

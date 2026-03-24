@@ -14,9 +14,16 @@ public class Member : TenantEntity
     public string? AadhaarDocumentUrl { get; set; }
     public string? PhotoUrl { get; set; }
     public bool KycVerified { get; set; } = false;
+    
+    // Geographical mapping for routes
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
 
     public int? RegistrationBranchId { get; set; }
     public Branch? RegistrationBranch { get; set; }
+    
+    public int? CollectionRouteId { get; set; }
+    public CollectionRoute? CollectionRoute { get; set; }
     
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
 }

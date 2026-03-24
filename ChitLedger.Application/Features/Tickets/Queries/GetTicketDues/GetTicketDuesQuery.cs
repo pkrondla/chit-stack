@@ -5,16 +5,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChitLedger.Application.Features.Tickets.Queries.GetTicketDues;
 
-public class TicketDuesDto
+public class InstallmentItemDto
 {
-    public int TicketId { get; set; }
+    public int InstallmentNumber { get; set; }
+    public DateTime DueDate { get; set; }
+    public decimal GrossPrincipal { get; set; }
+    public decimal Dividend { get; set; }
     public decimal PendingPrincipal { get; set; }
     public decimal PendingPenalty { get; set; }
     public int OverdueDays { get; set; }
     public decimal TotalDue => PendingPrincipal + PendingPenalty;
+}
+
+public class TicketDuesDto
+{
+    public int TicketId { get; set; }
+    public decimal GrossPrincipal => Installments.Sum(i => i.GrossPrincipal);
+    public decimal Dividend => Installments.Sum(i => i.Dividend);
+    public decimal PendingPrincipal => Installments.Sum(i => i.PendingPrincipal);
+    public decimal PendingPenalty => Installments.Sum(i => i.PendingPenalty);
+    public int OverdueDays => Installments.Any() ? Installments.Max(i => i.OverdueDays) : 0;
+    public decimal TotalDue => PendingPrincipal + PendingPenalty;
     public decimal AdvanceBalance { get; set; }
     public string MemberName { get; set; } = string.Empty;
     public string GroupName { get; set; } = string.Empty;
+    public List<InstallmentItemDto> Installments { get; set; } = new();
 }
 
 public class GetTicketDuesQuery : IRequest<Result<TicketDuesDto>>
@@ -44,9 +59,14 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
             .Where(d => d.TicketId == request.TicketId && d.Status != "Paid")
             .ToListAsync(cancellationToken);
 
-        decimal principal = 0;
-        decimal penalty = 0;
-        int maxOverdueDays = 0;
+        var dto = new TicketDuesDto
+        {
+            TicketId = ticket.Id,
+            MemberName = ticket.Member.FullName,
+            GroupName = ticket.ChitGroup.GroupName,
+            AdvanceBalance = ticket.AdvanceBalance
+        };
+
         var today = DateTime.Today;
 
         foreach (var d in demands)
@@ -60,12 +80,13 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
             // Live Pro-Rata Penalty Calculation on the remaining principal balance
             int daysPastDue = (today - d.DueDate).Days;
             decimal livePenalty = 0;
+            int overdueDays = 0;
             if (daysPastDue > ticket.ChitGroup.GracePeriodDays && livePenaltyBase > 0)
             {
                 decimal monthlyRate = ticket.ChitGroup.LateFeePercent;
                 decimal dailyRate = (monthlyRate / 100m) / 30m;
                 livePenalty = Math.Round(livePenaltyBase * dailyRate * daysPastDue, 2);
-                if (daysPastDue > maxOverdueDays) maxOverdueDays = daysPastDue;
+                overdueDays = daysPastDue;
             }
 
             // Use the higher of already recorded penalty or live penalty
@@ -90,19 +111,18 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
                  principalUnpaid = d.NetAmount;
             }
             
-            principal += principalUnpaid;
-            penalty += penaltyUnpaid;
+            dto.Installments.Add(new InstallmentItemDto
+            {
+                InstallmentNumber = d.InstallmentNumber,
+                DueDate = d.DueDate,
+                GrossPrincipal = d.GrossAmount,
+                Dividend = d.DividendAmount,
+                PendingPrincipal = principalUnpaid,
+                PendingPenalty = penaltyUnpaid,
+                OverdueDays = overdueDays
+            });
         }
 
-        return Result<TicketDuesDto>.Success(new TicketDuesDto
-        {
-            TicketId = ticket.Id,
-            MemberName = ticket.Member.FullName,
-            GroupName = ticket.ChitGroup.GroupName,
-            PendingPrincipal = principal,
-            PendingPenalty = penalty,
-            OverdueDays = maxOverdueDays,
-            AdvanceBalance = ticket.AdvanceBalance
-        });
+        return Result<TicketDuesDto>.Success(dto);
     }
 }

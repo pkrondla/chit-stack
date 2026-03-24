@@ -4,6 +4,7 @@ using ChitLedger.Application.Features.Reporting.Queries.GetBranches;
 using ChitLedger.Application.Features.Reporting.Queries.GetDayBook;
 using ChitLedger.Application.Features.Reporting.Queries.GetLedger;
 using ChitLedger.Application.Features.Reporting.Queries.GetProfitAndLoss;
+using ChitLedger.Application.Features.Reporting.Queries.GetPassbook;
 using ChitLedger.Application.Features.Reporting.Queries.GetTrialBalance;
 using ChitLedger.Application.Features.Reporting.Queries.GetBalanceSheet;
 using ChitLedger.Application.Features.Reporting.Queries.GetAuditorSummary;
@@ -97,5 +98,11 @@ public class ReportingController : ControllerBase
     public async Task<ActionResult<Result<AuditorSummaryDto>>> GetAuditorSummary()
     {
         return Ok(await _mediator.Send(new GetAuditorSummaryQuery()));
+    }
+
+    [HttpGet("passbook/{ticketId}")]
+    public async Task<ActionResult<Result<PassbookDto>>> GetPassbook(int ticketId)
+    {
+        return Ok(await _mediator.Send(new GetPassbookQuery { TicketId = ticketId }));
     }
 }

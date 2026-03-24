@@ -16,6 +16,12 @@ public class RecordPaymentCommand : IRequest<Result<int>>
     public string ReferenceNumber { get; set; } = string.Empty;
     public int? AccountHeadId { get; set; } // Optional: specific bank/cash account
     public DateTime PaymentDate { get; set; } = DateTime.Now;
+
+    // Agent Collection tracking
+    public int? AgentId { get; set; }
+    public string? TransactionPhotoUrl { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
 }
 
 public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result<int>>
@@ -178,13 +184,25 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             AmountReceived = request.Amount,
             PaymentMode = request.PaymentMode,
             ReferenceNumber = request.ReferenceNumber,
-            ReceiptDate = transactionDate
+            ReceiptDate = transactionDate,
+            
+            // Agent specific fields
+            AgentId = request.AgentId,
+            Status = request.AgentId.HasValue ? "Pending" : "Submitted",
+            TransactionPhotoUrl = request.TransactionPhotoUrl,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude
         };
 
         _context.Receipts.Add(receipt);
         await _context.SaveChangesAsync(cancellationToken);
         
-        // 4. Journal Entry: Cash Receipt
+        // 4. Journal Entry: Cash Receipt (ONLY if not pending/agent)
+        if (receipt.Status == "Pending")
+        {
+            return Result<int>.Success(receipt.Id);
+        }
+
         string debitAccountCode;
 
         if (request.AccountHeadId.HasValue)

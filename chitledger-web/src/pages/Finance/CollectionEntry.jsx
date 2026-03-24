@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import dayjs from 'dayjs';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Card, Typography, Button, Form, Input, Select, InputNumber, App, Divider, Space, Tabs, Table, Tag, Alert } from 'antd';
 import { Printer, CheckCircle, Calculator, Users, LayoutList, Info, Clock, Timer } from 'lucide-react';
@@ -142,15 +143,6 @@ const CollectionEntry = () => {
         <div className="max-w-6xl mx-auto pb-12">
             <div className="flex justify-between items-center mb-8">
                 <Title level={2} className="!mb-0 text-slate-800">Collection Entry</Title>
-                <Button
-                    type="default"
-                    icon={<Calculator size={16} />}
-                    onClick={() => calcMutation.mutate()}
-                    loading={calcMutation.isPending}
-                    className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200 font-semibold"
-                >
-                    Run Late Fee Calc
-                </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -449,9 +441,39 @@ const CollectionEntry = () => {
                                                         pagination={{ pageSize: 5, hideOnSinglePage: true, simple: true }}
                                                         size="middle"
                                                         className="flex-1"
+                                                        expandable={{
+                                                            expandedRowRender: (record) => (
+                                                                <div className="bg-slate-50/50 p-4 rounded-lg border border-slate-100">
+                                                                    <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Installment Breakdown</Text>
+                                                                    <div className="space-y-3">
+                                                                        {record.installments.map(inst => (
+                                                                            <div key={inst.installmentNumber} className="flex justify-between items-center text-xs">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="font-bold text-slate-700">Inst #{inst.installmentNumber} <span className="text-[9px] font-normal text-slate-400 font-mono">({dayjs(inst.dueDate).format('DD MMM')})</span></span>
+                                                                                    {inst.overdueDays > 0 && <span className="text-rose-400 text-[9px]">{inst.overdueDays} days late</span>}
+                                                                                </div>
+                                                                                <div className="text-right">
+                                                                                    <div className="font-bold text-slate-600">₹{inst.totalDue.toLocaleString()}</div>
+                                                                                    <div className="text-[9px] text-slate-400">₹{inst.grossPrincipal.toLocaleString()} - ₹{inst.dividend.toLocaleString()} + ₹{inst.pendingPenalty.toLocaleString()}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ),
+                                                            rowExpandable: (record) => record.installments.length > 0,
+                                                        }}
                                                         columns={[
                                                             { title: 'Chit Group', dataIndex: 'groupName', key: 'groupName', render: (text, record) => <div className="font-semibold text-slate-700 flex flex-col gap-1"><div>{text} <Tag className="m-0">#{record.ticketNumber}</Tag></div><div className="flex gap-1 flex-wrap">{record.advanceBalance > 0 && <Tag color="success" className="m-0 text-[10px] border-green-200 bg-green-50 text-green-700">Adv: ₹{record.advanceBalance.toLocaleString()}</Tag>}{record.overdueDays > 0 && <Tag color="warning" className="m-0 text-[10px] border-orange-200 bg-orange-50 text-orange-700 flex items-center gap-1"><Clock size={10} />{record.overdueDays}d Late</Tag>}</div></div> },
-                                                            { title: 'Due Amount', key: 'due', align: 'right', render: (_, r) => <span className="font-bold text-slate-700">₹{((r.pendingPrincipal || 0) + (r.pendingPenalty || 0)).toLocaleString()}</span> }
+                                                            { title: 'Div.', dataIndex: 'dividend', align: 'right', render: (val) => <span className="text-green-600 text-xs">₹{val.toLocaleString()}</span> },
+                                                            { title: 'Total Due', key: 'due', align: 'right', render: (_, r) => (
+                                                                <div className="text-right">
+                                                                    <div className="font-bold text-slate-800">₹{(r.pendingPrincipal + r.pendingPenalty).toLocaleString()}</div>
+                                                                    <div className="text-[9px] text-slate-400 font-normal">
+                                                                        ₹{r.grossPrincipal.toLocaleString()} - ₹{r.dividend.toLocaleString()} + ₹{r.pendingPenalty.toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         ]}
                                                     />
                                                 </div>
@@ -460,16 +482,41 @@ const CollectionEntry = () => {
                                             <div className="mt-auto bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm">
                                                 {duesInfo.type === 'ticket' && (
                                                     <>
-                                                        <div className="flex justify-between text-slate-600 mb-2 text-base">
-                                                            <span>Principal Installment:</span>
-                                                            <span className="font-semibold">₹{(duesInfo.pendingPrincipal || 0).toLocaleString()}</span>
+                                                        <div className="space-y-4 mb-4 pb-4 border-b border-slate-200">
+                                                            <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Month-by-Month Breakdown</Text>
+                                                            {duesInfo.installments.map(inst => (
+                                                                <div key={inst.installmentNumber} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                                                                    <div className="flex justify-between items-start mb-2">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-bold text-slate-800">Installment #{inst.installmentNumber}</span>
+                                                                            <span className="text-[10px] text-slate-400">Due: {dayjs(inst.dueDate).format('DD MMM YYYY')}</span>
+                                                                        </div>
+                                                                        {inst.overdueDays > 0 && <Tag color="error" className="m-0 text-[9px] uppercase border-red-100">{inst.overdueDays}d overdue</Tag>}
+                                                                    </div>
+                                                                    <div className="flex justify-between text-[11px] text-slate-500 italic">
+                                                                        <span>{inst.grossPrincipal.toLocaleString()} (Gross) - {inst.dividend.toLocaleString()} (Div) + {inst.pendingPenalty.toLocaleString()} (Penalty)</span>
+                                                                        <span className="font-bold text-slate-700">₹{inst.totalDue.toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
+                                                    </>
+                                                )}
+
+                                                {duesInfo.type === 'member' && (
+                                                    <>
+                                                        <div className="flex justify-between text-slate-500 mb-1 text-sm italic">
+                                                            <span>Total Gross Installments:</span>
+                                                            <span>₹{(duesInfo.totalGrossPrincipal || 0).toLocaleString()}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-green-600 mb-2 text-sm italic">
+                                                            <span>Total Earned Dividends:</span>
+                                                            <span>- ₹{(duesInfo.totalDividend || 0).toLocaleString()}</span>
+                                                        </div>
+                                                        <Divider className="my-2" />
                                                         <div className="flex justify-between text-rose-500 mb-4 pb-4 border-b border-slate-200 text-base">
-                                                            <div className="flex flex-col">
-                                                                <span className="flex items-center gap-1">Live Late Fee <Tag color="warning" className="m-0 h-4 flex items-center text-[10px] uppercase border-orange-200">Dynamic</Tag></span>
-                                                                {duesInfo.overdueDays > 0 && <Text className="text-[10px] text-slate-400 italic font-normal">Calculated for {duesInfo.overdueDays} days delay</Text>}
-                                                            </div>
-                                                            <span className="font-bold">₹{(duesInfo.pendingPenalty || 0).toLocaleString()}</span>
+                                                            <span>Aggregated Late Fees:</span>
+                                                            <span className="font-bold">₹{(duesInfo.totalPendingPenalty || 0).toLocaleString()}</span>
                                                         </div>
                                                     </>
                                                 )}

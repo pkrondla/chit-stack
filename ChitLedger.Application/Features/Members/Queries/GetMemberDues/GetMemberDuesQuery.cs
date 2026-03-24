@@ -5,23 +5,40 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ChitLedger.Application.Features.Members.Queries.GetMemberDues;
 
+public class InstallmentDuesDto
+{
+    public int InstallmentNumber { get; set; }
+    public DateTime DueDate { get; set; }
+    public decimal GrossPrincipal { get; set; }
+    public decimal Dividend { get; set; }
+    public decimal PendingPrincipal { get; set; }
+    public decimal PendingPenalty { get; set; }
+    public int OverdueDays { get; set; }
+    public decimal TotalDue => PendingPrincipal + PendingPenalty;
+}
+
 public class MemberTicketDuesItemDto
 {
     public int TicketId { get; set; }
     public int TicketNumber { get; set; }
     public string GroupName { get; set; } = string.Empty;
-    public decimal PendingPrincipal { get; set; }
-    public decimal PendingPenalty { get; set; }
-    public int OverdueDays { get; set; }
+    public decimal GrossPrincipal => Installments.Sum(i => i.GrossPrincipal);
+    public decimal Dividend => Installments.Sum(i => i.Dividend);
+    public decimal PendingPrincipal => Installments.Sum(i => i.PendingPrincipal);
+    public decimal PendingPenalty => Installments.Sum(i => i.PendingPenalty);
+    public int OverdueDays => Installments.Any() ? Installments.Max(i => i.OverdueDays) : 0;
     public decimal AdvanceBalance { get; set; }
     public decimal TotalDue => PendingPrincipal + PendingPenalty;
     public DateTime? OldestDueDate { get; set; }
+    public List<InstallmentDuesDto> Installments { get; set; } = new();
 }
 
 public class MemberDuesDto
 {
     public int MemberId { get; set; }
     public string MemberName { get; set; } = string.Empty;
+    public decimal TotalGrossPrincipal => TicketDues.Sum(t => t.GrossPrincipal);
+    public decimal TotalDividend => TicketDues.Sum(t => t.Dividend);
     public decimal TotalPendingPrincipal => TicketDues.Sum(t => t.PendingPrincipal);
     public decimal TotalPendingPenalty => TicketDues.Sum(t => t.PendingPenalty);
     public decimal TotalAdvanceBalance => TicketDues.Sum(t => t.AdvanceBalance);
@@ -73,15 +90,18 @@ public class GetMemberDuesHandler : IRequestHandler<GetMemberDuesQuery, Result<M
 
         foreach (var ticket in tickets)
         {
-            decimal principalUnpaidTotal = 0;
-            decimal livePenaltyTotal = 0;
-            int maxOverdueDays = 0;
-            DateTime? oldest = null;
+            var itemDto = new MemberTicketDuesItemDto
+            {
+                TicketId = ticket.Id,
+                TicketNumber = ticket.TicketNumber,
+                GroupName = ticket.ChitGroup.GroupName,
+                AdvanceBalance = ticket.AdvanceBalance
+            };
 
             var pendingDemands = demandsByTicket.ContainsKey(ticket.Id) ? demandsByTicket[ticket.Id] : new List<ChitLedger.Domain.Entities.Demand>();
             if (pendingDemands.Any())
             {
-                oldest = pendingDemands.Min(d => (DateTime?)d.DueDate);
+                itemDto.OldestDueDate = pendingDemands.Min(d => (DateTime?)d.DueDate);
             }
 
             foreach (var d in pendingDemands)
@@ -95,12 +115,13 @@ public class GetMemberDuesHandler : IRequestHandler<GetMemberDuesQuery, Result<M
                 // Live Pro-Rata Penalty Calculation on the remaining principal balance
                 int daysPastDue = (today - d.DueDate).Days;
                 decimal livePenalty = 0;
+                int overdueDays = 0;
                 if (daysPastDue > ticket.ChitGroup.GracePeriodDays && livePenaltyBase > 0)
                 {
                     decimal monthlyRate = ticket.ChitGroup.LateFeePercent;
                     decimal dailyRate = (monthlyRate / 100m) / 30m;
                     livePenalty = Math.Round(livePenaltyBase * dailyRate * daysPastDue, 2);
-                    if (daysPastDue > maxOverdueDays) maxOverdueDays = daysPastDue;
+                    overdueDays = daysPastDue;
                 }
 
                 // Use the higher of already recorded penalty or live penalty
@@ -116,7 +137,7 @@ public class GetMemberDuesHandler : IRequestHandler<GetMemberDuesQuery, Result<M
                 if (d.CollectedAmount >= effectivePenalty)
                 {
                     penaltyUnpaid = 0;
-                    principalUnpaid = (d.NetAmount + effectivePenalty) - d.CollectedAmount;
+                    principalUnpaid = currentRemainingTotal;
                 }
                 else
                 {
@@ -124,23 +145,21 @@ public class GetMemberDuesHandler : IRequestHandler<GetMemberDuesQuery, Result<M
                     principalUnpaid = d.NetAmount;
                 }
 
-                principalUnpaidTotal += principalUnpaid;
-                livePenaltyTotal += penaltyUnpaid;
+                itemDto.Installments.Add(new InstallmentDuesDto
+                {
+                    InstallmentNumber = d.InstallmentNumber,
+                    DueDate = d.DueDate,
+                    GrossPrincipal = d.GrossAmount,
+                    Dividend = d.DividendAmount,
+                    PendingPrincipal = principalUnpaid,
+                    PendingPenalty = penaltyUnpaid,
+                    OverdueDays = overdueDays
+                });
             }
 
-            if (principalUnpaidTotal > 0 || livePenaltyTotal > 0 || ticket.AdvanceBalance > 0)
+            if (itemDto.Installments.Any() || itemDto.AdvanceBalance > 0)
             {
-                dto.TicketDues.Add(new MemberTicketDuesItemDto
-                {
-                    TicketId = ticket.Id,
-                    TicketNumber = ticket.TicketNumber,
-                    GroupName = ticket.ChitGroup.GroupName,
-                    PendingPrincipal = principalUnpaidTotal,
-                    PendingPenalty = livePenaltyTotal,
-                    OverdueDays = maxOverdueDays,
-                    AdvanceBalance = ticket.AdvanceBalance,
-                    OldestDueDate = oldest
-                });
+                dto.TicketDues.Add(itemDto);
             }
         }
 
