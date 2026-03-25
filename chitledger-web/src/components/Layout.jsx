@@ -66,7 +66,9 @@ const Layout = () => {
             icon: <IndianRupee size={18} />,
             label: 'Collections',
             children: [
-                { key: '/finance', label: 'Collection Entry' }
+                { key: '/finance', label: 'Field Entry' },
+                { key: '/admin/reconciliation', label: 'Office Verification' },
+                { key: '/admin/routes', label: 'Route Mgmt' },
             ]
         },
         {
@@ -100,10 +102,22 @@ const Layout = () => {
     ];
 
     const portalItems = [
-        { key: '/portal', icon: <LayoutDashboard size={18} />, label: 'My Dashboard' }
+        { key: '/portal', icon: <LayoutDashboard size={18} />, label: 'My Dashboard' },
+        { key: '/portal/my-chits', icon: <Users size={18} />, label: 'My Chits' }
     ];
 
-    const menuItems = (['Admin', 'Manager', 'Staff', 'Auditor'].includes(user.role)) ? adminItems : portalItems;
+    const agentItems = [
+        { key: '/agent/dashboard', icon: <LayoutDashboard size={18} />, label: 'Field Dashboard' },
+        { key: '/agent/route', icon: <MapPin size={18} />, label: 'My Route' },
+        { key: '/agent/vacancies', icon: <Users size={18} />, label: 'Recruitment' },
+    ];
+
+    let menuItems = portalItems;
+    if (['Admin', 'Manager', 'Staff', 'Auditor'].includes(user.role)) {
+        menuItems = adminItems;
+    } else if (user.role === 'Agent') {
+        menuItems = agentItems;
+    }
 
     return (
         <AntLayout className="h-screen font-sans">
@@ -132,7 +146,7 @@ const Layout = () => {
                     style={{ backgroundColor: '#ffffff', lineHeight: 'inherit' }}
                 >
                     <h1 className="text-xl font-bold text-gray-900 capitalize m-0">
-                        {location.pathname.split('/')[1] || 'Dashboard'}
+                        {location.pathname.startsWith('/agent') ? 'Field Agent Portal' : (location.pathname.split('/')[1] || 'Dashboard')}
                     </h1>
                     <div className="flex items-center gap-6">
                         {authorizedBranches && authorizedBranches.length > 0 && (

@@ -64,7 +64,7 @@ public class GetPassbookHandler : IRequestHandler<GetPassbookQuery, Result<Passb
             TicketId = ticket.Id,
             TicketNumber = ticket.TicketNumber.ToString(),
             GroupName = ticket.ChitGroup.GroupName,
-            MemberName = ticket.Member.FullName,
+            MemberName = ticket.Member != null ? ticket.Member.FullName : "Vacant",
             ChitValue = ticket.ChitGroup.ChitValue,
             Duration = ticket.ChitGroup.DurationMonths,
             AdvanceBalance = ticket.AdvanceBalance

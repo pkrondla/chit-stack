@@ -31,7 +31,18 @@ import PortalDashboard from './pages/Portal/PortalDashboard';
 import MyChits from './pages/Portal/MyChits';
 import MyAuctions from './pages/Portal/MyAuctions';
 import MyPayments from './pages/Portal/MyPayments';
+const PortalPassbook = lazy(() => import('./pages/Portal/PortalPassbook'));
 import MemberLayout from './components/MemberLayout';
+
+const AgentDashboard = lazy(() => import('./pages/Agent/AgentDashboard'));
+const AgentRoute = lazy(() => import('./pages/Agent/AgentRoute'));
+const CollectPayment = lazy(() => import('./pages/Agent/CollectPayment'));
+const VacantTickets = lazy(() => import('./pages/Agent/VacantTickets'));
+const AgentPassbook = lazy(() => import('./pages/Agent/AgentPassbook'));
+const RouteSummary = lazy(() => import('./pages/Agent/RouteSummary'));
+
+const SubmissionReconciliation = lazy(() => import('./pages/Admin/SubmissionReconciliation'));
+const RouteManagement = lazy(() => import('./pages/Admin/RouteManagement'));
 
 // Placeholder Pages
 const Dashboard = () => {
@@ -70,6 +81,7 @@ function App() {
             <Route path="auctions" element={<MyAuctions />} />
             <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
             <Route path="payments" element={<MyPayments />} />
+            <Route path="passbook/:ticketId" element={<PortalPassbook />} />
           </Route>
 
           {/* Staff / Admin Routes */}
@@ -98,7 +110,20 @@ function App() {
             <Route path="reports/statutory" element={<StatutoryForms />} />
             <Route path="admin/users" element={<UserManagement />} />
             <Route path="admin/auditor" element={<AuditorDashboard />} />
+            <Route path="admin/reconciliation" element={<SubmissionReconciliation />} />
+            <Route path="admin/routes" element={<RouteManagement />} />
             <Route path="settings" element={<Settings />} />
+          </Route>
+
+          {/* Agent Portal Routes */}
+          <Route path="/agent" element={<ProtectedRoute allowedRoles={['Agent', 'Admin', 'Staff']}><Layout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/agent/dashboard" replace />} />
+            <Route path="dashboard" element={<AgentDashboard />} />
+            <Route path="route" element={<AgentRoute />} />
+            <Route path="collect/:memberId" element={<CollectPayment />} />
+            <Route path="vacancies" element={<VacantTickets />} />
+            <Route path="summary" element={<RouteSummary />} />
+            <Route path="passbook/:ticketId" element={<AgentPassbook />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

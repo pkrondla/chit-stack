@@ -17,6 +17,9 @@ public class Ticket : BranchEntity
     public bool IsForeman { get; set; } = false;
     public DateTime? RemovalDate { get; set; }
     public decimal AdvanceBalance { get; set; } = 0; // Tracks overpaid money waiting for next demand
+
+    public ICollection<Demand> Demands { get; set; } = new List<Demand>();
+    public ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
 }
 
 public enum TicketStatus

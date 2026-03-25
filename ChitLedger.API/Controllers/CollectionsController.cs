@@ -2,6 +2,8 @@ using ChitLedger.Application.Features.Collections.Commands.CloseRouteBatch;
 using ChitLedger.Application.Features.Collections.Commands.ProposeEnrollment;
 using ChitLedger.Application.Features.Collections.Commands.VerifySubmission;
 using ChitLedger.Application.Features.Collections.Queries.GetRouteMembers;
+using ChitLedger.Application.Features.Collections.Queries.GetSubmissions;
+using ChitLedger.Application.Features.Collections.Queries.GetSubmissionDetails;
 using ChitLedger.Application.Features.Collections.Queries.GetVacantTickets;
 using ChitLedger.Domain.Common;
 using MediatR;
@@ -32,6 +34,20 @@ public class CollectionsController : ControllerBase
     public async Task<ActionResult<Result<int>>> CloseBatch(CloseRouteBatchCommand command)
     {
         return Ok(await _mediator.Send(command));
+    }
+
+    [Authorize(Roles = "Admin,Manager,Staff")]
+    [HttpGet("submissions")]
+    public async Task<ActionResult<Result<List<SubmissionDto>>>> GetSubmissions([FromQuery] string? status)
+    {
+        return Ok(await _mediator.Send(new GetSubmissionsQuery { Status = status }));
+    }
+
+    [Authorize(Roles = "Admin,Manager,Staff")]
+    [HttpGet("submissions/{id}")]
+    public async Task<ActionResult<Result<SubmissionDetailsDto>>> GetSubmissionDetails(int id)
+    {
+        return Ok(await _mediator.Send(new GetSubmissionDetailsQuery { Id = id }));
     }
 
     [Authorize(Roles = "Admin,Manager")]

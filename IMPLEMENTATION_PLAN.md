@@ -22,21 +22,22 @@
 - [x] `GetVacantTicketsQuery`: Fetch available slots for recruitment.
 - [x] `ProposeEnrollmentCommand`: Agent-led new member proposal.
 
-### Phase 3: Staff/Admin Portal (Frontend) ⚪
+### Phase 3: Staff/Admin Portal (Frontend) ✅
 
-- [ ] Route Management UI (Create/Assign).
-- [ ] Agent Tracking Map (Leaflet/OSM).
-- [ ] Submission Verification Workflow.
+- [x] `SubmissionReconciliation`: Verify and Approve agent batches.
+- [x] `RouteManagement`: Assign members to routes.
+- [x] Map/Dashboard updates for tracking agents.
 
-### Phase 4: Agent PWA (Mobile) ⚪
+### Phase 4: Collection Agent PWA (Frontend) ✅
 
-- [ ] PWA Manifest & Service Worker.
-- [ ] Route Dashboard (Next Stop/Stop List).
-- [ ] Collection Form with GPS & Camera integration.
-- [ ] Company UPI QR Modal.
-- [ ] Recruitment proposal form.
+- [x] `AgentDashboard`: Task-centric mobile-first view.
+- [x] `AgentRoute`: Leaflet-based stops visualization.
+- [x] `CollectPayment`: UPI QR (integrated w/ company UPI), GPS, and Photo Proof.
+- [x] `RouteSummary`: Daily wallet close-out.
+- [x] `VacantTickets` & `EnrollMember`: Field-based recruitment.
+- [x] Universal `Passbook` viewer for members and agents.
 
-### Phase 5: Member Portal & Transparency ⚪
+### Phase 5: Member Portal & Transparency ✅
 
-- [ ] Universal Passbook view.
-- [ ] "Pending" status visual cues in Member login.
+- [x] Universal Passbook view.
+- [x] "Pending" status visual cues in Member login.

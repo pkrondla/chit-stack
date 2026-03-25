@@ -54,8 +54,8 @@ public class VerifySubmissionHandler : IRequestHandler<VerifySubmissionCommand, 
 
             var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
             {
-                (debitAccountCode, receipt.AmountReceived, 0),
-                (receivableAccount.Data, 0, receipt.AmountReceived)
+                (resolveResult.Data!, receipt.AmountReceived, 0m),
+                (receivableAccount.Data!, 0m, receipt.AmountReceived)
             };
 
             await _journalService.CreateEntryAsync(

@@ -20,6 +20,10 @@ public class TenantSettings : TenantEntity
     // Contact
     public string PhoneNumber { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    
+    // Digital Payments
+    public string? CompanyUpiId { get; set; } // e.g. chit.ledger@okaxis
+    public string? CompanyUpiName { get; set; } // Display Name for QR
 
     // Filing details (used in all statutory forms)
     public decimal StatutoryFilingFees { get; set; } = 0; // Standard fee paid to Registrar

@@ -1,11 +1,13 @@
-import { Typography, Card, Table, Tag, Spin, Result } from 'antd';
-import { History as HistoryIcon, TrendingUp, Info } from 'lucide-react';
+import { Typography, Card, Table, Tag, Spin, Result, Button } from 'antd';
+import { History as HistoryIcon, TrendingUp, Info, User, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
 
 const MyChits = () => {
+    const navigate = useNavigate();
     const { data: chits = [], isLoading, error } = useQuery({
         queryKey: ['myChits'],
         queryFn: async () => {
@@ -66,6 +68,22 @@ const MyChits = () => {
                     {record.isPrized && <Tag color="gold" className="rounded-full border-0 font-bold">Prized</Tag>}
                     <Tag color="cyan" className="rounded-full border-0 font-bold">In-Progress</Tag>
                 </div>
+            )
+        },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_, record) => (
+                <Button 
+                    type="primary" 
+                    variant="filled"
+                    color="default"
+                    icon={<FileText size={16} />} 
+                    className="rounded-xl font-bold flex items-center justify-center gap-2 h-10 w-full"
+                    onClick={() => navigate(`/portal/passbook/${record.ticketId}`)}
+                >
+                    View Passbook
+                </Button>
             )
         }
     ];

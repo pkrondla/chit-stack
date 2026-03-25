@@ -3,6 +3,7 @@ using ChitLedger.Infrastructure;
 using ChitLedger.API.Middleware;
 using Serilog;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -130,7 +131,12 @@ app.MapHub<ChitLedger.API.Hubs.AuctionHub>("/auctionHub");
 using (var scope = app.Services.CreateScope())
 {
     var tenantDb = scope.ServiceProvider.GetRequiredService<ChitLedger.Infrastructure.Data.TenantDbContext>();
-    tenantDb.Database.EnsureCreated();
+    
+    try {
+        await tenantDb.Database.MigrateAsync();
+    } catch (Exception ex) {
+        Log.Error(ex, "Database migration failed.");
+    }
     
     var seeder = scope.ServiceProvider.GetRequiredService<ChitLedger.Infrastructure.Data.Seeding.InitialDataSeeder>();
     await seeder.SeedAsync();
