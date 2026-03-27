@@ -1322,6 +1322,15 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<decimal?>("LastLatitude")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("LastLocationUpdateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("LastLongitude")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("datetime2");
 
