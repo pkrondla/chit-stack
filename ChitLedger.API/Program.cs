@@ -60,6 +60,7 @@ builder.Services.AddAuthentication(options =>
 // SignalR
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ChitLedger.Application.Common.Interfaces.IAuctionNotificationService, ChitLedger.API.Services.AuctionNotificationService>();
+builder.Services.AddScoped<ChitLedger.Application.Common.Interfaces.INotificationsHubService, ChitLedger.API.Services.NotificationsHubService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -127,6 +128,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ChitLedger.API.Hubs.AuctionHub>("/auctionHub");
+app.MapHub<ChitLedger.API.Hubs.NotificationHub>("/notificationHub");
 
 using (var scope = app.Services.CreateScope())
 {

@@ -45,6 +45,8 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<CollectionRoute> CollectionRoutes => Set<CollectionRoute>();
     public DbSet<CollectionSubmission> CollectionSubmissions => Set<CollectionSubmission>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserNotificationSetting> UserNotificationSettings => Set<UserNotificationSetting>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -85,6 +87,8 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         builder.Entity<AuctionBid>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<CollectionRoute>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<CollectionSubmission>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<Notification>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        builder.Entity<UserNotificationSetting>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         
         builder.Entity<Member>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<Member>().Property(x => x.Latitude).HasPrecision(18, 6);

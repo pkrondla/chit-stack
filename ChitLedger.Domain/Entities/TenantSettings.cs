@@ -40,4 +40,27 @@ public class TenantSettings : TenantEntity
     // Penalty Rules
     public decimal DefaultLateFeePercent { get; set; } = 2; // Flat 2% penalty by default
     public int DefaultGracePeriodDays { get; set; } = 5;
+
+    // Email Configuration
+    public string? SmtpHost { get; set; }
+    public int? SmtpPort { get; set; }
+    public string? SmtpUser { get; set; }
+    public string? SmtpPass { get; set; } // Should be encrypted in production
+    public string? EmailFrom { get; set; }
+
+    // WhatsApp Configuration (e.g. Gupshup/Meta)
+    public string? WhatsAppApiUrl { get; set; }
+    public string? WhatsAppApiKey { get; set; }
+    public string? WhatsAppSenderNumber { get; set; }
+
+    // SMS Configuration
+    public string? SmsApiUrl { get; set; }
+    public string? SmsApiKey { get; set; }
+    public string? SmsSenderId { get; set; }
+
+    // Automation Rules
+    public bool AutoPaymentRemindersEnabled { get; set; } = false;
+    public int PaymentReminderDaysBefore { get; set; } = 3;
+    public bool AutoAuctionRemindersEnabled { get; set; } = false;
+    public int AuctionReminderHoursBefore { get; set; } = 24;
 }

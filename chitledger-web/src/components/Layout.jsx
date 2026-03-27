@@ -5,6 +5,7 @@ import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
     ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen
 } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 import useAuthStore from '../store/useAuthStore';
 
 const { Header, Sider, Content } = AntLayout;
@@ -176,6 +177,7 @@ const Layout = () => {
                                 />
                             </div>
                         )}
+                        <NotificationBell />
                         <Dropdown menu={{
                             items: [
                                 { key: 'logout', label: 'Logout', icon: <LogOut size={16} />, onClick: handleLogout, danger: true }

@@ -44,6 +44,7 @@ const RouteSummary = lazy(() => import('./pages/Agent/RouteSummary'));
 const SubmissionReconciliation = lazy(() => import('./pages/Admin/SubmissionReconciliation'));
 const RouteManagement = lazy(() => import('./pages/Admin/RouteManagement'));
 const MemberPassbookSelector = lazy(() => import('./pages/Shared/MemberPassbookSelector'));
+const Notifications = lazy(() => import('./pages/Shared/Notifications'));
 
 // Placeholder Pages
 const Dashboard = () => {
@@ -83,12 +84,14 @@ function App() {
             <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
             <Route path="payments" element={<MyPayments />} />
             <Route path="passbook/:ticketId" element={<PortalPassbook />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
 
           {/* Staff / Admin Routes */}
           <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Staff', 'Auditor']}><Layout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="groups" element={<Groups />} />
             <Route path="groups/new" element={<CreateGroup />} />
             <Route path="groups/:id/edit" element={<EditGroup />} />
@@ -128,6 +131,7 @@ function App() {
             <Route path="vacancies" element={<VacantTickets />} />
             <Route path="summary" element={<RouteSummary />} />
             <Route path="passbook/:ticketId" element={<AgentPassbook />} />
+            <Route path="notifications" element={<Notifications />} />
         </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
