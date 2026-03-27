@@ -14,9 +14,13 @@ public class User : TenantEntity
     public int? MemberId { get; set; }
     public Member? Member { get; set; }
     
-    // For Collection Agents
     public int? AssignedRouteId { get; set; }
     public CollectionRoute? AssignedRoute { get; set; }
+
+    // Persistent tracking
+    public decimal? LastLatitude { get; set; }
+    public decimal? LastLongitude { get; set; }
+    public DateTime? LastLocationUpdateTime { get; set; }
 
     public ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
 }

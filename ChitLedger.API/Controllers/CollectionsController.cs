@@ -97,8 +97,14 @@ public class CollectionsController : ControllerBase
         return Ok(await _mediator.Send(command));
     }
 
-    [HttpPost("assign-member-route")]
-    public async Task<ActionResult<Result<int>>> AssignMemberRoute(UpdateMemberRouteCommand command)
+    [HttpGet("active-agents")]
+    public async Task<ActionResult<Result<List<ChitLedger.Application.Features.Collections.Queries.GetActiveAgents.ActiveAgentDto>>>> GetActiveAgents()
+    {
+        return Ok(await _mediator.Send(new ChitLedger.Application.Features.Collections.Queries.GetActiveAgents.GetActiveAgentsQuery()));
+    }
+
+    [HttpPost("update-location")]
+    public async Task<ActionResult<Result<int>>> UpdateLocation(ChitLedger.Application.Features.Users.Commands.UpdateUserLocation.UpdateUserLocationCommand command)
     {
         return Ok(await _mediator.Send(command));
     }

@@ -10,6 +10,26 @@ const { Title, Text } = Typography;
 const AgentDashboard = () => {
     const navigate = useNavigate();
     const user = useAuthStore(state => state.user);
+    const { message } = App.useApp();
+
+    // Heartbeat: Send location every 1 minute
+    useEffect(() => {
+        const sendLocation = () => {
+            if ("geolocation" in navigator && user?.id) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    api.post('/Collections/update-location', {
+                        userId: user.id,
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    }).catch(err => console.error("Heartbeat failed", err));
+                }, null, { enableHighAccuracy: true });
+            }
+        };
+
+        sendLocation(); // Initial
+        const interval = setInterval(sendLocation, 60000);
+        return () => clearInterval(interval);
+    }, [user?.id]);
 
     const { data: routeMembers = [], isLoading } = useQuery({
         queryKey: ['agent-route'],

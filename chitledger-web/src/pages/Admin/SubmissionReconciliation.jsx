@@ -62,6 +62,15 @@ const SubmissionReconciliation = () => {
         refetchInterval: 10000 // 10 second live poll
     });
 
+    const { data: activeAgents = [] } = useQuery({
+        queryKey: ['active-agents'],
+        queryFn: async () => {
+            const res = await api.get('/Collections/active-agents');
+            return res.data.data || res.data;
+        },
+        refetchInterval: 10000 
+    });
+
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
 
     // ... rest of details and verify mutation ...
@@ -315,8 +324,11 @@ const SubmissionReconciliation = () => {
                                                     .sort((a, b) => new Date(a.date) - new Date(b.date))
                                                     .map(e => [e.latitude, e.longitude]);
                                                 
-                                                const latest = agentsOnMap[agentName][0]; // Entry is ordered desc in query
-                                                const isIdle = (new Date() - new Date(latest.date)) > 1800000; // 30 mins
+                                                const heartbeat = activeAgents.find(a => a.agentName === agentName);
+                                                const latestEntry = agentsOnMap[agentName][0]; 
+                                                const currentPos = heartbeat ? [heartbeat.lastLatitude, heartbeat.lastLongitude] : (latestEntry ? [latestEntry.latitude, latestEntry.longitude] : null);
+
+                                                if (!currentPos) return null;
 
                                                 return (
                                                     <div key={agentName}>
@@ -358,12 +370,12 @@ const SubmissionReconciliation = () => {
                                                              );
                                                         })}
                                                         {/* Latest Agent Pulse Pin */}
-                                                        <Marker position={[latest.latitude, latest.longitude]} icon={L.divIcon({
+                                                        <Marker position={currentPos} icon={L.divIcon({
                                                             className: 'agent-pulse-icon',
                                                             html: `
                                                                 <div class="relative">
                                                                     <div class="absolute -top-10 -left-5 bg-slate-900 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-xl whitespace-nowrap border border-white/20">
-                                                                        ${agentName}
+                                                                        ${agentName} ${heartbeat ? '(Live)' : ''}
                                                                     </div>
                                                                     <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border-4 border-white shadow-2xl animate-pulse">
                                                                         <div class="w-3 h-3 bg-white rounded-full"></div>
@@ -374,6 +386,22 @@ const SubmissionReconciliation = () => {
                                                     </div>
                                                 );
                                             })}
+                                            {/* Show agents that have heartbeats but no collections today */}
+                                            {activeAgents.filter(a => !agentsOnMap[a.agentName]).map(agent => (
+                                                 <Marker key={agent.agentName} position={[agent.lastLatitude, agent.lastLongitude]} icon={L.divIcon({
+                                                    className: 'agent-pulse-icon',
+                                                    html: `
+                                                        <div class="relative">
+                                                            <div class="absolute -top-10 -left-5 bg-slate-400 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-xl whitespace-nowrap border border-white/20">
+                                                                ${agent.agentName} (Idle/Starting)
+                                                            </div>
+                                                            <div class="w-10 h-10 rounded-full bg-slate-500 flex items-center justify-center border-4 border-white shadow-2xl">
+                                                                <div class="w-3 h-3 bg-white rounded-full"></div>
+                                                            </div>
+                                                        </div>
+                                                    `
+                                                })} />
+                                            ))}
                                         </MapContainer>
                                     </Card>
                                 ) : (
