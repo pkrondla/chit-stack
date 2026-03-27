@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, Dropdown, Select } from 'antd';
 import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
-    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin
+    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 
@@ -60,7 +60,15 @@ const Layout = () => {
                 { key: '/finance/payouts', label: 'Payout Entry' }
             ]
         },
-        { key: '/members', icon: <Users size={18} />, label: 'Members' },
+        {
+            key: 'membersGrp',
+            icon: <Users size={18} />,
+            label: 'Members',
+            children: [
+                { key: '/members', label: 'Member List' },
+                { key: '/members/passbook', label: 'Passbook' },
+            ]
+        },
         {
             key: 'collectionsGrp',
             icon: <IndianRupee size={18} />,
@@ -109,6 +117,7 @@ const Layout = () => {
     const agentItems = [
         { key: '/agent/dashboard', icon: <LayoutDashboard size={18} />, label: 'Field Dashboard' },
         { key: '/agent/route', icon: <MapPin size={18} />, label: 'My Route' },
+        { key: '/agent/passbook-selector', icon: <BookOpen size={18} />, label: 'Passbook' },
         { key: '/agent/vacancies', icon: <Users size={18} />, label: 'Recruitment' },
     ];
 
@@ -185,8 +194,10 @@ const Layout = () => {
                         </Dropdown>
                     </div>
                 </Header>
-                <Content className="m-6 p-6 bg-white min-h-[280px] rounded-lg shadow-sm overflow-auto">
-                    <Outlet />
+                <Content className="m-4 md:m-6 p-4 md:p-6 bg-white min-h-[calc(100vh-120px)] rounded-2xl shadow-sm overflow-x-hidden">
+                    <div className="max-w-full overflow-x-hidden">
+                        <Outlet />
+                    </div>
                 </Content>
             </AntLayout>
         </AntLayout>

@@ -132,26 +132,26 @@ const Passbook = ({ ticketId }) => {
 
   return (
     <Card
-      className="shadow-lg border-0 rounded-2xl overflow-hidden"
+      className="shadow-lg border-0 rounded-[2rem] overflow-hidden"
       styles={{ body: { padding: 0 } }}
     >
-      <div className="bg-slate-900 p-6 text-white">
+      <div className="bg-slate-900 p-8 md:p-10 text-white">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
             <div className="bg-white/10 p-2 rounded-lg">
               <FileText className="text-blue-400" size={24} />
             </div>
             <div>
-              <Title level={4} className="!text-white !mb-0">
+            <Title level={4} className="!text-white !mb-0">
                 {passbook.groupName}
               </Title>
-              <Text className="text-slate-400">
+              <Text className="!text-white/60">
                 Ticket #{passbook.ticketNumber} • {passbook.memberName}
               </Text>
             </div>
           </div>
           <div className="text-right">
-            <Text className="text-slate-400 block text-xs uppercase tracking-wider">
+            <Text className="!text-white/40 block text-xs uppercase tracking-wider">
               Total Outstanding
             </Text>
             <Title level={2} className="!text-white !mb-0">
@@ -165,7 +165,7 @@ const Passbook = ({ ticketId }) => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/10">
           <div>
-            <Text className="text-slate-500 block text-[10px] uppercase">
+            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
               Chit Value
             </Text>
             <Text className="text-white font-semibold">
@@ -173,7 +173,7 @@ const Passbook = ({ ticketId }) => {
             </Text>
           </div>
           <div>
-            <Text className="text-slate-500 block text-[10px] uppercase">
+            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
               Duration
             </Text>
             <Text className="text-white font-semibold">
@@ -181,7 +181,7 @@ const Passbook = ({ ticketId }) => {
             </Text>
           </div>
           <div>
-            <Text className="text-slate-500 block text-[10px] uppercase">
+            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
               Total Paid
             </Text>
             <Text className="text-green-400 font-semibold">
@@ -189,7 +189,7 @@ const Passbook = ({ ticketId }) => {
             </Text>
           </div>
           <div>
-            <Text className="text-slate-500 block text-[10px] uppercase">
+            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
               Advance Balance
             </Text>
             <Text className="text-blue-400 font-semibold">
@@ -205,22 +205,23 @@ const Passbook = ({ ticketId }) => {
         rowKey={(record, index) => `${record.date}-${index}`}
         pagination={false}
         className="passbook-table"
+        scroll={{ x: true }}
         rowClassName={(record) =>
           record.status === "Pending" ? "bg-orange-50/30" : ""
         }
       />
 
-      <div className="p-4 bg-slate-50 border-t flex justify-between items-center text-xs text-slate-500">
-        <div className="flex gap-4">
-          <span className="flex items-center gap-1">
-            <CheckCircle2 size={12} className="text-green-500" /> Confirmed
+      <div className="px-8 py-5 bg-slate-50 border-t flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-500 font-medium">
+        <div className="flex flex-wrap gap-4">
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 size={14} className="text-green-500" /> Confirmed
           </span>
-          <span className="flex items-center gap-1">
-            <Clock size={12} className="text-orange-500" /> Pending Office
+          <span className="flex items-center gap-1.5 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">
+            <Clock size={14} className="text-orange-500" /> Pending Office
             Verification
           </span>
         </div>
-        <span>Generated on {dayjs().format("DD MMM YYYY HH:mm")}</span>
+        <span className="opacity-60 italic">Generated on {dayjs().format("DD MMM YYYY HH:mm")}</span>
       </div>
     </Card>
   );

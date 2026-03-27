@@ -27,6 +27,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
     if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    
     const R = 6371e3; // metres
     const f1 = (lat1 * Math.PI) / 180;
     const f2 = (lat2 * Math.PI) / 180;
@@ -284,6 +285,7 @@ const SubmissionReconciliation = () => {
                                         rowKey="id" 
                                         loading={isLoading}
                                         pagination={{ pageSize: 10 }}
+                                        scroll={{ x: 'max-content' }}
                                     />
                                 </Card>
                             </div>
@@ -364,7 +366,26 @@ const SubmissionReconciliation = () => {
                                                                     </Marker>
                                                                     {/* Member Home Reference if far */}
                                                                     {isFar && entry.memberLatitude && (
-                                                                        <Circle center={[entry.memberLatitude, entry.memberLongitude]} radius={300} pathOptions={{ color: '#f43f5e', fillColor: '#f43f5e', fillOpacity: 0.1 }} />
+                                                                        <Circle center={[entry.memberLatitude, entry.memberLongitude]} radius={300} pathOptions={{ color: '#f43f5e', fillColor: '#f43f5e', fillOpacity: 0.1 }}>
+                                                                            <Popup>
+                                                                                <div className="p-2">
+                                                                                    <Tag color="error" className="mb-2 uppercase font-black text-[9px]">Geofence Zone</Tag>
+                                                                                    <Title level={5} className="!mb-0 text-slate-800 text-sm">Member Home Zone</Title>
+                                                                                    <Text className="text-slate-500 text-[11px] block mt-0.5">Scheduled for <b>{entry.memberName}</b></Text>
+                                                                                    
+                                                                                    <div className="mt-2 pt-2 border-t border-slate-100">
+                                                                                        <Text className="text-slate-400 text-[9px] font-bold uppercase tracking-wider block">Breached By</Text>
+                                                                                        <Text strong className="text-slate-800 text-xs">{entry.agentName}</Text>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div className="mt-2 pt-2 border-t border-slate-100">
+                                                                                        <Text className="text-rose-600 font-bold text-[11px] flex items-center gap-1">
+                                                                                            <Activity size={10} /> {dist > 1000 ? `${(dist / 1000).toFixed(1)}km` : `${Math.round(dist)}m`} Deviation
+                                                                                        </Text>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </Popup>
+                                                                        </Circle>
                                                                     )}
                                                                 </div>
                                                              );
@@ -412,6 +433,7 @@ const SubmissionReconciliation = () => {
                                             rowKey="id" 
                                             loading={loadingEntries}
                                             pagination={{ pageSize: 10 }}
+                                            scroll={{ x: 'max-content' }}
                                         />
                                     </Card>
                                 )}
@@ -463,6 +485,7 @@ const SubmissionReconciliation = () => {
                                 rowKey="id"
                                 pagination={false}
                                 className="details-table"
+                                scroll={{ x: 'max-content' }}
                                 columns={[
                                     { title: 'Receipt', dataIndex: 'id', key: 'id', render: id => <Text strong>#{id}</Text> },
                                     { title: 'Subscriber', dataIndex: 'memberName', key: 'memberName' },

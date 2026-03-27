@@ -43,6 +43,7 @@ const RouteSummary = lazy(() => import('./pages/Agent/RouteSummary'));
 
 const SubmissionReconciliation = lazy(() => import('./pages/Admin/SubmissionReconciliation'));
 const RouteManagement = lazy(() => import('./pages/Admin/RouteManagement'));
+const MemberPassbookSelector = lazy(() => import('./pages/Shared/MemberPassbookSelector'));
 
 // Placeholder Pages
 const Dashboard = () => {
@@ -94,6 +95,8 @@ function App() {
             <Route path="groups/enroll" element={<EnrollMember />} />
             <Route path="groups/:groupId/tickets" element={<GroupTickets />} />
             <Route path="members" element={<Members />} />
+            <Route path="members/passbook" element={<MemberPassbookSelector role="admin" />} />
+            <Route path="members/passbook/:ticketId/view" element={<AgentPassbook />} />
             <Route path="members/new" element={<RegisterMember />} />
             <Route path="members/:id" element={<MemberDetails />} />
             <Route path="members/:id/edit" element={<EditMember />} />
@@ -120,11 +123,12 @@ function App() {
             <Route index element={<Navigate to="/agent/dashboard" replace />} />
             <Route path="dashboard" element={<AgentDashboard />} />
             <Route path="route" element={<AgentRoute />} />
+            <Route path="passbook-selector" element={<MemberPassbookSelector role="agent" />} />
             <Route path="collect/:memberId" element={<CollectPayment />} />
             <Route path="vacancies" element={<VacantTickets />} />
             <Route path="summary" element={<RouteSummary />} />
             <Route path="passbook/:ticketId" element={<AgentPassbook />} />
-          </Route>
+        </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

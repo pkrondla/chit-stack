@@ -34,7 +34,7 @@ const AgentPassbook = () => {
                     <Info className="text-blue-400" size={32} />
                 </div>
                 <Title level={3} className="!text-white !mb-2">Need a Physical Copy?</Title>
-                <Text className="text-slate-400 max-w-md mx-auto mb-8 font-medium">
+                <Text className="!text-white/60 max-w-md mx-auto mb-8 font-medium italic block">
                     This digital passbook is real-time and legally compliant. You can share this screen with the member or print it from the office portal.
                 </Text>
                 <Button 
