@@ -5,6 +5,9 @@ using ChitLedger.Application.Features.Collections.Queries.GetRouteMembers;
 using ChitLedger.Application.Features.Collections.Queries.GetSubmissions;
 using ChitLedger.Application.Features.Collections.Queries.GetSubmissionDetails;
 using ChitLedger.Application.Features.Collections.Queries.GetVacantTickets;
+using ChitLedger.Application.Features.Collections.Commands.CreateRoute;
+using ChitLedger.Application.Features.Collections.Commands.UpdateMemberRoute;
+using ChitLedger.Application.Features.Collections.Queries.GetRoutes;
 using ChitLedger.Domain.Common;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -57,6 +60,19 @@ public class CollectionsController : ControllerBase
         return Ok(await _mediator.Send(command));
     }
 
+    [Authorize(Roles = "Admin,Manager,Staff")]
+    [HttpGet("field-entries")]
+    public async Task<ActionResult<Result<List<SubmissionReceiptDto>>>> GetFieldEntries()
+    {
+        return Ok(await _mediator.Send(new ChitLedger.Application.Features.Collections.Queries.GetFieldEntries.GetFieldEntriesQuery()));
+    }
+
+    [HttpGet("agent-receipts")]
+    public async Task<ActionResult<Result<List<SubmissionReceiptDto>>>> GetAgentReceipts()
+    {
+        return Ok(await _mediator.Send(new ChitLedger.Application.Features.Collections.Queries.GetAgentReceipts.GetAgentReceiptsQuery()));
+    }
+
     [HttpGet("vacant-tickets")]
     public async Task<ActionResult<Result<List<VacantTicketDto>>>> GetVacantTickets()
     {
@@ -65,6 +81,24 @@ public class CollectionsController : ControllerBase
 
     [HttpPost("propose-enrollment")]
     public async Task<ActionResult<Result<int>>> ProposeEnrollment(ProposeEnrollmentCommand command)
+    {
+        return Ok(await _mediator.Send(command));
+    }
+
+    [HttpGet("routes")]
+    public async Task<ActionResult<Result<List<RouteDto>>>> GetRoutes()
+    {
+        return Ok(await _mediator.Send(new GetRoutesQuery()));
+    }
+
+    [HttpPost("routes")]
+    public async Task<ActionResult<Result<int>>> CreateRoute(CreateRouteCommand command)
+    {
+        return Ok(await _mediator.Send(command));
+    }
+
+    [HttpPost("assign-member-route")]
+    public async Task<ActionResult<Result<int>>> AssignMemberRoute(UpdateMemberRouteCommand command)
     {
         return Ok(await _mediator.Send(command));
     }

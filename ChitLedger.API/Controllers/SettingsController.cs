@@ -20,7 +20,7 @@ public class SettingsController : ControllerBase
     // ── Company Profile ──────────────────────────────────────────────────────
 
     /// <summary>Get the company/tenant profile settings used in statutory forms.</summary>
-    [Authorize(Roles = "Admin,Manager,Subscriber")]
+    [Authorize(Roles = "Admin,Manager,Subscriber,Agent")]
     [HttpGet]
     public async Task<IActionResult> Get()
     {

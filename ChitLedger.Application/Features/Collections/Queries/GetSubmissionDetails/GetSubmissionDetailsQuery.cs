@@ -26,6 +26,9 @@ public class SubmissionReceiptDto
     public string? PhotoUrl { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
+    public decimal? MemberLatitude { get; set; }
+    public decimal? MemberLongitude { get; set; }
+    public string? AgentName { get; set; }
 }
 
 public class GetSubmissionDetailsQuery : IRequest<Result<SubmissionDetailsDto>>
@@ -67,7 +70,9 @@ public class GetSubmissionDetailsHandler : IRequestHandler<GetSubmissionDetailsQ
                     Date = r.ReceiptDate,
                     PhotoUrl = r.TransactionPhotoUrl,
                     Latitude = r.Latitude,
-                    Longitude = r.Longitude
+                    Longitude = r.Longitude,
+                    MemberLatitude = r.Ticket.Member != null ? r.Ticket.Member.Latitude : null,
+                    MemberLongitude = r.Ticket.Member != null ? r.Ticket.Member.Longitude : null
                 }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);

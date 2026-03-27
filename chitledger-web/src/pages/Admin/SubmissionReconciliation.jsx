@@ -7,6 +7,38 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
+import { Tabs, Segmented } from 'antd';
+import { Activity, Archive, Map as MapIcon, List as ListIcon, Navigation } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet icon issue
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371e3; // metres
+    const f1 = (lat1 * Math.PI) / 180;
+    const f2 = (lat2 * Math.PI) / 180;
+    const df = ((lat2 - lat1) * Math.PI) / 180;
+    const dl = ((lon2 - lon1) * Math.PI) / 180;
+    const a = Math.sin(df / 2) * Math.sin(df / 2) +
+            Math.cos(f1) * Math.cos(f2) *
+            Math.sin(dl / 2) * Math.sin(dl / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // in metres
+};
+
 const SubmissionReconciliation = () => {
     const [selectedSubId, setSelectedSubId] = useState(null);
     const [remarks, setRemarks] = useState('');
@@ -20,6 +52,19 @@ const SubmissionReconciliation = () => {
             return res.data.data || res.data;
         }
     });
+
+    const { data: fieldEntries = [], isLoading: loadingEntries } = useQuery({
+        queryKey: ['field-entries'],
+        queryFn: async () => {
+            const res = await api.get('/Collections/field-entries');
+            return res.data.data || res.data;
+        },
+        refetchInterval: 10000 // 10 second live poll
+    });
+
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+
+    // ... rest of details and verify mutation ...
 
     const { data: details, isLoading: loadingDetails } = useQuery({
         queryKey: ['submission-details', selectedSubId],
@@ -127,31 +172,226 @@ const SubmissionReconciliation = () => {
         }
     ];
 
+    const fieldEntryColumns = [
+        {
+            title: 'Ref',
+            dataIndex: 'id',
+            key: 'id',
+            render: id => <Text strong>#{id}</Text>
+        },
+        {
+            title: 'Agent',
+            dataIndex: 'agentName',
+            key: 'agentName',
+            render: name => <Tag color="blue">{name}</Tag>
+        },
+        {
+            title: 'Date',
+            dataIndex: 'date',
+            key: 'date',
+            render: date => dayjs(date).format('DD MMM HH:mm')
+        },
+        {
+            title: 'Subscriber',
+            dataIndex: 'memberName',
+            key: 'memberName'
+        },
+        {
+            title: 'Payment',
+            dataIndex: 'paymentMode',
+            key: 'paymentMode',
+            render: mode => <Tag color={mode === 'Cash' ? 'green' : 'blue'}>{mode}</Tag>
+        },
+        {
+            title: 'Amount',
+            dataIndex: 'amount',
+            key: 'amount',
+            align: 'right',
+            render: val => <Text strong className="text-blue-600">₹{val.toLocaleString()}</Text>
+        },
+        {
+            title: 'Distance',
+            key: 'distance',
+            render: (_, r) => {
+                const dist = calculateDistance(r.latitude, r.longitude, r.memberLatitude, r.memberLongitude);
+                if (dist === null) return <Text type="secondary">-</Text>;
+                const isFar = dist > 300; // Flag collections > 300m away
+                return (
+                    <Tag color={isFar ? 'error' : 'success'} className="font-bold">
+                        {dist > 1000 ? `${(dist / 1000).toFixed(1)}km` : `${Math.round(dist)}m`}
+                    </Tag>
+                );
+            }
+        },
+        {
+            title: 'Status',
+            key: 'liveStatus',
+            render: () => <Tag icon={<Spin size="small" className="mr-1" />} color="processing">In Field</Tag>
+        }
+    ];
+
+    // Group field entries by agent for map polylines
+    const agentsOnMap = fieldEntries.reduce((acc, entry) => {
+        if (!entry.latitude || !entry.longitude) return acc;
+        if (!acc[entry.agentName]) acc[entry.agentName] = [];
+        acc[entry.agentName].push(entry);
+        return acc;
+    }, {});
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center mb-4">
                 <div>
-                   <Title level={2}>Collection Reconciliation</Title>
-                   <Text className="text-slate-500">Verify and post field agent collections to the general ledger.</Text>
-                </div>
-                <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex items-center gap-4">
-                    <AlertTriangle className="text-orange-500" size={32} />
-                    <div>
-                        <Title level={4} className="!mb-0 !text-orange-700">{submissions.length}</Title>
-                        <Text className="text-orange-600 text-xs font-bold uppercase tracking-wider">Pending Batches</Text>
-                    </div>
+                   <Title level={2}>Agent Collection & Audit</Title>
+                   <Text className="text-slate-500">Monitor live field activity and verify pending agent submissions.</Text>
                 </div>
             </div>
 
-            <Card className="shadow-lg border-0 rounded-3xl overflow-hidden" styles={{ body: { padding: 0 } }}>
-                <Table 
-                    columns={columns} 
-                    dataSource={submissions} 
-                    rowKey="id" 
-                    loading={isLoading}
-                    pagination={{ pageSize: 10 }}
-                />
-            </Card>
+            <Tabs
+                defaultActiveKey="1"
+                type="card"
+                className="custom-tabs"
+                items={[
+                    {
+                        key: '1',
+                        label: <span className="flex items-center gap-2"><Archive size={16}/> Closed Sessions</span>,
+                        children: (
+                            <div className="space-y-6">
+                                <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-orange-100 p-3 rounded-2xl">
+                                             <AlertTriangle className="text-orange-500" size={32} />
+                                        </div>
+                                        <div>
+                                            <Title level={4} className="!mb-0 !text-orange-700">{submissions.length} Sessions</Title>
+                                            <Text className="text-orange-600 text-xs font-bold uppercase tracking-wider">Awaiting Verification & Ledger Posting</Text>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Card className="shadow-lg border-0 rounded-3xl overflow-hidden" styles={{ body: { padding: 0 } }}>
+                                    <Table 
+                                        columns={columns} 
+                                        dataSource={submissions} 
+                                        rowKey="id" 
+                                        loading={isLoading}
+                                        pagination={{ pageSize: 10 }}
+                                    />
+                                </Card>
+                            </div>
+                        )
+                    },
+                    {
+                        key: '2',
+                        label: <span className="flex items-center gap-2"><Activity size={16}/> Live Field Activity</span>,
+                        children: (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-3xl border border-blue-50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                                            <Activity size={20} />
+                                        </div>
+                                        <div>
+                                            <Title level={5} className="!mb-0">Live Stream Tracking</Title>
+                                            <Text className="text-slate-500 text-xs">Real-time GPS correlation and geofencing enabled.</Text>
+                                        </div>
+                                    </div>
+                                    <Segmented
+                                        value={viewMode}
+                                        onChange={setViewMode}
+                                        options={[
+                                            { label: 'List View', value: 'list', icon: <ListIcon size={14} /> },
+                                            { label: 'Map View', value: 'map', icon: <MapIcon size={14} /> }
+                                        ]}
+                                        className="p-1 bg-white shadow-sm rounded-xl"
+                                    />
+                                </div>
+
+                                {viewMode === 'map' ? (
+                                    <Card className="shadow-lg border-0 rounded-3xl overflow-hidden h-[600px] p-0" styles={{ body: { padding: 0, height: '100%' } }}>
+                                        <MapContainer center={[10.938, 77.01]} zoom={13} style={{ height: '100%', width: '100%' }}>
+                                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
+                                            {Object.keys(agentsOnMap).map(agentName => {
+                                                const path = agentsOnMap[agentName]
+                                                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                                                    .map(e => [e.latitude, e.longitude]);
+                                                
+                                                const latest = agentsOnMap[agentName][0]; // Entry is ordered desc in query
+                                                const isIdle = (new Date() - new Date(latest.date)) > 1800000; // 30 mins
+
+                                                return (
+                                                    <div key={agentName}>
+                                                        <Polyline positions={path} color="#2563eb" weight={3} opacity={0.6} dashArray="5, 10" />
+                                                        {agentsOnMap[agentName].map(entry => {
+                                                             const dist = calculateDistance(entry.latitude, entry.longitude, entry.memberLatitude, entry.memberLongitude);
+                                                             const isFar = dist > 300;
+                                                             
+                                                             return (
+                                                                <div key={entry.id}>
+                                                                    {/* Agent Pickup Point */}
+                                                                    <Marker position={[entry.latitude, entry.longitude]} icon={L.divIcon({
+                                                                        className: 'custom-div-icon',
+                                                                        html: `<div class="w-4 h-4 rounded-full border-2 border-white shadow-lg ${isFar ? 'bg-rose-500' : 'bg-blue-600'}"></div>`
+                                                                    })}>
+                                                                        <Popup className="rounded-2xl">
+                                                                            <div className="p-2">
+                                                                                <Tag color="blue" className="mb-2">{entry.agentName}</Tag>
+                                                                                <Title level={5} className="!mb-1">₹{entry.amount.toLocaleString()}</Title>
+                                                                                <Text strong className="block">{entry.memberName}</Text>
+                                                                                <Text type="secondary" className="text-xs">{dayjs(entry.date).format('HH:mm')}</Text>
+                                                                                {isFar && (
+                                                                                    <Alert 
+                                                                                        message="Geofence Breach" 
+                                                                                        type="error" 
+                                                                                        size="small" 
+                                                                                        className="mt-2 py-1 px-2 text-[10px]" 
+                                                                                        description={`Collected ${Math.round(dist)}m away from home.`} 
+                                                                                    />
+                                                                                )}
+                                                                            </div>
+                                                                        </Popup>
+                                                                    </Marker>
+                                                                    {/* Member Home Reference if far */}
+                                                                    {isFar && entry.memberLatitude && (
+                                                                        <Circle center={[entry.memberLatitude, entry.memberLongitude]} radius={300} pathOptions={{ color: '#f43f5e', fillColor: '#f43f5e', fillOpacity: 0.1 }} />
+                                                                    )}
+                                                                </div>
+                                                             );
+                                                        })}
+                                                        {/* Latest Agent Pulse Pin */}
+                                                        <Marker position={[latest.latitude, latest.longitude]} icon={L.divIcon({
+                                                            className: 'agent-pulse-icon',
+                                                            html: `
+                                                                <div class="relative">
+                                                                    <div class="absolute -top-10 -left-5 bg-slate-900 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-xl whitespace-nowrap border border-white/20">
+                                                                        ${agentName}
+                                                                    </div>
+                                                                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border-4 border-white shadow-2xl animate-pulse">
+                                                                        <div class="w-3 h-3 bg-white rounded-full"></div>
+                                                                    </div>
+                                                                </div>
+                                                            `
+                                                        })} />
+                                                    </div>
+                                                );
+                                            })}
+                                        </MapContainer>
+                                    </Card>
+                                ) : (
+                                    <Card className="shadow-lg border-0 rounded-3xl overflow-hidden" styles={{ body: { padding: 0 } }}>
+                                        <Table 
+                                            columns={fieldEntryColumns} 
+                                            dataSource={fieldEntries} 
+                                            rowKey="id" 
+                                            loading={loadingEntries}
+                                            pagination={{ pageSize: 10 }}
+                                        />
+                                    </Card>
+                                )}
+                            </div>
+                        )
+                    }
+                ]}
+            />
 
             <Modal
                 title={null}
@@ -168,16 +408,16 @@ const SubmissionReconciliation = () => {
                     <div className="flex flex-col h-[85vh]">
                         <div className="bg-slate-900 p-8 text-white flex justify-between items-start shrink-0">
                             <div>
-                                <Text className="text-slate-400 font-bold uppercase tracking-widest text-xs">Submission Review</Text>
+                                <Text className="!text-white/50 font-black uppercase tracking-[0.2em] text-[10px] block mb-1">Submission Review</Text>
                                 <Title level={2} className="!text-white !mb-0 font-black">Batch #{details?.id}</Title>
                                 <div className="flex gap-4 mt-2">
-                                   <Text className="text-blue-200 flex items-center gap-1"><User size={14}/> {details?.agentName}</Text>
-                                   <Text className="text-blue-200 flex items-center gap-1"><Calendar size={14}/> {dayjs(details?.submissionDate).format('DD MMM YYYY')}</Text>
+                                   <Text className="!text-blue-100 flex items-center gap-1 font-semibold uppercase text-[10px] tracking-wider"><User size={12}/> {details?.agentName}</Text>
+                                   <Text className="!text-blue-100 flex items-center gap-1 font-semibold uppercase text-[10px] tracking-wider"><Calendar size={12}/> {dayjs(details?.submissionDate).format('DD MMM YYYY')}</Text>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <Text className="text-slate-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Total Verified Value</Text>
-                                <Title level={2} className="!text-white !mb-0">₹{details?.totalAmount.toLocaleString()}</Title>
+                                <Text className="!text-white/50 font-black uppercase text-[10px] tracking-[0.2em] block mb-1">Total Verified Value</Text>
+                                <Title level={2} className="!text-white !mb-0 font-black">₹{details?.totalAmount.toLocaleString()}</Title>
                             </div>
                         </div>
 

@@ -14,6 +14,7 @@ public class UpdateUserCommand : IRequest<Result<int>>
     public string Role { get; set; } = string.Empty;
     public string? Password { get; set; } 
     public List<int> BranchIds { get; set; } = new();
+    public int? AssignedRouteId { get; set; }
 }
 
 public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<int>>
@@ -36,6 +37,7 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<int>>
         user.Email = request.Email;
         user.FullName = request.FullName;
         user.Role = request.Role;
+        user.AssignedRouteId = request.AssignedRouteId;
 
         if (!string.IsNullOrEmpty(request.Password))
         {

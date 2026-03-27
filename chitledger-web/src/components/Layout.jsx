@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, Dropdown, Select } from 'antd';
 import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
-    ScrollText, IndianRupee, Settings, ChevronDown, Building2
+    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 
@@ -66,8 +66,8 @@ const Layout = () => {
             icon: <IndianRupee size={18} />,
             label: 'Collections',
             children: [
-                { key: '/finance', label: 'Field Entry' },
-                { key: '/admin/reconciliation', label: 'Office Verification' },
+                { key: '/finance', label: 'Collection Entry' },
+                { key: '/admin/reconciliation', label: 'Agent Collection' },
                 { key: '/admin/routes', label: 'Route Mgmt' },
             ]
         },

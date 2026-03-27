@@ -20,7 +20,9 @@ const Login = () => {
 
     useEffect(() => {
         if (user) {
-            const redirectPath = user.role === 'Subscriber' ? '/portal' : '/dashboard';
+            let redirectPath = '/dashboard';
+            if (user.role === 'Subscriber') redirectPath = '/portal';
+            else if (user.role === 'Agent') redirectPath = '/agent';
             navigate(redirectPath);
         }
     }, [user, navigate]);
@@ -33,7 +35,9 @@ const Login = () => {
             const res = await login(values.username, values.password, 'Password');
             setLoading(false);
             if (res.success) {
-                const redirectPath = res.user.role === 'Subscriber' ? '/portal' : '/dashboard';
+                let redirectPath = '/dashboard';
+                if (res.user.role === 'Subscriber') redirectPath = '/portal';
+                else if (res.user.role === 'Agent') redirectPath = '/agent';
                 navigate(redirectPath);
             } else {
                 setError(res.message);
@@ -60,7 +64,9 @@ const Login = () => {
                 const res = await login(targetMobile, '', 'OTP', values.otp);
                 setLoading(false);
                 if (res.success) {
-                    const redirectPath = res.user.role === 'Subscriber' ? '/portal' : '/dashboard';
+                    let redirectPath = '/dashboard';
+                    if (res.user.role === 'Subscriber') redirectPath = '/portal';
+                    else if (res.user.role === 'Agent') redirectPath = '/agent';
                     navigate(redirectPath);
                 } else {
                     setError(res.message || 'Invalid OTP. Please try again.');

@@ -12,8 +12,9 @@ public class CreateUserCommand : IRequest<Result<int>>
     public string Password { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
-    public string Role { get; set; } = "Staff"; // Admin, Manager, Staff
+    public string Role { get; set; } = "Staff"; // Admin, Manager, Staff, Agent
     public List<int> BranchIds { get; set; } = new();
+    public int? AssignedRouteId { get; set; }
 }
 
 public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<int>>
@@ -39,7 +40,8 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<int>>
             PasswordHash = request.Password, 
             Email = request.Email,
             FullName = request.FullName,
-            Role = request.Role
+            Role = request.Role,
+            AssignedRouteId = request.AssignedRouteId
         };
 
         // 3. Map Branches if provided

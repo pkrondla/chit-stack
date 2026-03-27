@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Table, Typography, Button, Spin, Alert, App, Divider, Space, Tag, List, Badge } from 'antd';
+import { Card, Table, Typography, Button, Spin, Alert, App, Divider, Space, Tag, List, Badge, Row, Col } from 'antd';
 import { CheckCircle2, ChevronLeft, IndianRupee, Printer, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
@@ -14,17 +14,19 @@ const RouteSummary = () => {
     const queryClient = useQueryClient();
     const user = useAuthStore(state => state.user);
 
-    const { data: routeMembers = [], isLoading } = useQuery({
-        queryKey: ['agent-route-summary'],
+    const { data: receipts = [], isLoading } = useQuery({
+        queryKey: ['agent-receipts'],
         queryFn: async () => {
-            const res = await api.get('/Collections/route-members');
-            return res.data.data || res.data;
+            const res = await api.get('/Collections/agent-receipts');
+            return res.data.data || [];
         }
     });
 
-    // Actually, we need to get PENDING RECEIPTS specifically
-    // But for the demo, we can show members who paid with AgentId
-    
+    const totalCollected = receipts.reduce((acc, r) => acc + (r.amount || 0), 0);
+    const cashTotal = receipts.filter(r => r.paymentMode === 'Cash').reduce((acc, r) => acc + (r.amount || 0), 0);
+    const chequeTotal = receipts.filter(r => r.paymentMode === 'Cheque').reduce((acc, r) => acc + (r.amount || 0), 0);
+    const digitalTotal = totalCollected - cashTotal - chequeTotal;
+
     const closeBatchMutation = useMutation({
         mutationFn: async () => {
             const res = await api.post('/Collections/close-batch', { agentId: user.id });
@@ -41,9 +43,6 @@ const RouteSummary = () => {
     });
 
     if (isLoading) return <div className="p-12 text-center"><Spin size="large" /></div>;
-
-    const collectedMembers = routeMembers.filter(m => m.totalOutstanding === 0);
-    const totalCollected = collectedMembers.length * 5000; // Mock total for demo if Backend doesn't return list
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -65,17 +64,37 @@ const RouteSummary = () => {
 
             <Row gutter={[24, 24]} className="mb-6">
                 <Col xs={24} md={12}>
-                    <Card className="shadow-xl border-0 rounded-3xl h-full bg-slate-900 border-b-8 border-blue-600" styles={{ body: { padding: '2.5rem 2rem' } }}>
-                        <Text className="text-slate-500 font-bold uppercase text-xs tracking-widest block mb-1">Field Wallet Total</Text>
-                        <Title level={1} className="!text-white !mb-6 font-black text-px26">₹{totalCollected.toLocaleString()}</Title>
+                    <Card 
+                        className="shadow-xl border-0 rounded-3xl h-full border-b-8 border-blue-600" 
+                        style={{ background: '#0f172a' }}
+                        styles={{ body: { padding: '2.5rem 2rem', background: 'transparent' } }}
+                    >
+                        <Text className="!text-white/50 font-black uppercase text-[10px] tracking-[0.2em] block mb-2">Field Wallet Total</Text>
+                        <Title level={1} className="!text-white !mb-4 font-black !text-4xl tracking-tighter">₹{totalCollected.toLocaleString()}</Title>
+                        
+                        <div className="grid grid-cols-3 gap-2 mb-8">
+                            <div className="bg-white/5 p-2.5 rounded-2xl border border-white/10 text-center">
+                                <Text className="!text-white/40 text-[8px] uppercase font-bold block mb-1">Physical Cash</Text>
+                                <Text className="!text-green-400 font-bold text-sm">₹{cashTotal.toLocaleString()}</Text>
+                            </div>
+                            <div className="bg-white/5 p-2.5 rounded-2xl border border-white/10 text-center">
+                                <Text className="!text-white/40 text-[8px] uppercase font-bold block mb-1">Cheques</Text>
+                                <Text className="!text-orange-400 font-bold text-sm">₹{chequeTotal.toLocaleString()}</Text>
+                            </div>
+                            <div className="bg-white/5 p-2.5 rounded-2xl border border-white/10 text-center">
+                                <Text className="!text-white/40 text-[8px] uppercase font-bold block mb-1">Digital/UPI</Text>
+                                <Text className="!text-blue-400 font-bold text-sm">₹{digitalTotal.toLocaleString()}</Text>
+                            </div>
+                        </div>
+
                         <div className="flex justify-between items-center pt-6 border-t border-white/10">
                             <div className="flex flex-col">
-                                <Text className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Confirmed Stops</Text>
-                                <Text className="text-blue-400 font-black text-xl">{collectedMembers.length}</Text>
+                                <Text className="!text-white/50 font-bold uppercase text-[9px] tracking-[0.15em]">Total Collections</Text>
+                                <Text className="!text-blue-400 font-black text-2xl">{receipts.length}</Text>
                             </div>
                             <div className="flex flex-col text-right">
-                                <Text className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Pending Sync</Text>
-                                <Text className="text-orange-400 font-black text-xl">{collectedMembers.length}</Text>
+                                <Text className="!text-white/50 font-bold uppercase text-[9px] tracking-[0.15em]">Unverified</Text>
+                                <Text className="!text-orange-400 font-black text-2xl">{receipts.length}</Text>
                             </div>
                         </div>
                     </Card>
@@ -112,10 +131,10 @@ const RouteSummary = () => {
             <Card className="shadow-xl border-0 rounded-3xl overflow-hidden p-0" styles={{ body: { padding: 0 } }}>
                 <div className="bg-white p-6 border-b flex justify-between items-center">
                    <Title level={4} className="!mb-0">Session Transaction Log</Title>
-                   <Tag color="cyan" className="rounded-full px-4 font-bold border-none h-8 flex items-center">{collectedMembers.length} Transactions</Tag>
+                   <Tag color="cyan" className="rounded-full px-4 font-bold border-none h-8 flex items-center">{receipts.length} Transactions</Tag>
                 </div>
                 <List
-                    dataSource={collectedMembers}
+                    dataSource={receipts}
                     renderItem={item => (
                         <List.Item className="px-8 py-5 border-b last:border-0 hover:bg-slate-50 group">
                             <div className="flex items-center justify-between w-full">
@@ -124,12 +143,12 @@ const RouteSummary = () => {
                                          <CheckCircle2 size={24} />
                                     </div>
                                     <div>
-                                        <Text strong className="block text-slate-800">{item.fullName}</Text>
-                                        <Text className="text-slate-400 text-xs">{dayjs().format('HH:mm')} • Cash Collection</Text>
+                                        <Text strong className="block text-slate-800">{item.memberName}</Text>
+                                        <Text className="text-slate-400 text-xs">{dayjs(item.date).format('HH:mm')} • {item.paymentMode}</Text>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <Text className="font-black text-slate-900 text-lg">₹5,000</Text>
+                                    <Text className="font-black text-slate-900 text-lg">₹{(item.amount || 0).toLocaleString()}</Text>
                                     <ArrowRight size={16} className="inline ml-3 text-slate-200 group-hover:text-slate-900 transition-all group-hover:translate-x-1" />
                                 </div>
                             </div>

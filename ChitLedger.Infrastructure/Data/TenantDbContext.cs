@@ -74,19 +74,25 @@ public class TenantDbContext : DbContext, IApplicationDbContext
             .IsUnique();
         
         // Multi-tenancy and Branch Filters (Combined to prevent overwriting)
-        builder.Entity<ChitGroup>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<Ticket>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<Auction>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<Receipt>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<Demand>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<JournalEntry>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<JournalEntryLine>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<AuctionAttendance>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<AuctionBid>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<CollectionRoute>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
-        builder.Entity<CollectionSubmission>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<ChitGroup>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<Ticket>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<Auction>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<Receipt>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<Demand>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<JournalEntry>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<JournalEntryLine>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<AuctionAttendance>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<AuctionBid>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<CollectionRoute>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
+        builder.Entity<CollectionSubmission>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
         
         builder.Entity<Member>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        builder.Entity<Member>().Property(x => x.Latitude).HasPrecision(18, 6);
+        builder.Entity<Member>().Property(x => x.Longitude).HasPrecision(18, 6);
+        
+        builder.Entity<Receipt>().Property(x => x.Latitude).HasPrecision(18, 6);
+        builder.Entity<Receipt>().Property(x => x.Longitude).HasPrecision(18, 6);
+        
         builder.Entity<AccountHead>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<User>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
 
@@ -145,7 +151,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         
         foreach (var entry in ChangeTracker.Entries<BranchEntity>())
         {
-            if (entry.State == EntityState.Added && entry.Entity.BranchId == 0 && _branchService.BranchId.HasValue)
+            if (entry.State == EntityState.Added && !entry.Entity.BranchId.HasValue && _branchService.BranchId.HasValue)
             {
                 entry.Entity.BranchId = _branchService.BranchId.Value;
             }

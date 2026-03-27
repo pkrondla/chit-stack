@@ -16,6 +16,7 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public List<int> BranchIds { get; set; } = new();
+    public int? AssignedRouteId { get; set; }
 }
 
 public class GetUsersQuery : IRequest<Result<List<UserDto>>>
@@ -49,6 +50,7 @@ public class UserProfile : Profile
     public UserProfile()
     {
         CreateMap<User, UserDto>()
-            .ForMember(d => d.BranchIds, opt => opt.MapFrom(s => s.UserBranches.Select(ub => ub.BranchId).ToList()));
+            .ForMember(d => d.BranchIds, opt => opt.MapFrom(s => s.UserBranches.Select(ub => ub.BranchId).ToList()))
+            .ForMember(d => d.AssignedRouteId, opt => opt.MapFrom(s => s.AssignedRouteId));
     }
 }

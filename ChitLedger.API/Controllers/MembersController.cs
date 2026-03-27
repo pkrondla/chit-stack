@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ChitLedger.API.Controllers;
 
-[Authorize(Roles = "Admin,Manager,Staff")]
+[Authorize(Roles = "Admin,Manager,Staff,Agent")]
 [ApiController]
 [Route("api/[controller]")]
 public class MembersController : ControllerBase

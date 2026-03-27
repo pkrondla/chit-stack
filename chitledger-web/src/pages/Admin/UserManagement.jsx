@@ -28,6 +28,14 @@ const UserManagement = () => {
         }
     });
 
+    const { data: routes = [] } = useQuery({
+        queryKey: ['routesByBranch'],
+        queryFn: async () => {
+            const res = await api.get('/Collections/routes');
+            return res.data.data || res.data;
+        }
+    });
+
     const createMutation = useMutation({
         mutationFn: async (formData) => {
             const res = await api.post('/Users', formData);
@@ -76,7 +84,8 @@ const UserManagement = () => {
             username: user.username,
             email: user.email,
             role: user.role,
-            branchIds: user.branchIds || []
+            branchIds: user.branchIds || [],
+            assignedRouteId: user.assignedRouteId
         });
         setIsModalOpen(true);
     };
@@ -178,9 +187,21 @@ const UserManagement = () => {
                         <Select size="large">
                             <Select.Option value="Staff">Staff</Select.Option>
                             <Select.Option value="Manager">Manager</Select.Option>
+                            <Select.Option value="Agent">Agent</Select.Option>
                             <Select.Option value="Auditor">Auditor</Select.Option>
                             <Select.Option value="Admin">Admin</Select.Option>
                         </Select>
+                    </Form.Item>
+                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.role !== curr.role}>
+                        {({ getFieldValue }) => getFieldValue('role') === 'Agent' && (
+                            <Form.Item name="assignedRouteId" label="Assigned Route" rules={[{ required: true }]}>
+                                <Select size="large" placeholder="Select Route">
+                                    {routes.map(r => (
+                                        <Select.Option key={r.id} value={r.id}>{r.routeName}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        )}
                     </Form.Item>
                     <Form.Item
                         name="branchIds"

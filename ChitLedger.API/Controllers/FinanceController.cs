@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ChitLedger.API.Controllers;
 
-[Authorize(Roles = "Admin,Manager")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class FinanceController : ControllerBase
@@ -25,6 +25,7 @@ public class FinanceController : ControllerBase
         _mediator = mediator;
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("generate-demands")]
     public async Task<ActionResult<Result<int>>> GenerateDemands(GenerateDemandsCommand command)
     {
@@ -33,6 +34,7 @@ public class FinanceController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager,Agent")]
     [HttpPost("pay")]
     public async Task<ActionResult<Result<int>>> Pay(RecordPaymentCommand command)
     {
@@ -41,6 +43,7 @@ public class FinanceController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("payout")]
     public async Task<ActionResult<Result<int>>> Payout(DisbursePaymentCommand command)
     {
@@ -49,12 +52,14 @@ public class FinanceController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("calc-penalties")]
     public async Task<ActionResult<Result<int>>> CalculatePenalties()
     {
         return Ok(await _mediator.Send(new CalculatePenaltiesCommand()));
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("cheque-bounce")]
     public async Task<ActionResult<Result<int>>> ChequeBounce(HandleChequeBounceCommand command)
     {
@@ -63,6 +68,7 @@ public class FinanceController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("reconcile")]
     public async Task<ActionResult<Result<int>>> Reconcile(ReconcileTransactionsCommand command)
     {
@@ -71,6 +77,7 @@ public class FinanceController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("journal")]
     public async Task<ActionResult<Result<int>>> CreateJournal(CreateJournalEntryCommand command)
     {
@@ -79,6 +86,7 @@ public class FinanceController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpGet("gstr1")]
     public async Task<IActionResult> GetGstr1([FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? branchId)
     {
@@ -88,6 +96,7 @@ public class FinanceController : ControllerBase
         return File(result.Data, "text/csv", $"GSTR1_{from:yyyyMMdd}_{to:yyyyMMdd}.csv");
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpGet("gstr1-data")]
     public async Task<ActionResult<Result<List<Gstr1EntryDto>>>> GetGstr1Data([FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? branchId)
     {

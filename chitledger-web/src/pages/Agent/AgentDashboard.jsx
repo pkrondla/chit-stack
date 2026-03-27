@@ -19,27 +19,53 @@ const AgentDashboard = () => {
         }
     });
 
-    const collectedMembers = routeMembers.filter(m => m.totalOutstanding === 0).length;
-    const pendingMembers = routeMembers.filter(m => m.totalOutstanding > 0).length;
-    const totalOutstanding = routeMembers.reduce((acc, m) => acc + m.totalOutstanding, 0);
+    const memberList = Array.isArray(routeMembers) ? routeMembers : [];
+    const collectedMembers = memberList.filter(m => m.totalOutstanding <= 0).length;
+    const pendingMembers = memberList.filter(m => m.totalOutstanding > 0).length;
+    const totalOutstanding = memberList.reduce((acc, m) => acc + (m.totalOutstanding || 0), 0);
 
     if (isLoading) return <div className="flex justify-center p-12"><Spin size="large" /></div>;
 
+    if (!Array.isArray(routeMembers)) {
+        return (
+            <div className="max-w-4xl mx-auto p-12 text-center bg-white rounded-3xl shadow-sm border border-slate-100">
+                <Title level={4} className="text-slate-800">No Route Assigned</Title>
+                <Text className="text-slate-500 block mb-6">Please contact your administrator to assign a collection route to your account.</Text>
+                <div className="p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <Users size={48} className="mx-auto text-slate-300 mb-4" />
+                    <Text type="secondary" italic>An active route is required to view member collection status.</Text>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-900 p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+            <div 
+                className="flex flex-col md:flex-row justify-between items-center mb-8 bg-slate-900 rounded-3xl text-white shadow-xl relative overflow-hidden"
+                style={{ paddingTop: '35px', paddingBottom: '35px', paddingLeft: '30px', paddingRight: '30px' }}
+            >
                 <div className="relative z-10 w-full md:w-auto mb-4 md:mb-0">
-                    <Text className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Assigned Route</Text>
-                    <Title level={2} className="!text-white !mb-1 text-2xl md:text-3xl">Active Collection Route</Title>
-                    <div className="flex items-center gap-2 text-blue-400">
-                        <MapPin size={16} /> <span className="text-sm font-medium">{pendingMembers} Stops Remaining</span>
+                    <div className="uppercase tracking-[0.2em] text-[10px] mb-2 font-bold" style={{ color: '#94a3b8' }}>Assigned Route</div>
+                    <Title level={2} className="!text-white !mb-1 text-2xl md:text-3xl tracking-tight">Active Collection Route</Title>
+                    <div className="flex items-center gap-2 font-bold" style={{ color: '#818cf8' }}>
+                        <MapPin size={16} /> <span className="text-sm">{pendingMembers} Stops Remaining</span>
                     </div>
                 </div>
                 <div className="text-left md:text-right relative z-10 w-full md:w-auto">
-                    <Text className="text-slate-400 block text-[10px] uppercase font-bold mb-1">Expected Collection</Text>
-                    <Title level={1} className="!text-white !mb-0 font-black text-3xl md:text-4xl">
+                    <div className="uppercase font-bold tracking-[0.2em] mb-2 text-[10px]" style={{ color: '#94a3b8' }}>Expected Collection</div>
+                    <Title level={1} className="!text-white !mb-4 font-black text-3xl md:text-4xl tracking-tighter">
                         ₹{totalOutstanding.toLocaleString()}
                     </Title>
+                    <Button 
+                        size="small" 
+                        shape="round" 
+                        icon={<History size={14}/>} 
+                        className="bg-white/10 border-white/20 text-white font-bold hover:bg-white hover:text-slate-900 transition-all"
+                        onClick={() => navigate('/agent/summary')}
+                    >
+                        View Collection Log
+                    </Button>
                 </div>
                 {/* Decorative circle */}
                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl"></div>
@@ -92,10 +118,10 @@ const AgentDashboard = () => {
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all ${item.totalOutstanding === 0 ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-600 group-hover:text-white'}`}>
                                         {item.totalOutstanding === 0 ? <CheckCircle2 size={24} /> : item.fullName.charAt(0)}
                                     </div>
-                                    <div>
-                                        <Title level={5} className="!mb-0">{item.fullName}</Title>
-                                        <Text className="text-slate-400 text-xs truncate max-w-[150px] inline-block">{item.address || 'No address specified'}</Text>
-                                    </div>
+                                     <div className="flex-1">
+                                         <Title level={5} className="!mb-0">{item.fullName}</Title>
+                                         <Text className="text-slate-400 text-[11px] block mt-0.5 leading-tight">{item.address || 'No address specified'}</Text>
+                                     </div>
                                 </div>
                                 <div className="text-right flex items-center gap-6">
                                     <div className="hidden sm:block">
@@ -127,14 +153,18 @@ const AgentDashboard = () => {
                 </div>
             </Card>
 
-            <Card className="bg-blue-600 border-0 rounded-3xl p-6 shadow-lg shadow-blue-200">
+            <Card 
+                className="border-0 rounded-3xl shadow-lg shadow-blue-200"
+                style={{ background: '#2563eb' }}
+                styles={{ body: { padding: '1.5rem 2rem', background: 'transparent' } }}
+            >
                 <div className="flex flex-col sm:flex-row items-center justify-between text-white gap-6">
                     <div className="flex items-center gap-4">
                         <div className="bg-white/20 p-3 rounded-2xl shrink-0">
-                            <IndianRupee size={24} />
+                            <IndianRupee size={24} className="text-white" />
                         </div>
                         <div>
-                            <Text className="text-blue-100 block text-[10px] font-bold uppercase tracking-widest">End of Route Submission</Text>
+                            <Text className="!text-white/60 block text-[10px] font-bold uppercase tracking-widest mb-1">End of Route Submission</Text>
                             <Title level={4} className="!text-white !mb-0">Submit Day's Collections</Title>
                         </div>
                     </div>
