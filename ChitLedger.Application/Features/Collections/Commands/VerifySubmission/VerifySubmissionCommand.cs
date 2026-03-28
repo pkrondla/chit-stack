@@ -18,13 +18,15 @@ public class VerifySubmissionHandler : IRequestHandler<VerifySubmissionCommand, 
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly INotificationService _notificationService;
 
-    public VerifySubmissionHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, ICurrentUserService currentUserService)
+    public VerifySubmissionHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, ICurrentUserService currentUserService, INotificationService notificationService)
     {
         _context = context;
         _journalService = journalService;
         _accountService = accountService;
         _currentUserService = currentUserService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<int>> Handle(VerifySubmissionCommand request, CancellationToken cancellationToken)
@@ -75,6 +77,15 @@ public class VerifySubmissionHandler : IRequestHandler<VerifySubmissionCommand, 
         submission.Remarks = request.Remarks;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify Agent
+        var agentValues = new Dictionary<string, string>
+        {
+            { "Date", submission.SubmissionDate.ToShortDateString() },
+            { "Amount", submission.TotalAmount.ToString("N2") },
+            { "Status", "Verified" }
+        };
+        await _notificationService.SendUserTemplatedNotificationAsync(submission.AgentId, "ReconciliationApproval", agentValues);
 
         return Result<int>.Success(submission.Id);
     }

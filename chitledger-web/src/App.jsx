@@ -45,6 +45,7 @@ const SubmissionReconciliation = lazy(() => import('./pages/Admin/SubmissionReco
 const RouteManagement = lazy(() => import('./pages/Admin/RouteManagement'));
 const MemberPassbookSelector = lazy(() => import('./pages/Shared/MemberPassbookSelector'));
 const Notifications = lazy(() => import('./pages/Shared/Notifications'));
+const AdminNotifications = lazy(() => import('./pages/Admin/Notifications'));
 
 // Placeholder Pages
 const Dashboard = () => {
@@ -118,6 +119,7 @@ function App() {
             <Route path="admin/auditor" element={<AuditorDashboard />} />
             <Route path="admin/reconciliation" element={<SubmissionReconciliation />} />
             <Route path="admin/routes" element={<RouteManagement />} />
+            <Route path="admin/notifications" element={<AdminNotifications />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

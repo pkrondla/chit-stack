@@ -19,15 +19,17 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
     private readonly IAuctionNotificationService _notificationService;
+    private readonly INotificationService _persistentNotificationService;
     private readonly ISender _sender;
 
-    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService, ISender sender)
+    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService, INotificationService persistentNotificationService, ISender sender)
     {
         _context = context;
         _gstService = gstService;
         _journalService = journalService;
         _accountService = accountService;
         _notificationService = notificationService;
+        _persistentNotificationService = persistentNotificationService;
         _sender = sender;
     }
 
@@ -172,6 +174,38 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // 6. Send Automated Persistent Notifications
+        // 6.1 Notify Winner
+        if (auction.WinningTicket?.MemberId != null)
+        {
+            var winnerValues = new Dictionary<string, string>
+            {
+                { "MemberName", auction.WinningTicket.Member.FullName },
+                { "ChitGroup", auction.ChitGroup.GroupName },
+                { "BidAmount", auction.WinningBidAmount.ToString("N2") },
+                { "Payout", auction.NetPayableAmount.ToString("N2") }
+            };
+            await _persistentNotificationService.SendTemplatedNotificationAsync(auction.WinningTicket.MemberId.Value, "AuctionWinner", winnerValues);
+        }
+
+        // 6.2 Notify All Members about Dividend
+        // Fetch all member IDs in this group
+        var groupMembers = await _context.Tickets
+            .Where(t => t.ChitGroupId == auction.ChitGroupId && t.MemberId != null)
+            .Select(t => new { t.MemberId, t.TicketNumber })
+            .ToListAsync(cancellationToken);
+
+        foreach (var m in groupMembers)
+        {
+            var divValues = new Dictionary<string, string>
+            {
+                { "Amount", auction.DividendAmount.ToString("N2") },
+                { "ChitGroup", auction.ChitGroup.GroupName },
+                { "NetInstallment", (auction.ChitGroup.InstallmentAmount - auction.DividendAmount).ToString("N2") }
+            };
+            await _persistentNotificationService.SendTemplatedNotificationAsync(m.MemberId.Value, "DividendCredit", divValues);
+        }
 
         // Notify Room
         await _notificationService.NotifyAuctionClosedAsync(

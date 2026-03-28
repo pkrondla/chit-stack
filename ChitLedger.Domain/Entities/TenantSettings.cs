@@ -63,4 +63,12 @@ public class TenantSettings : TenantEntity
     public int PaymentReminderDaysBefore { get; set; } = 3;
     public bool AutoAuctionRemindersEnabled { get; set; } = false;
     public int AuctionReminderHoursBefore { get; set; } = 24;
+
+    // Transactional Alert Toggles
+    public bool NotifyOnReceipt { get; set; } = true;
+    public bool NotifyOnAuctionWon { get; set; } = true;
+    public bool NotifyOnDividend { get; set; } = false;
+    public bool NotifyOnDemand { get; set; } = true;
+    public bool NotifyOnReconciliation { get; set; } = true;
+    public bool NotifyOnPayout { get; set; } = true;
 }

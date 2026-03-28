@@ -47,6 +47,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
     public DbSet<CollectionSubmission> CollectionSubmissions => Set<CollectionSubmission>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserNotificationSetting> UserNotificationSettings => Set<UserNotificationSetting>();
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -89,6 +90,7 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         builder.Entity<CollectionSubmission>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId && (_branchService.BranchId == null || x.BranchId == null || x.BranchId == _branchService.BranchId));
         builder.Entity<Notification>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<UserNotificationSetting>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        builder.Entity<NotificationTemplate>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         
         builder.Entity<Member>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
         builder.Entity<Member>().Property(x => x.Latitude).HasPrecision(18, 6);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, List, Button, Typography, Space, Tag, Empty, Spin, message, Modal, Tabs } from 'antd';
 import { Bell, Trash2, CheckCircle2, Info, TriangleAlert, CircleCheck, CircleX, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api/axios';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -15,8 +15,8 @@ const Notifications = () => {
     const fetchNotifications = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`/api/notification?onlyUnread=${activeTab === 'unread'}`);
-            setNotifications(res.data);
+            const res = await api.get(`/notification?onlyUnread=${activeTab === 'unread'}`);
+            setNotifications(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             message.error('Failed to fetch notifications');
         } finally {
@@ -30,7 +30,7 @@ const Notifications = () => {
 
     const markAsRead = async (id) => {
         try {
-            await axios.post(`/api/notification/${id}/read`);
+            await api.post(`/notification/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
         } catch (err) {
             message.error('Failed to mark as read');
@@ -39,7 +39,7 @@ const Notifications = () => {
 
     const deleteNotification = async (id) => {
         try {
-            await axios.delete(`/api/notification/${id}`);
+            await api.delete(`/notification/${id}`);
             setNotifications(prev => prev.filter(n => n.id !== id));
             message.success('Notification deleted');
         } catch (err) {
@@ -49,7 +49,7 @@ const Notifications = () => {
 
     const markAllRead = async () => {
         try {
-            await axios.post('/api/notification/read-all');
+            await api.post('/notification/read-all');
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             message.success('All marked as read');
         } catch (err) {

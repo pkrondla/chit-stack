@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, Dropdown, Select } from 'antd';
 import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
-    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen
+    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen, Bell
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import useAuthStore from '../store/useAuthStore';
@@ -101,6 +101,7 @@ const Layout = () => {
                 { key: '/reports?tab=TrialBalance', label: 'Trial Balance' },
             ]
         },
+        { key: '/admin/notifications', icon: <Bell size={18} />, label: 'Notifications' },
         { type: 'divider' },
         {
             key: 'setupGrp', label: 'Setup', type: 'group', children: [

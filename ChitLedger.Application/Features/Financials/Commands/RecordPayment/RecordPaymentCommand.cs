@@ -29,12 +29,14 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
     private readonly IApplicationDbContext _context;
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
+    private readonly INotificationService _notificationService;
 
-    public RecordPaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService)
+    public RecordPaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, INotificationService notificationService)
     {
         _context = context;
         _journalService = journalService;
         _accountService = accountService;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<int>> Handle(RecordPaymentCommand request, CancellationToken cancellationToken)
@@ -59,6 +61,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
 
         var pendingDemands = await pendingDemandsQuery
             .Include(d => d.Ticket)
+            .ThenInclude(t => t.Member)
             .Include(d => d.Ticket.ChitGroup)
             .ToListAsync(cancellationToken);
 
@@ -237,6 +240,21 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             branchId,
             journalLines, 
             cancellationToken);
+
+        // 5. Send Automated Notification
+        if (targetTicket?.MemberId != null)
+        {
+            var placeholders = new Dictionary<string, string>
+            {
+                { "MemberName", targetTicket.Member?.FullName ?? "Member" },
+                { "Amount", request.Amount.ToString("N2") },
+                { "ChitGroup", targetTicket.ChitGroup?.GroupName ?? "Chit" },
+                { "Balance", (targetTicket.AdvanceBalance * -1).ToString("N2") }, // Show as advance or due
+                { "ReceiptNo", receipt.Id.ToString() }
+            };
+
+            await _notificationService.SendTemplatedNotificationAsync(targetTicket.MemberId.Value, "ReceiptConfirmation", placeholders);
+        }
 
         return Result<int>.Success(receipt.Id);
     }

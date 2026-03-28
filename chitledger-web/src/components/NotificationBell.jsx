@@ -4,7 +4,7 @@ import { Bell, CheckCheck, Trash2, Info, TriangleAlert, CircleCheck, CircleX } f
 import { useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import useAuthStore from '../store/useAuthStore';
-import axios from 'axios';
+import api from '../api/axios';
 
 const { Text } = Typography;
 
@@ -20,9 +20,10 @@ const NotificationBell = () => {
     const fetchNotifications = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('/api/notification?onlyUnread=false');
-            setNotifications(res.data);
-            setUnreadCount(res.data.filter(n => !n.isRead).length);
+            const res = await api.get('/notification?onlyUnread=false');
+            const data = Array.isArray(res.data) ? res.data : [];
+            setNotifications(data);
+            setUnreadCount(data.filter(n => !n.isRead).length);
         } catch (err) {
             console.error('Failed to fetch notifications', err);
         } finally {
@@ -33,8 +34,12 @@ const NotificationBell = () => {
     useEffect(() => {
         fetchNotifications();
 
+        const hubUrl = import.meta.env.VITE_API_URL 
+            ? `${import.meta.env.VITE_API_URL}/notificationHub`
+            : 'http://localhost:5045/notificationHub';
+
         const newConnection = new signalR.HubConnectionBuilder()
-            .withUrl(`${import.meta.env.VITE_API_URL || ''}/notificationHub`, {
+            .withUrl(hubUrl, {
                 accessTokenFactory: () => token
             })
             .withAutomaticReconnect()
@@ -60,7 +65,7 @@ const NotificationBell = () => {
 
     const markAsRead = async (id) => {
         try {
-            await axios.post(`/api/notification/${id}/read`);
+            await api.post(`/notification/${id}/read`);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (err) {
@@ -70,7 +75,7 @@ const NotificationBell = () => {
 
     const markAllAsRead = async () => {
         try {
-            await axios.post('/api/notification/read-all');
+            await api.post('/notification/read-all');
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
             setUnreadCount(0);
             message.success('All notifications marked as read');

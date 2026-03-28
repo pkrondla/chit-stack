@@ -22,12 +22,30 @@ public class NotificationService : INotificationService
         _logger = logger;
     }
 
-    public async Task SendNotificationAsync(int userId, string title, string message, NotificationType type = NotificationType.Info, string? actionUrl = null)
+    public async Task SendMemberNotificationAsync(int memberId, string title, string message, NotificationType type = NotificationType.Info, NotificationChannels? channels = null)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.MemberId == memberId);
+        if (user != null)
+        {
+            await SendNotificationAsync(user.Id, title, message, type, null, channels);
+        }
+        else
+        {
+            // Trigger external channels if enabled by admin/force or we skip since we don't have user-level toggles
+            // Here we'll just check for channel list provided by the admin.
+            if (channels?.WhatsApp == true) await SendWhatsAppAsync(0, title, message); // Need separate member-based senders
+            if (channels?.SMS == true) await SendSmsAsync(0, title, message);
+            if (channels?.Email == true) await SendEmailAsync(0, title, message);
+        }
+    }
+
+    public async Task SendNotificationAsync(int userId, string title, string message, NotificationType type = NotificationType.Info, string? actionUrl = null, NotificationChannels? channels = null)
     {
         var settings = await GetUserSettingsAsync(userId);
         
         // 1. In-Portal Notification
-        if (settings.InPortalEnabled)
+        bool sendInPortal = channels?.InPortal ?? settings.InPortalEnabled;
+        if (sendInPortal)
         {
             var notification = new Notification
             {
@@ -48,19 +66,19 @@ public class NotificationService : INotificationService
         }
         
         // 2. WhatsApp
-        if (settings.WhatsAppEnabled)
+        if (channels?.WhatsApp ?? settings.WhatsAppEnabled)
         {
             await SendWhatsAppAsync(userId, title, message);
         }
         
         // 3. SMS
-        if (settings.SmsEnabled)
+        if (channels?.SMS ?? settings.SmsEnabled)
         {
             await SendSmsAsync(userId, title, message);
         }
         
         // 4. Email
-        if (settings.EmailEnabled)
+        if (channels?.Email ?? settings.EmailEnabled)
         {
             await SendEmailAsync(userId, title, message);
         }
@@ -96,6 +114,58 @@ public class NotificationService : INotificationService
     {
         _context.UserNotificationSettings.Update(settings);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task SendTemplatedNotificationAsync(int memberId, string templateName, Dictionary<string, string> placeholders)
+    {
+        var result = await ProcessTemplateAsync(templateName, placeholders);
+        if (result != null)
+        {
+            await SendMemberNotificationAsync(memberId, result.Value.Title, result.Value.Message, NotificationType.Info);
+        }
+    }
+
+    public async Task SendUserTemplatedNotificationAsync(int userId, string templateName, Dictionary<string, string> placeholders)
+    {
+        var result = await ProcessTemplateAsync(templateName, placeholders);
+        if (result != null)
+        {
+            await SendNotificationAsync(userId, result.Value.Title, result.Value.Message, NotificationType.Info);
+        }
+    }
+
+    private async Task<(string Title, string Message)?> ProcessTemplateAsync(string templateName, Dictionary<string, string> placeholders)
+    {
+        var settings = await _context.TenantSettings.FirstOrDefaultAsync();
+        if (settings == null) return null;
+
+        // Check toggle
+        bool isEnabled = templateName switch
+        {
+            "ReceiptConfirmation" => settings.NotifyOnReceipt,
+            "AuctionWinner" => settings.NotifyOnAuctionWon,
+            "DividendCredit" => settings.NotifyOnDividend,
+            "DemandAlert" => settings.NotifyOnDemand,
+            "ReconciliationApproval" => settings.NotifyOnReconciliation,
+            "PayoutDisbursement" => settings.NotifyOnPayout,
+            _ => true
+        };
+
+        if (!isEnabled) return null;
+
+        var template = await _context.NotificationTemplates.FirstOrDefaultAsync(t => t.Name == templateName);
+        if (template == null || !template.IsEnabled) return null;
+
+        var title = template.TitleTemplate;
+        var message = template.MessageTemplate;
+
+        foreach (var placeholder in placeholders)
+        {
+            title = title.Replace($"{{{placeholder.Key}}}", placeholder.Value);
+            message = message.Replace($"{{{placeholder.Key}}}", placeholder.Value);
+        }
+
+        return (title, message);
     }
 
     private async Task SendWhatsAppAsync(int userId, string title, string message)

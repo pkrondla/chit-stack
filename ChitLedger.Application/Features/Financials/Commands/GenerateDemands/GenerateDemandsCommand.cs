@@ -14,10 +14,12 @@ public class GenerateDemandsCommand : IRequest<Result<int>>
 public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public GenerateDemandsHandler(IApplicationDbContext context)
+    public GenerateDemandsHandler(IApplicationDbContext context, INotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<int>> Handle(GenerateDemandsCommand request, CancellationToken cancellationToken)
@@ -25,6 +27,7 @@ public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Re
         var auction = await _context.Auctions
             .Include(a => a.ChitGroup)
             .ThenInclude(g => g.Tickets)
+            .ThenInclude(t => t.Member)
             .FirstOrDefaultAsync(a => a.Id == request.AuctionId, cancellationToken);
             
         if (auction == null) return Result<int>.Failure("Auction not found.");
@@ -80,6 +83,23 @@ public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Re
 
         _context.Demands.AddRange(demands);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify Members about new Demand
+        foreach (var ticket in auction.ChitGroup.Tickets)
+        {
+            if (ticket.MemberId.HasValue)
+            {
+                var placeholders = new Dictionary<string, string>
+                {
+                    { "Month", auction.AuctionDate.ToString("MMMM yyyy") },
+                    { "Amount", (auction.ChitGroup.InstallmentAmount - auction.DividendAmount).ToString("N2") },
+                    { "DueDate", auction.AuctionDate.ToShortDateString() },
+                    { "ChitGroup", auction.ChitGroup.GroupName }
+                };
+
+                await _notificationService.SendTemplatedNotificationAsync(ticket.MemberId.Value, "DemandAlert", placeholders);
+            }
+        }
 
         return Result<int>.Success(demands.Count);
     }
