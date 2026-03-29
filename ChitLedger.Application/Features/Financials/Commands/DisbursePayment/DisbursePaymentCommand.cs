@@ -71,10 +71,24 @@ public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Re
             creditAccountCode = resolveResult.Data;
         }
 
-        var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+        var journalLines = new List<JournalLinePostingDto>
         {
-            (payableAccount.Data, auction.NetPayableAmount, 0),
-            (creditAccountCode, 0, auction.NetPayableAmount)
+            new JournalLinePostingDto 
+            { 
+                AccountCode = payableAccount.Data, 
+                Debit = auction.NetPayableAmount,
+                MemberId = auction.WinningTicket?.MemberId,
+                ChitGroupId = auction.ChitGroupId,
+                AuctionId = auction.Id
+            },
+            new JournalLinePostingDto 
+            { 
+                AccountCode = creditAccountCode, 
+                Credit = auction.NetPayableAmount,
+                MemberId = auction.WinningTicket?.MemberId,
+                ChitGroupId = auction.ChitGroupId,
+                AuctionId = auction.Id
+            }
         };
 
         await _journalService.CreateEntryAsync(

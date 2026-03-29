@@ -133,25 +133,38 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         if (!cgstAccount.Succeeded) return Result<int>.Failure(cgstAccount.Errors.First());
         if (!sgstAccount.Succeeded) return Result<int>.Failure(sgstAccount.Errors.First());
 
-        var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+        var journalLines = new List<JournalLinePostingDto>
         {
             // Total amount members contribute for this auction (Prize + Fee + GST)
-            (receivableAccount.Data, auction.NetPayableAmount + commissionBase + totalGst, 0), 
+            new JournalLinePostingDto 
+            { 
+                AccountCode = receivableAccount.Data, 
+                Debit = auction.NetPayableAmount + commissionBase + totalGst, 
+                ChitGroupId = auction.ChitGroupId,
+                AuctionId = auction.Id
+            }, 
             
             // Amount we owe the winner
-            (prizePayableAccount.Data, 0, auction.NetPayableAmount),
+            new JournalLinePostingDto 
+            { 
+                AccountCode = prizePayableAccount.Data, 
+                Credit = auction.NetPayableAmount,
+                MemberId = auction.WinningTicket?.MemberId,
+                ChitGroupId = auction.ChitGroupId,
+                AuctionId = auction.Id
+            },
             
             // Foreman's earnings
-            (incomeAccount.Data, 0, commissionBase),
-            (cgstAccount.Data, 0, cgst),
-            (sgstAccount.Data, 0, sgst)
+            new JournalLinePostingDto { AccountCode = incomeAccount.Data, Credit = commissionBase, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id },
+            new JournalLinePostingDto { AccountCode = cgstAccount.Data, Credit = cgst, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id },
+            new JournalLinePostingDto { AccountCode = sgstAccount.Data, Credit = sgst, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id }
         };
         
         if (totalTds > 0)
         {
             var tdsAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.TdsLiability, cancellationToken);
             if (!tdsAccount.Succeeded) return Result<int>.Failure(tdsAccount.Errors.First());
-            journalLines.Add((tdsAccount.Data, 0, totalTds));
+            journalLines.Add(new JournalLinePostingDto { AccountCode = tdsAccount.Data, Credit = totalTds, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id });
         }
         
         var journalResult = await _journalService.CreateEntryAsync(

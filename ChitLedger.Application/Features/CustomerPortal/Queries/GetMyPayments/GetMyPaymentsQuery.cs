@@ -27,9 +27,12 @@ public class MyDemandDto
     public int DemandId { get; set; }
     public string GroupName { get; set; } = string.Empty;
     public int InstallmentNumber { get; set; }
-    public decimal TotalAmount { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal DividendAmount { get; set; }
+    public decimal NetAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal BalanceAmount { get; set; }
+    public decimal PenaltyAmount { get; set; }
     public DateTime DueDate { get; set; }
 }
 
@@ -91,15 +94,22 @@ public class GetMyPaymentsHandler : IRequestHandler<GetMyPaymentsQuery, Result<M
             .OrderBy(d => d.Auction.AuctionDate)
             .ToListAsync(cancellationToken);
 
-        response.PendingDemands = demands.Select(d => new MyDemandDto
+        response.PendingDemands = demands.Select(d => 
         {
-            DemandId = d.Id,
-            GroupName = d.Ticket?.ChitGroup?.GroupName ?? "Unknown Group",
-            InstallmentNumber = d.Auction?.InstallmentNumber ?? 0,
-            TotalAmount = d.NetAmount,
-            PaidAmount = d.CollectedAmount,
-            BalanceAmount = d.NetAmount - d.CollectedAmount,
-            DueDate = d.Auction?.AuctionDate.AddDays(5) ?? DateTime.Now.AddDays(5) // Assuming 5 days grace period
+            var calc = ChitLedger.Application.Common.Helpers.PenaltyCalculator.Calculate(d, d.Ticket!.ChitGroup!);
+            return new MyDemandDto
+            {
+                DemandId = d.Id,
+                GroupName = d.Ticket?.ChitGroup?.GroupName ?? "Unknown Group",
+                InstallmentNumber = d.Auction?.InstallmentNumber ?? 0,
+                GrossAmount = d.GrossAmount,
+                DividendAmount = d.DividendAmount,
+                NetAmount = d.NetAmount,
+                PaidAmount = d.CollectedAmount,
+                BalanceAmount = calc.TotalOutstanding,
+                PenaltyAmount = calc.EffectivePenalty,
+                DueDate = d.Auction?.AuctionDate.AddDays(d.Ticket.ChitGroup.GracePeriodDays) ?? DateTime.Now.AddDays(5)
+            };
         }).ToList();
 
         return Result<MemberPaymentsSummaryDto>.Success(response);

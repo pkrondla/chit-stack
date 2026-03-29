@@ -23,6 +23,8 @@ public class LedgerEntryDto
 public class GetLedgerQuery : IRequest<Result<List<LedgerEntryDto>>>
 {
     public int AccountHeadId { get; set; }
+    public int? MemberId { get; set; }
+    public int? ChitGroupId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public bool UnreconciledOnly { get; set; }
@@ -41,12 +43,30 @@ public class GetLedgerHandler : IRequestHandler<GetLedgerQuery, Result<List<Ledg
 
     public async Task<Result<List<LedgerEntryDto>>> Handle(GetLedgerQuery request, CancellationToken cancellationToken)
     {
-        var account = await _context.AccountHeads.FindAsync(new object[] { request.AccountHeadId }, cancellationToken);
-        if (account == null) return Result<List<LedgerEntryDto>>.Failure("Account Head not found.");
+        // Handle virtual IDs from Trial Balance (negative IDs are sub-ledger nodes)
+        if (request.AccountHeadId <= 0 && request.MemberId == null && request.ChitGroupId == null)
+        {
+            return Result<List<LedgerEntryDto>>.Failure("Account Head ID required.");
+        }
 
         var query = _context.JournalEntryLines
             .Include(l => l.JournalEntry)
-            .Where(l => l.AccountHeadId == request.AccountHeadId);
+            .AsQueryable();
+
+        if (request.AccountHeadId > 0)
+        {
+            query = query.Where(l => l.AccountHeadId == request.AccountHeadId);
+        }
+
+        if (request.MemberId.HasValue)
+        {
+            query = query.Where(l => l.MemberId == request.MemberId.Value);
+        }
+
+        if (request.ChitGroupId.HasValue)
+        {
+            query = query.Where(l => l.ChitGroupId == request.ChitGroupId.Value);
+        }
 
         if (request.BranchId.HasValue)
         {
@@ -92,7 +112,7 @@ public class GetLedgerHandler : IRequestHandler<GetLedgerQuery, Result<List<Ledg
             })
             .ToListAsync(cancellationToken);
 
-        // Calculate simple running balance (starting from 0 for now)
+        // Calculate simple running balance
         decimal balance = 0;
         foreach (var line in lines)
         {

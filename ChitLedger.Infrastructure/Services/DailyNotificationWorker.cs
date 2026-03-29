@@ -2,50 +2,28 @@ using ChitLedger.Application.Common.Interfaces;
 using ChitLedger.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Hangfire;
 
 namespace ChitLedger.Infrastructure.Services;
 
-public class DailyNotificationWorker : BackgroundService
+public class DailyNotificationWorker : IDailyNotificationProcessor
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DailyNotificationWorker> _logger;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public DailyNotificationWorker(IServiceProvider serviceProvider, ILogger<DailyNotificationWorker> logger)
+    public DailyNotificationWorker(IServiceProvider serviceProvider, ILogger<DailyNotificationWorker> logger, IBackgroundJobClient backgroundJobClient)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _backgroundJobClient = backgroundJobClient;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            // Run daily at 9:00 AM
-            var now = DateTime.Now;
-            var nextRun = now.Date.AddDays(1).AddHours(9);
-            var delay = nextRun - now;
-
-            _logger.LogInformation("Next notification run at: {NextRun}", nextRun);
-            await Task.Delay(delay, stoppingToken);
-
-            try
-            {
-                await ProcessAutomatedNotifications();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing automated notifications");
-            }
-        }
-    }
-
-    private async Task ProcessAutomatedNotifications()
+    public async Task ProcessAutomatedNotifications()
     {
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TenantDbContext>();
-        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
         var settings = await context.TenantSettings.FirstOrDefaultAsync();
 
         if (settings == null) return;
@@ -62,11 +40,11 @@ public class DailyNotificationWorker : BackgroundService
 
             foreach (var demand in pendingDemands)
             {
-                // Find associated User for the Member
                 var user = await context.Users.FirstOrDefaultAsync(u => u.MemberId == demand.Ticket.MemberId);
                 if (user != null)
                 {
-                    await notificationService.SendPaymentReminderAsync(user.Id, demand.NetAmount, demand.DueDate);
+                    // Enqueue each reminder as an individual background job
+                    _backgroundJobClient.Enqueue<INotificationService>(s => s.SendPaymentReminderAsync(user.Id, demand.NetAmount, demand.DueDate));
                 }
             }
         }
@@ -74,7 +52,7 @@ public class DailyNotificationWorker : BackgroundService
         // 2. Auction Reminders
         if (settings.AutoAuctionRemindersEnabled)
         {
-            var targetAuctionDate = DateTime.Today.AddDays(1); // Placeholder: tomorrow's auctions
+            var targetAuctionDate = DateTime.Today.AddDays(1); 
             var upcomingAuctions = await context.Auctions
                 .Include(a => a.ChitGroup)
                 .Where(a => a.AuctionStatus == "Scheduled" && a.AuctionDate.Date == targetAuctionDate)
@@ -82,7 +60,6 @@ public class DailyNotificationWorker : BackgroundService
 
             foreach (var auction in upcomingAuctions)
             {
-                // Notify all members of the group
                 var tickets = await context.Tickets
                     .Include(t => t.Member)
                     .Where(t => t.ChitGroupId == auction.ChitGroupId)
@@ -93,7 +70,8 @@ public class DailyNotificationWorker : BackgroundService
                     var user = await context.Users.FirstOrDefaultAsync(u => u.MemberId == ticket.MemberId);
                     if (user != null)
                     {
-                        await notificationService.SendAuctionReminderAsync(user.Id, auction.ChitGroup.GroupName, auction.AuctionDate);
+                        // Enqueue each reminder as an individual background job
+                        _backgroundJobClient.Enqueue<INotificationService>(s => s.SendAuctionReminderAsync(user.Id, auction.ChitGroup.GroupName, auction.AuctionDate));
                     }
                 }
             }

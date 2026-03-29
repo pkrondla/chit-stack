@@ -66,7 +66,7 @@ public class GetMyChitsHandler : IRequestHandler<GetMyChitsQuery, Result<List<My
                 IsPrized = t.IsPrized,
                 CurrentInstallment = 0,
                 TotalPaid = myDemands.Sum(d => d.CollectedAmount),
-                BalanceToPay = myDemands.Sum(d => d.NetAmount - d.CollectedAmount)
+                BalanceToPay = myDemands.Sum(d => ChitLedger.Application.Common.Helpers.PenaltyCalculator.Calculate(d, t.ChitGroup!).TotalOutstanding)
             };
         }).ToList();
 

@@ -44,14 +44,19 @@ public class CreateJournalEntryHandler : IRequestHandler<CreateJournalEntryComma
             return Result<int>.Failure("Journal entry amount cannot be zero.");
 
         var serviceLines = request.Lines
-            .Select(x => (x.AccountCode, x.Debit, x.Credit))
+            .Select(x => new JournalLinePostingDto
+            {
+                AccountCode = x.AccountCode,
+                Debit = x.Debit,
+                Credit = x.Credit
+            })
             .ToList();
 
         var result = await _journalService.CreateEntryAsync(
             request.EntryType,
             request.EntryDate,
             request.Description,
-            null, // No related entity for generic journals
+            null,
             "General",
             request.BranchId,
             serviceLines,

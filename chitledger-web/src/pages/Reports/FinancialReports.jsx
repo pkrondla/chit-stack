@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Card, Typography, Tabs, DatePicker, Button, Select, Table, Space, message, Spin, Divider } from 'antd';
+import { Card, Typography, Tabs, DatePicker, Button, Select, Table, Space, message, Spin, Divider, TreeSelect } from 'antd';
 import { FileText, Download } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
@@ -36,6 +36,8 @@ const FinancialReports = () => {
 
     // Ledger State
     const [selectedAccount, setSelectedAccount] = useState(null);
+    const [selectedMember, setSelectedMember] = useState(null);
+    const [selectedGroup, setSelectedGroup] = useState(null);
     const [ledgerDates, setLedgerDates] = useState([dayjs().startOf('month'), dayjs()]);
     const [ledgerTrigger, setLedgerTrigger] = useState(0);
 
@@ -92,15 +94,29 @@ const FinancialReports = () => {
         enabled: activeTab === 'DayBook' && dayBookTrigger > 0 && !!dayBookDates?.[0] && !!dayBookDates?.[1]
     });
 
-    const { data: ledgerEntries = [], isFetching: isLoadingLedger } = useQuery({
-        queryKey: ['ledger', selectedAccount, ledgerDates?.[0]?.format('YYYY-MM-DD'), ledgerDates?.[1]?.format('YYYY-MM-DD'), ledgerTrigger, selectedBranch],
+    const { data: members = [] } = useQuery({
+        queryKey: ['members-list', selectedBranch],
         queryFn: async () => {
-            if (!selectedAccount || !ledgerDates?.[0] || !ledgerDates?.[1]) return [];
-            const branchParam = selectedBranch ? `&branchId=${selectedBranch}` : '';
-            const res = await api.get(`/Reporting/ledger/${selectedAccount}?startDate=${ledgerDates[0].format('YYYY-MM-DD')}&endDate=${ledgerDates[1].format('YYYY-MM-DD')}${branchParam}`);
+            const res = await api.get(`/Members${selectedBranch ? `?branchId=${selectedBranch}` : ''}`);
+            return res.data.data || res.data;
+        }
+    });
+
+    const { data: ledgerEntries = [], isFetching: isLoadingLedger } = useQuery({
+        queryKey: ['ledger', selectedAccount, selectedMember, selectedGroup, ledgerDates?.[0]?.format('YYYY-MM-DD'), ledgerDates?.[1]?.format('YYYY-MM-DD'), ledgerTrigger, selectedBranch],
+        queryFn: async () => {
+            if (!selectedAccount && !selectedMember && !selectedGroup) return [];
+            if (!ledgerDates?.[0] || !ledgerDates?.[1]) return [];
+            
+            let url = `/Reporting/ledger/${selectedAccount || 0}?startDate=${ledgerDates[0].format('YYYY-MM-DD')}&endDate=${ledgerDates[1].format('YYYY-MM-DD')}`;
+            if (selectedBranch) url += `&branchId=${selectedBranch}`;
+            if (selectedMember) url += `&memberId=${selectedMember}`;
+            if (selectedGroup) url += `&chitGroupId=${selectedGroup}`;
+            
+            const res = await api.get(url);
             return res.data.data || res.data;
         },
-        enabled: activeTab === 'Ledger' && !!selectedAccount && ledgerTrigger > 0 && !!ledgerDates?.[0] && !!ledgerDates?.[1]
+        enabled: activeTab === 'Ledger' && (!!selectedAccount || !!selectedMember || !!selectedGroup) && ledgerTrigger > 0 && !!ledgerDates?.[0] && !!ledgerDates?.[1]
     });
 
     const { data: gstrData = [], isFetching: isLoadingGSTR } = useQuery({
@@ -216,6 +232,61 @@ const FinancialReports = () => {
         { title: 'Total Value', dataIndex: 'invoiceValue', key: 'invoiceValue', align: 'right', render: (val) => val.toLocaleString() }
     ];
 
+    // Helper to build TreeSelect data with Virtual Sub-ledgers
+    const buildAccountTree = (data, pid = null) => {
+        return data
+            .filter(a => (a.parentId || (pid === null ? null : 0)) === pid)
+            .map(node => {
+                const children = buildAccountTree(data, node.id);
+                
+                // Inject virtual members under Member Receivables
+                if (node.systemRole === 'MemberReceivable' && members.length > 0) {
+                    members.forEach(m => {
+                        children.push({
+                            title: <span className="text-indigo-600 font-medium">{m.fullName} <small className="opacity-60">({m.phoneNumber})</small></span>,
+                            value: `M-${node.id}-${m.id}`, // Format: Kind-ParentID-ActualID
+                            key: `m-${m.id}`,
+                            selectable: true,
+                            isSubLedger: true
+                        });
+                    });
+                }
+
+                return {
+                    title: node.isGroup ? <span className="font-bold text-slate-500 uppercase">{node.accountName}</span> : <span>{node.accountName} <small className="text-slate-400">({node.accountCode})</small></span>,
+                    value: node.id.toString(),
+                    key: node.id,
+                    selectable: !node.isGroup,
+                    children: children.length > 0 ? children : undefined
+                };
+            });
+    };
+
+    const handleAccountSelect = (val) => {
+        if (!val) {
+            setSelectedAccount(null);
+            setSelectedMember(null);
+            setSelectedGroup(null);
+            return;
+        }
+
+        if (typeof val === 'string' && val.startsWith('M-')) {
+            const [, parentId, memberId] = val.split('-');
+            setSelectedAccount(parseInt(parentId));
+            setSelectedMember(parseInt(memberId));
+            setSelectedGroup(null);
+        } else if (typeof val === 'string' && val.startsWith('G-')) {
+            const [, parentId, groupId] = val.split('-');
+            setSelectedAccount(parseInt(parentId));
+            setSelectedGroup(parseInt(groupId));
+            setSelectedMember(null);
+        } else {
+            setSelectedAccount(parseInt(val));
+            setSelectedMember(null);
+            setSelectedGroup(null);
+        }
+    };
+
     const tabItems = [
         {
             key: 'DayBook',
@@ -261,26 +332,51 @@ const FinancialReports = () => {
             label: <span className="text-lg font-semibold px-4">General Ledger</span>,
             children: (
                 <div className="bg-white p-6 rounded-xl border border-slate-200">
-                    <div className="flex flex-col md:flex-row gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                        <div className="flex-[2]">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end mb-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <div className="lg:col-span-4">
                             <div className="text-sm font-semibold text-slate-600 mb-2">Select Account</div>
+                            <TreeSelect
+                                showSearch
+                                size="large"
+                                className="w-full"
+                                value={selectedMember ? `M-${selectedAccount}-${selectedMember}` : selectedGroup ? `G-${selectedAccount}-${selectedGroup}` : selectedAccount?.toString()}
+                                dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+                                placeholder="-- Select Account --"
+                                allowClear
+                                treeNodeFilterProp="title"
+                                treeDefaultExpandAll={false}
+                                onChange={handleAccountSelect}
+                                treeData={buildAccountTree(accounts)}
+                            />
+                        </div>
+                        <div className="lg:col-span-3">
+                            <div className="text-sm font-semibold text-slate-600 mb-2 flex justify-between">
+                                <span>OR Search Member</span>
+                                {selectedMember && <a className="text-xs text-indigo-600" onClick={() => setSelectedMember(null)}>Clear</a>}
+                            </div>
                             <Select
                                 size="large"
                                 className="w-full"
-                                placeholder="-- Select Account --"
-                                value={selectedAccount}
-                                onChange={setSelectedAccount}
+                                placeholder="Type Member Name..."
+                                value={selectedMember}
+                                onChange={(val) => {
+                                    const memberAcc = accounts.find(a => a.systemRole === 'MemberReceivable');
+                                    if (memberAcc) setSelectedAccount(memberAcc.id);
+                                    setSelectedMember(val);
+                                    setSelectedGroup(null);
+                                }}
                                 showSearch
                                 optionFilterProp="children"
+                                allowClear
                             >
-                                {accounts.map(acc => (
-                                    <Select.Option key={acc.id} value={acc.id}>
-                                        {acc.accountName} <span className="text-slate-400 text-xs ml-1">({acc.type})</span>
+                                {members.map(m => (
+                                    <Select.Option key={m.id} value={m.id}>
+                                        {m.fullName} <span className="text-slate-400 text-xs ml-1">({m.phoneNumber})</span>
                                     </Select.Option>
                                 ))}
                             </Select>
                         </div>
-                        <div className="flex-[2]">
+                        <div className="lg:col-span-3">
                             <div className="text-sm font-semibold text-slate-600 mb-2">Date Range</div>
                             <RangePicker
                                 size="large"
@@ -289,17 +385,36 @@ const FinancialReports = () => {
                                 onChange={setLedgerDates}
                             />
                         </div>
-                        <Button
-                            type="primary"
-                            size="large"
-                            onClick={() => setLedgerTrigger(t => t + 1)}
-                            disabled={!selectedAccount || !ledgerDates}
-                            loading={isLoadingLedger}
-                            className="bg-slate-900 font-bold px-8 flex-1 md:flex-none"
-                        >
-                            Generate Ledger
-                        </Button>
+                        <div className="lg:col-span-3">
+                            <Button
+                                type="primary"
+                                size="large"
+                                onClick={() => setLedgerTrigger(t => t + 1)}
+                                disabled={!selectedAccount && !selectedMember && !selectedGroup}
+                                loading={isLoadingLedger}
+                                className="bg-slate-900 font-bold w-full"
+                            >
+                                Generate Ledger
+                            </Button>
+                        </div>
                     </div>
+
+                    {(selectedMember || selectedGroup) && (
+                        <div className="mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-lg flex justify-between items-center">
+                            <span className="text-indigo-800 font-semibold flex items-center gap-2">
+                                <FileText size={16} /> 
+                                Viewing Sub-ledger for {selectedMember ? 'Specific Member' : 'Specific Group'} 
+                                <span className="text-xs font-normal opacity-75">(Main Account: {accounts.find(a => a.id === selectedAccount)?.accountName})</span>
+                            </span>
+                            <Button size="small" type="link" className="text-indigo-600 font-bold" onClick={() => {
+                                setSelectedMember(null);
+                                setSelectedGroup(null);
+                                setLedgerTrigger(t => t + 1);
+                            }}>
+                                Show Full Account
+                            </Button>
+                        </div>
+                    )}
 
                     <Table
                         columns={ledgerColumns}
@@ -373,17 +488,46 @@ const FinancialReports = () => {
                 <div className="bg-white p-6 rounded-xl border border-slate-200">
                     <Table
                         columns={[
-                            { title: 'Account', dataIndex: 'accountName' },
+                            { 
+                                title: 'Account', 
+                                dataIndex: 'accountName',
+                                render: (text, record) => (
+                                    record.isGroup ? 
+                                    <span className="font-bold text-slate-700">{text}</span> : 
+                                    <a 
+                                        className={`${record.isSubLedgerLine ? 'text-indigo-600' : 'text-blue-600'} hover:underline font-medium`}
+                                        onClick={() => {
+                                            if (record.isSubLedgerLine) {
+                                                setSelectedAccount(record.parentId);
+                                                setSelectedMember(record.memberId);
+                                                setSelectedGroup(record.chitGroupId);
+                                            } else {
+                                                setSelectedAccount(record.id);
+                                                setSelectedMember(null);
+                                                setSelectedGroup(null);
+                                            }
+                                            setLedgerTrigger(t => t + 1);
+                                            handleTabChange('Ledger');
+                                        }}
+                                    >
+                                        {text} {record.isSubLedgerLine && <span className="text-[10px] bg-indigo-50 px-1 rounded uppercase">Sub</span>}
+                                    </a>
+                                )
+                            },
                             { title: 'Debit', dataIndex: 'debitBalance', align: 'right', render: v => v > 0 ? v.toLocaleString() : '-' },
                             { title: 'Credit', dataIndex: 'creditBalance', align: 'right', render: v => v > 0 ? v.toLocaleString() : '-' }
                         ]}
                         dataSource={trialBalance?.lines || []}
                         pagination={false}
-                        rowKey="accountCode"
+                        rowKey="id"
+                        expandable={{
+                            childrenColumnName: 'children',
+                            defaultExpandAllRows: true
+                        }}
                         summary={() => (
                             <Table.Summary fixed>
                                 <Table.Summary.Row className="bg-slate-50 font-bold">
-                                    <Table.Summary.Cell index={0}>Total</Table.Summary.Cell>
+                                    <Table.Summary.Cell index={0}>Total (Root Levels)</Table.Summary.Cell>
                                     <Table.Summary.Cell index={1} align="right">₹{trialBalance?.totalDebit?.toLocaleString()}</Table.Summary.Cell>
                                     <Table.Summary.Cell index={2} align="right">₹{trialBalance?.totalCredit?.toLocaleString()}</Table.Summary.Cell>
                                 </Table.Summary.Row>

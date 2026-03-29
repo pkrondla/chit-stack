@@ -106,29 +106,12 @@ public class GetMemberDuesHandler : IRequestHandler<GetMemberDuesQuery, Result<M
 
             foreach (var d in pendingDemands)
             {
-                // Unpaid principal is Gross Principal minus whatever was collected AFTER paying the penalty
-                decimal principalAlreadyPaid = Math.Max(0, d.CollectedAmount - d.PenaltyAmount);
-                decimal livePenaltyBase = Math.Max(0, d.NetAmount - principalAlreadyPaid);
+                // Use shared helper for consistent calculation
+                var calculation = ChitLedger.Application.Common.Helpers.PenaltyCalculator.Calculate(d, ticket.ChitGroup);
+                decimal effectivePenalty = calculation.EffectivePenalty;
+                decimal currentRemainingTotal = calculation.TotalOutstanding;
+                int overdueDays = calculation.OverdueDays;
 
-                if (livePenaltyBase <= 0 && (d.NetAmount + d.PenaltyAmount - d.CollectedAmount) <= 0) continue;
-
-                // Live Pro-Rata Penalty Calculation on the remaining principal balance
-                int daysPastDue = (today - d.DueDate).Days;
-                decimal livePenalty = 0;
-                int overdueDays = 0;
-                if (daysPastDue > ticket.ChitGroup.GracePeriodDays && livePenaltyBase > 0)
-                {
-                    decimal monthlyRate = ticket.ChitGroup.LateFeePercent;
-                    decimal dailyRate = (monthlyRate / 100m) / 30m;
-                    livePenalty = Math.Round(livePenaltyBase * dailyRate * daysPastDue, 2);
-                    overdueDays = daysPastDue;
-                }
-
-                // Use the higher of already recorded penalty or live penalty
-                decimal effectivePenalty = Math.Max(d.PenaltyAmount, livePenalty);
-                
-                // Final balance check
-                decimal currentRemainingTotal = (d.NetAmount + effectivePenalty) - d.CollectedAmount;
                 if (currentRemainingTotal <= 0) continue;
 
                 decimal penaltyUnpaid = 0;
@@ -137,7 +120,7 @@ public class GetMemberDuesHandler : IRequestHandler<GetMemberDuesQuery, Result<M
                 if (d.CollectedAmount >= effectivePenalty)
                 {
                     penaltyUnpaid = 0;
-                    principalUnpaid = currentRemainingTotal;
+                    principalUnpaid = (d.NetAmount + effectivePenalty) - d.CollectedAmount;
                 }
                 else
                 {

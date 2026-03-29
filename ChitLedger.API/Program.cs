@@ -4,6 +4,7 @@ using ChitLedger.API.Middleware;
 using Serilog;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,17 @@ builder.Host.UseSerilog();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<ChitLedger.Infrastructure.Data.Seeding.InitialDataSeeder>();
+
+// Hangfire Configuration
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("TenantDBConnection")));
+builder.Services.AddHangfireServer(options =>
+{
+    options.Queues = new[] { "default", "notifications" };
+});
 
 // Context Accessor
 builder.Services.AddHttpContextAccessor();
@@ -48,7 +60,7 @@ builder.Services.AddAuthentication(options =>
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
             if (!string.IsNullOrEmpty(accessToken) && 
-                (path.StartsWithSegments("/auctionHub") || path.StartsWithSegments("/api/forms")))
+                (path.StartsWithSegments("/auctionHub") || path.StartsWithSegments("/notificationHub") || path.StartsWithSegments("/api/forms")))
             {
                 context.Token = accessToken;
             }
@@ -126,6 +138,9 @@ app.UseCors("AllowClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Hangfire Dashboard
+app.UseHangfireDashboard("/admin/hangfire");
+
 app.MapControllers();
 app.MapHub<ChitLedger.API.Hubs.AuctionHub>("/auctionHub");
 app.MapHub<ChitLedger.API.Hubs.NotificationHub>("/notificationHub");
@@ -142,6 +157,10 @@ using (var scope = app.Services.CreateScope())
     
     var seeder = scope.ServiceProvider.GetRequiredService<ChitLedger.Infrastructure.Data.Seeding.InitialDataSeeder>();
     await seeder.SeedAsync();
+
+    // Setup Recurring Jobs
+    RecurringJob.AddOrUpdate<ChitLedger.Infrastructure.Services.IDailyNotificationProcessor>("daily-automated-notifications", 
+        worker => worker.ProcessAutomatedNotifications(), Cron.Daily(9));
 }
 
 app.Run();

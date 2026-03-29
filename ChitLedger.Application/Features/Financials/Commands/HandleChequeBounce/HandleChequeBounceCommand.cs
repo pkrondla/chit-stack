@@ -48,13 +48,22 @@ public class HandleChequeBounceHandler : IRequestHandler<HandleChequeBounceComma
             // 2. Create Reversal Journal Entry
             // Debit: Member Receivable (Asset increasing again)
             // Credit: Cash/Bank (Asset decreasing)
-            var reversalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>();
+            var reversalLines = new List<JournalLinePostingDto>();
             foreach (var line in journalEntry.Lines)
             {
                 var account = await _context.AccountHeads.FindAsync(new object[] { line.AccountHeadId }, cancellationToken);
                 if (account != null)
                 {
-                    reversalLines.Add((account.AccountCode, line.CreditAmount, line.DebitAmount));
+                    reversalLines.Add(new JournalLinePostingDto 
+                    { 
+                        AccountCode = account.AccountCode, 
+                        Debit = line.CreditAmount, 
+                        Credit = line.DebitAmount,
+                        MemberId = line.MemberId,
+                        ChitGroupId = line.ChitGroupId,
+                        TicketId = line.TicketId,
+                        AuctionId = line.AuctionId
+                    });
                 }
             }
 
@@ -80,10 +89,26 @@ public class HandleChequeBounceHandler : IRequestHandler<HandleChequeBounceComma
             if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
             if (!bounceIncomeAccount.Succeeded) return Result<int>.Failure(bounceIncomeAccount.Errors.First());
 
-            var chargeLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+            var chargeLines = new List<JournalLinePostingDto>
             {
-                (receivableAccount.Data, request.BounceCharge, 0),
-                (bounceIncomeAccount.Data, 0, request.BounceCharge)
+                new JournalLinePostingDto 
+                { 
+                    AccountCode = receivableAccount.Data, 
+                    Debit = request.BounceCharge,
+                    MemberId = receipt.Ticket?.MemberId,
+                    ChitGroupId = receipt.Ticket?.ChitGroupId,
+                    TicketId = receipt.TicketId,
+                    AuctionId = receipt.AuctionId
+                },
+                new JournalLinePostingDto 
+                { 
+                    AccountCode = bounceIncomeAccount.Data, 
+                    Credit = request.BounceCharge,
+                    MemberId = receipt.Ticket?.MemberId,
+                    ChitGroupId = receipt.Ticket?.ChitGroupId,
+                    TicketId = receipt.TicketId,
+                    AuctionId = receipt.AuctionId
+                }
             };
 
             await _journalService.CreateEntryAsync(

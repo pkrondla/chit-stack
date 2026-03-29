@@ -3,6 +3,7 @@ using ChitLedger.Domain.Entities;
 using ChitLedger.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Hangfire;
 
 namespace ChitLedger.Infrastructure.Services;
 
@@ -11,15 +12,18 @@ public class NotificationService : INotificationService
     private readonly TenantDbContext _context;
     private readonly INotificationsHubService _hubService;
     private readonly ILogger<NotificationService> _logger;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public NotificationService(
         TenantDbContext context, 
         INotificationsHubService hubService,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        IBackgroundJobClient backgroundJobClient)
     {
         _context = context;
         _hubService = hubService;
         _logger = logger;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task SendMemberNotificationAsync(int memberId, string title, string message, NotificationType type = NotificationType.Info, NotificationChannels? channels = null)
@@ -31,11 +35,8 @@ public class NotificationService : INotificationService
         }
         else
         {
-            // Trigger external channels if enabled by admin/force or we skip since we don't have user-level toggles
-            // Here we'll just check for channel list provided by the admin.
-            if (channels?.WhatsApp == true) await SendWhatsAppAsync(0, title, message); // Need separate member-based senders
-            if (channels?.SMS == true) await SendSmsAsync(0, title, message);
-            if (channels?.Email == true) await SendEmailAsync(0, title, message);
+            // If no user exists, we still background the external senders for this member
+            _backgroundJobClient.Enqueue(() => DispatchExternalNotificationsForMemberAsync(memberId, title, message, channels));
         }
     }
 
@@ -43,7 +44,7 @@ public class NotificationService : INotificationService
     {
         var settings = await GetUserSettingsAsync(userId);
         
-        // 1. In-Portal Notification
+        // 1. In-Portal Notification (Keep this synchronous for instant UI update)
         bool sendInPortal = channels?.InPortal ?? settings.InPortalEnabled;
         if (sendInPortal)
         {
@@ -65,6 +66,14 @@ public class NotificationService : INotificationService
             await _hubService.PushNotificationAsync(userId, notification);
         }
         
+        // 2. Background all External Channels
+        _backgroundJobClient.Enqueue(() => DispatchExternalNotificationsAsync(userId, title, message, settings, channels));
+    }
+
+    [Queue("notifications")]
+    [AutomaticRetry(Attempts = 3)]
+    public async Task DispatchExternalNotificationsAsync(int userId, string title, string message, UserNotificationSetting settings, NotificationChannels? channels)
+    {
         // 2. WhatsApp
         if (channels?.WhatsApp ?? settings.WhatsAppEnabled)
         {
@@ -84,6 +93,14 @@ public class NotificationService : INotificationService
         }
     }
 
+    [Queue("notifications")]
+    public async Task DispatchExternalNotificationsForMemberAsync(int memberId, string title, string message, NotificationChannels? channels)
+    {
+        if (channels?.WhatsApp == true) await SendWhatsAppAsync(0, title, message);
+        if (channels?.SMS == true) await SendSmsAsync(0, title, message);
+        if (channels?.Email == true) await SendEmailAsync(0, title, message);
+    }
+
     public async Task SendPaymentReminderAsync(int userId, decimal amount, DateTime dueDate)
     {
         var title = "Payment Reminder";
@@ -100,12 +117,12 @@ public class NotificationService : INotificationService
 
     public async Task<UserNotificationSetting> GetUserSettingsAsync(int userId)
     {
-        var settings = await _context.UserNotificationSettings.FirstOrDefaultAsync(x => x.UserId == userId);
+        var settings = await _context.UserNotificationSettings.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId);
         if (settings == null)
         {
             settings = new UserNotificationSetting { UserId = userId };
-            _context.UserNotificationSettings.Add(settings);
-            await _context.SaveChangesAsync();
+            // Note: We don't save here to avoid side-effects in background read, 
+            // the main task will handle settings creation if needed.
         }
         return settings;
     }
@@ -118,6 +135,19 @@ public class NotificationService : INotificationService
 
     public async Task SendTemplatedNotificationAsync(int memberId, string templateName, Dictionary<string, string> placeholders)
     {
+        // Background the entire templating and sending process
+        _backgroundJobClient.Enqueue(() => ProcessAndSendTemplatedNotificationAsync(memberId, templateName, placeholders));
+    }
+
+    public async Task SendUserTemplatedNotificationAsync(int userId, string templateName, Dictionary<string, string> placeholders)
+    {
+        _backgroundJobClient.Enqueue(() => ProcessAndSendUserTemplatedNotificationAsync(userId, templateName, placeholders));
+    }
+
+    [Queue("notifications")]
+    [AutomaticRetry(Attempts = 2)]
+    public async Task ProcessAndSendTemplatedNotificationAsync(int memberId, string templateName, Dictionary<string, string> placeholders)
+    {
         var result = await ProcessTemplateAsync(templateName, placeholders);
         if (result != null)
         {
@@ -125,7 +155,9 @@ public class NotificationService : INotificationService
         }
     }
 
-    public async Task SendUserTemplatedNotificationAsync(int userId, string templateName, Dictionary<string, string> placeholders)
+    [Queue("notifications")]
+    [AutomaticRetry(Attempts = 2)]
+    public async Task ProcessAndSendUserTemplatedNotificationAsync(int userId, string templateName, Dictionary<string, string> placeholders)
     {
         var result = await ProcessTemplateAsync(templateName, placeholders);
         if (result != null)
@@ -136,10 +168,9 @@ public class NotificationService : INotificationService
 
     private async Task<(string Title, string Message)?> ProcessTemplateAsync(string templateName, Dictionary<string, string> placeholders)
     {
-        var settings = await _context.TenantSettings.FirstOrDefaultAsync();
+        var settings = await _context.TenantSettings.AsNoTracking().FirstOrDefaultAsync();
         if (settings == null) return null;
 
-        // Check toggle
         bool isEnabled = templateName switch
         {
             "ReceiptConfirmation" => settings.NotifyOnReceipt,
@@ -153,7 +184,7 @@ public class NotificationService : INotificationService
 
         if (!isEnabled) return null;
 
-        var template = await _context.NotificationTemplates.FirstOrDefaultAsync(t => t.Name == templateName);
+        var template = await _context.NotificationTemplates.AsNoTracking().FirstOrDefaultAsync(t => t.Name == templateName);
         if (template == null || !template.IsEnabled) return null;
 
         var title = template.TitleTemplate;
@@ -170,22 +201,19 @@ public class NotificationService : INotificationService
 
     private async Task SendWhatsAppAsync(int userId, string title, string message)
     {
-        // Placeholder for real WhatsApp API integration
-        _logger.LogInformation("Sending WhatsApp to User {UserId}: {Message}", userId, message);
+        _logger.LogInformation("Background Sending WhatsApp to User {UserId}: {Message}", userId, message);
         await Task.CompletedTask;
     }
 
     private async Task SendSmsAsync(int userId, string title, string message)
     {
-        // Placeholder for real SMS API integration
-        _logger.LogInformation("Sending SMS to User {UserId}: {Message}", userId, message);
+        _logger.LogInformation("Background Sending SMS to User {UserId}: {Message}", userId, message);
         await Task.CompletedTask;
     }
 
     private async Task SendEmailAsync(int userId, string title, string message)
     {
-        // Placeholder for real SMTP integration
-        _logger.LogInformation("Sending Email to User {UserId}: {Message}", userId, message);
+        _logger.LogInformation("Background Sending Email to User {UserId}: {Message}", userId, message);
         await Task.CompletedTask;
     }
 }

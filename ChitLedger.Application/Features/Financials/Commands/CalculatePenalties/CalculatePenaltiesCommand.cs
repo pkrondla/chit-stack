@@ -68,10 +68,26 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
                     if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
                     if (!lateFeeAccount.Succeeded) return Result<int>.Failure(lateFeeAccount.Errors.First());
 
-                    var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+                    var journalLines = new List<JournalLinePostingDto>
                     {
-                        (receivableAccount.Data, calculatedPenalty, 0),
-                        (lateFeeAccount.Data, 0, calculatedPenalty)
+                        new JournalLinePostingDto 
+                        { 
+                            AccountCode = receivableAccount.Data, 
+                            Debit = calculatedPenalty,
+                            MemberId = demand.Ticket?.MemberId,
+                            ChitGroupId = group.Id,
+                            TicketId = demand.TicketId,
+                            AuctionId = demand.AuctionId
+                        },
+                        new JournalLinePostingDto 
+                        { 
+                            AccountCode = lateFeeAccount.Data, 
+                            Credit = calculatedPenalty,
+                            MemberId = demand.Ticket?.MemberId,
+                            ChitGroupId = group.Id,
+                            TicketId = demand.TicketId,
+                            AuctionId = demand.AuctionId
+                        }
                     };
                     
                     await _journalService.CreateEntryAsync(

@@ -34,11 +34,13 @@ public class ReportingController : ControllerBase
     }
 
     [HttpGet("ledger/{accountHeadId}")]
-    public async Task<ActionResult<Result<List<LedgerEntryDto>>>> GetLedger(int accountHeadId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool unreconciledOnly = false, [FromQuery] bool reconciledOnly = false, [FromQuery] int? branchId = null)
+    public async Task<ActionResult<Result<List<LedgerEntryDto>>>> GetLedger(int accountHeadId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] bool unreconciledOnly = false, [FromQuery] bool reconciledOnly = false, [FromQuery] int? branchId = null, [FromQuery] int? memberId = null, [FromQuery] int? chitGroupId = null)
     {
         return Ok(await _mediator.Send(new GetLedgerQuery 
         { 
             AccountHeadId = accountHeadId, 
+            MemberId = memberId,
+            ChitGroupId = chitGroupId,
             StartDate = startDate, 
             EndDate = endDate,
             UnreconciledOnly = unreconciledOnly,

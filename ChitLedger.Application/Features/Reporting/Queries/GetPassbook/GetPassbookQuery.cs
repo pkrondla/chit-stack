@@ -76,13 +76,14 @@ public class GetPassbookHandler : IRequestHandler<GetPassbookQuery, Result<Passb
         // 1. Add Installment Demands
         foreach (var demand in ticket.Demands)
         {
+            var calc = ChitLedger.Application.Common.Helpers.PenaltyCalculator.Calculate(demand, ticket.ChitGroup);
             entries.Add(new PassbookEntryDto
             {
                 Date = demand.DueDate,
                 Description = $"Installment #{demand.InstallmentNumber}",
                 InstallmentAmount = demand.GrossAmount, // Standard installment value
                 Dividend = demand.DividendAmount,
-                Penalty = demand.PenaltyAmount,
+                Penalty = calc.EffectivePenalty,
                 Credit = 0,
                 Status = "Confirmed"
             });

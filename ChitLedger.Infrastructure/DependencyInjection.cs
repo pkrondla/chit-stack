@@ -37,7 +37,7 @@ public static class DependencyInjection
         services.AddScoped<IPdfService, PdfService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<INotificationService, NotificationService>();
-        services.AddHostedService<DailyNotificationWorker>();
+        services.AddScoped<IDailyNotificationProcessor, DailyNotificationWorker>();
         
         // QuestPDF License
         QuestPDF.Settings.License = LicenseType.Community;

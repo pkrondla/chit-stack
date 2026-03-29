@@ -8,8 +8,10 @@ namespace ChitLedger.Application.Features.CustomerPortal.Queries.GetDashboard;
 
 public class CustomerDashboardDto
 {
-    public decimal TotalLiability { get; set; } // Pending Demands
+    public decimal TotalLiability { get; set; } // Pending Demands + Penalties
     public decimal TotalSavings { get; set; } // Total Dividends earned
+    public decimal TotalPenalty { get; set; } // Current Real-time Penalty
+    public string AccountStatus { get; set; } = "Healthy";
     public List<MyTicketDto> MyTickets { get; set; } = new();
     public List<DashboardAuctionDto> UpcomingAuctions { get; set; } = new();
 }
@@ -77,12 +79,30 @@ public class GetCustomerDashboardHandler : IRequestHandler<GetCustomerDashboardQ
         var ticketIds = tickets.Select(t => t.Id).ToList();
         var groupIds = tickets.Select(t => t.ChitGroupId).Distinct().ToList();
 
-        // 2. Calculate Liability (Pending Demands)
+        // 2. Calculate Liability (Pending Demands with real-time penalties)
         var demands = await _context.Demands
             .Where(d => ticketIds.Contains(d.TicketId))
             .ToListAsync(cancellationToken);
             
-        dashboard.TotalLiability = demands.Where(d => d.Status != "Paid").Sum(d => d.NetAmount - d.CollectedAmount);
+        decimal totalLiability = 0;
+        decimal totalPenalty = 0;
+        bool isOverdue = false;
+
+        foreach (var t in tickets)
+        {
+            var myDemands = demands.Where(d => d.TicketId == t.Id && d.Status != "Paid");
+            foreach (var d in myDemands)
+            {
+                var calc = ChitLedger.Application.Common.Helpers.PenaltyCalculator.Calculate(d, t.ChitGroup!);
+                totalLiability += calc.TotalOutstanding;
+                totalPenalty += calc.EffectivePenalty;
+                if (calc.OverdueDays > 0) isOverdue = true;
+            }
+        }
+        
+        dashboard.TotalLiability = totalLiability;
+        dashboard.TotalPenalty = totalPenalty;
+        dashboard.AccountStatus = isOverdue ? "⚠️ Overdue" : (totalPenalty > 0 ? "Penalty Accrued" : (totalLiability > 0 ? "Pending Dues" : "Healthy"));
         dashboard.TotalSavings = demands.Sum(d => d.DividendAmount);
 
         // 3. Upcoming Auctions

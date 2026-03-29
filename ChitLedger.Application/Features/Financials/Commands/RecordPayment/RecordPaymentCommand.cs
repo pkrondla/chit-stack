@@ -119,10 +119,10 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
                     
                     if (recAcc.Succeeded && incAcc.Succeeded)
                     {
-                         var lines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+                         var lines = new List<JournalLinePostingDto>
                          {
-                             (recAcc.Data, delta, 0),
-                             (incAcc.Data, 0, delta)
+                             new JournalLinePostingDto { AccountCode = recAcc.Data, Debit = delta, MemberId = demand.Ticket?.MemberId, ChitGroupId = group?.Id, TicketId = demand.TicketId },
+                             new JournalLinePostingDto { AccountCode = incAcc.Data, Credit = delta, MemberId = demand.Ticket?.MemberId, ChitGroupId = group?.Id, TicketId = demand.TicketId }
                          };
                          await _journalService.CreateEntryAsync(
                              "Penalty", 
@@ -225,10 +225,24 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
         if (!receivableAccount.Succeeded) return Result<int>.Failure(receivableAccount.Errors.First());
 
-        var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+        var journalLines = new List<JournalLinePostingDto>
         {
-            (debitAccountCode, request.Amount, 0),
-            (receivableAccount.Data, 0, request.Amount)
+            new JournalLinePostingDto 
+            { 
+                AccountCode = debitAccountCode, 
+                Debit = request.Amount, 
+                MemberId = targetTicket?.MemberId, 
+                ChitGroupId = targetTicket?.ChitGroupId, 
+                TicketId = targetTicket?.Id 
+            },
+            new JournalLinePostingDto 
+            { 
+                AccountCode = receivableAccount.Data, 
+                Credit = request.Amount, 
+                MemberId = targetTicket?.MemberId, 
+                ChitGroupId = targetTicket?.ChitGroupId, 
+                TicketId = targetTicket?.Id 
+            }
         };
         
         await _journalService.CreateEntryAsync(

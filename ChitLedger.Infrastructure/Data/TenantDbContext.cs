@@ -100,6 +100,12 @@ public class TenantDbContext : DbContext, IApplicationDbContext
         builder.Entity<Receipt>().Property(x => x.Longitude).HasPrecision(18, 6);
         
         builder.Entity<AccountHead>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
+        builder.Entity<AccountHead>()
+            .HasOne(x => x.Parent)
+            .WithMany(x => x.Children)
+            .HasForeignKey(x => x.ParentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Entity<User>().HasQueryFilter(x => x.TenantId == _tenantService.TenantId);
 
         builder.Entity<JournalEntryLine>()

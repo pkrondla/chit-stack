@@ -33,6 +33,7 @@ public class VerifySubmissionHandler : IRequestHandler<VerifySubmissionCommand, 
     {
         var submission = await _context.CollectionSubmissions
             .Include(s => s.Receipts)
+                .ThenInclude(r => r.Ticket)
             .FirstOrDefaultAsync(s => s.Id == request.SubmissionId, cancellationToken);
 
         if (submission == null) return Result<int>.Failure("Submission not found.");
@@ -54,10 +55,26 @@ public class VerifySubmissionHandler : IRequestHandler<VerifySubmissionCommand, 
             var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
             if (!receivableAccount.Succeeded) continue;
 
-            var journalLines = new List<(string AccountCode, decimal Debit, decimal Credit)>
+            var journalLines = new List<JournalLinePostingDto>
             {
-                (resolveResult.Data!, receipt.AmountReceived, 0m),
-                (receivableAccount.Data!, 0m, receipt.AmountReceived)
+                new JournalLinePostingDto 
+                { 
+                    AccountCode = resolveResult.Data!, 
+                    Debit = receipt.AmountReceived,
+                    MemberId = receipt.Ticket?.MemberId,
+                    ChitGroupId = receipt.Ticket?.ChitGroupId,
+                    TicketId = receipt.TicketId,
+                    AuctionId = receipt.AuctionId
+                },
+                new JournalLinePostingDto 
+                { 
+                    AccountCode = receivableAccount.Data!, 
+                    Credit = receipt.AmountReceived,
+                    MemberId = receipt.Ticket?.MemberId,
+                    ChitGroupId = receipt.Ticket?.ChitGroupId,
+                    TicketId = receipt.TicketId,
+                    AuctionId = receipt.AuctionId
+                }
             };
 
             await _journalService.CreateEntryAsync(

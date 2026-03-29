@@ -27,6 +27,19 @@ public class JournalEntryLine : BranchEntity
     public decimal CreditAmount { get; set; }
     public string Description { get; set; } = string.Empty;
 
+    // Sub-ledger Tagging for Industrial Practice
+    public int? MemberId { get; set; }
+    public Member? Member { get; set; }
+    
+    public int? ChitGroupId { get; set; }
+    public ChitGroup? ChitGroup { get; set; }
+    
+    public int? TicketId { get; set; }
+    public Ticket? Ticket { get; set; }
+
+    public int? AuctionId { get; set; }
+    public Auction? Auction { get; set; }
+
     public bool IsReconciled { get; set; } = false;
     public DateTime? ReconciliationDate { get; set; }
 }

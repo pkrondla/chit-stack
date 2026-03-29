@@ -53,6 +53,9 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsGroup")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsSystem")
                         .HasColumnType("bit");
 
@@ -61,6 +64,9 @@ namespace ChitLedger.Infrastructure.Migrations
 
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<string>("SystemRole")
                         .HasColumnType("nvarchar(max)");
@@ -72,6 +78,8 @@ namespace ChitLedger.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
 
                     b.ToTable("AccountHeads");
                 });
@@ -824,7 +832,13 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<int>("AccountHeadId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("AuctionId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ChitGroupId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -858,17 +872,31 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("MemberId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ReconciliationDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("TicketId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AccountHeadId");
 
+                    b.HasIndex("AuctionId");
+
+                    b.HasIndex("ChitGroupId");
+
                     b.HasIndex("JournalEntryId");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("TicketId");
 
                     b.ToTable("JournalEntryLines");
                 });
@@ -1017,6 +1045,109 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.ToTable("Nominees");
                 });
 
+            modelBuilder.Entity("ChitLedger.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("ChitLedger.Domain.Entities.NotificationTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MessageTemplate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Placeholders")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TitleTemplate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NotificationTemplates");
+                });
+
             modelBuilder.Entity("ChitLedger.Domain.Entities.Receipt", b =>
                 {
                     b.Property<int>("Id")
@@ -1147,6 +1278,15 @@ namespace ChitLedger.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AuctionReminderHoursBefore")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("AutoAuctionRemindersEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("AutoPaymentRemindersEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("CompanyName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1171,6 +1311,9 @@ namespace ChitLedger.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmailFrom")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ForemanDesignation")
@@ -1199,8 +1342,29 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<decimal>("MaxBiddingDiscountPercent")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("NotifyOnAuctionWon")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyOnDemand")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyOnDividend")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyOnPayout")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyOnReceipt")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyOnReconciliation")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PanNumber")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PaymentReminderDaysBefore")
+                        .HasColumnType("int");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -1214,6 +1378,27 @@ namespace ChitLedger.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SmsApiKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SmsApiUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SmsSenderId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SmtpHost")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SmtpPass")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SmtpPort")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SmtpUser")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("StatutoryFilingFees")
                         .HasColumnType("decimal(18,2)");
 
@@ -1222,6 +1407,15 @@ namespace ChitLedger.Infrastructure.Migrations
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
+
+                    b.Property<string>("WhatsAppApiKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WhatsAppApiUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WhatsAppSenderNumber")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -1408,6 +1602,70 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.ToTable("UserBranches");
                 });
 
+            modelBuilder.Entity("ChitLedger.Domain.Entities.UserNotificationSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AuctionRemindersEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EmailEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("InPortalEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PaymentRemindersEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SmsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("WhatsAppEnabled")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserNotificationSettings");
+                });
+
+            modelBuilder.Entity("ChitLedger.Domain.Entities.AccountHead", b =>
+                {
+                    b.HasOne("ChitLedger.Domain.Entities.AccountHead", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
+                });
+
             modelBuilder.Entity("ChitLedger.Domain.Entities.Auction", b =>
                 {
                     b.HasOne("ChitLedger.Domain.Entities.ChitGroup", "ChitGroup")
@@ -1530,15 +1788,43 @@ namespace ChitLedger.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ChitLedger.Domain.Entities.Auction", "Auction")
+                        .WithMany()
+                        .HasForeignKey("AuctionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ChitLedger.Domain.Entities.ChitGroup", "ChitGroup")
+                        .WithMany()
+                        .HasForeignKey("ChitGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ChitLedger.Domain.Entities.JournalEntry", "JournalEntry")
                         .WithMany("Lines")
                         .HasForeignKey("JournalEntryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ChitLedger.Domain.Entities.Member", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ChitLedger.Domain.Entities.Ticket", "Ticket")
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AccountHead");
 
+                    b.Navigation("Auction");
+
+                    b.Navigation("ChitGroup");
+
                     b.Navigation("JournalEntry");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("ChitLedger.Domain.Entities.Member", b =>
@@ -1567,6 +1853,17 @@ namespace ChitLedger.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("ChitLedger.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("ChitLedger.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ChitLedger.Domain.Entities.Receipt", b =>
@@ -1654,6 +1951,22 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ChitLedger.Domain.Entities.UserNotificationSetting", b =>
+                {
+                    b.HasOne("ChitLedger.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ChitLedger.Domain.Entities.AccountHead", b =>
+                {
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("ChitLedger.Domain.Entities.Branch", b =>

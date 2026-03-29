@@ -73,9 +73,14 @@ const PortalDashboard = () => {
                                 <h2 className="text-slate-900 m-0 font-black tracking-tighter text-4xl md:text-5xl">
                                     ₹{totalLiability.toLocaleString()}
                                 </h2>
-                                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">
-                                    <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                    <span className="text-emerald-700 font-bold text-[9px] uppercase tracking-widest leading-none">Healthy Account status</span>
+                                {data.totalPenalty > 0 && (
+                                    <Text className="text-[10px] font-bold text-red-500 block mt-1 uppercase tracking-tight">
+                                        Includes ₹{data.totalPenalty.toLocaleString()} Late Fees
+                                    </Text>
+                                )}
+                                <div className={`mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-colors ${data.accountStatus === 'Healthy' ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
+                                    <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${data.accountStatus === 'Healthy' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                                    <span className={`font-black text-[9px] uppercase tracking-widest leading-none ${data.accountStatus === 'Healthy' ? 'text-emerald-700' : 'text-orange-700'}`}>{data.accountStatus} Account Status</span>
                                 </div>
                             </div>
 

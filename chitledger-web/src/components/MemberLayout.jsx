@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 
+import NotificationBell from './NotificationBell';
+
 const { Header, Content } = AntLayout;
 
 const MemberLayout = () => {
@@ -88,11 +90,7 @@ const MemberLayout = () => {
                 </div>
 
                 <div className="flex items-center gap-4 md:gap-6">
-                    <Badge count={2} size="small" offset={[-2, 2]} color="#6366f1">
-                        <div className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 hover:text-white transition-all cursor-pointer text-slate-400">
-                            <Bell size={22} />
-                        </div>
-                    </Badge>
+                    <NotificationBell isDark={true} />
 
                     <Dropdown menu={{
                         items: [

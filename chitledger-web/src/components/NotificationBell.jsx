@@ -8,14 +8,14 @@ import api from '../api/axios';
 
 const { Text } = Typography;
 
-const NotificationBell = () => {
+const NotificationBell = ({ isDark = false }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [connection, setConnection] = useState(null);
     const navigate = useNavigate();
-    const user = useAuthStore(state => state.user);
     const token = useAuthStore(state => state.token);
+    const user = useAuthStore(state => state.user);
 
     const fetchNotifications = async () => {
         try {
@@ -32,24 +32,32 @@ const NotificationBell = () => {
     };
 
     useEffect(() => {
+        if (!token) return;
+
         fetchNotifications();
 
         const hubUrl = import.meta.env.VITE_API_URL 
-            ? `${import.meta.env.VITE_API_URL}/notificationHub`
+            ? `${import.meta.env.VITE_API_URL.replace('/api', '')}/notificationHub`
             : 'http://localhost:5045/notificationHub';
 
         const newConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
-                accessTokenFactory: () => token
+                accessTokenFactory: () => token || localStorage.getItem('token')
             })
             .withAutomaticReconnect()
             .build();
 
         setConnection(newConnection);
+
+        return () => {
+            if (newConnection) {
+                newConnection.stop();
+            }
+        };
     }, [token]);
 
     useEffect(() => {
-        if (connection) {
+        if (connection && token) {
             connection.start()
                 .then(() => {
                     console.log('Connected to NotificationHub');
@@ -60,8 +68,12 @@ const NotificationBell = () => {
                     });
                 })
                 .catch(e => console.log('Connection failed: ', e));
+            
+            return () => {
+                connection.off('ReceiveNotification');
+            };
         }
-    }, [connection]);
+    }, [connection, token]);
 
     const markAsRead = async (id) => {
         try {
@@ -150,7 +162,16 @@ const NotificationBell = () => {
         {
             key: 'footer',
             label: (
-                <Button type="block" className="w-full text-blue-600 border-t border-gray-100 rounded-none" onClick={() => navigate('/notifications')}>
+                <Button 
+                    block 
+                    className="w-full text-blue-600 border-t border-gray-100 rounded-none shadow-none" 
+                    onClick={() => {
+                        const path = user?.role === 'Subscriber' ? '/portal/notifications' 
+                                   : user?.role === 'Agent' ? '/agent/notifications' 
+                                   : '/notifications';
+                        navigate(path);
+                    }}
+                >
                     View All Notifications
                 </Button>
             ),
@@ -159,13 +180,18 @@ const NotificationBell = () => {
 
     return (
         <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" arrow>
-            <Badge count={unreadCount} overflowCount={99} size="small" offset={[-2, 6]}>
-                <div className="p-2 hover:bg-slate-100 rounded-full cursor-pointer transition-colors text-slate-600">
-                    <Bell size={20} />
+            <Badge count={unreadCount} overflowCount={99} size="small" offset={isDark ? [-4, 4] : [-2, 6]}>
+                <div className={`flex items-center justify-center rounded-2xl cursor-pointer transition-all ${
+                    isDark 
+                    ? 'h-12 w-12 bg-white/5 border border-white/10 hover:border-white/20 hover:text-white text-slate-400' 
+                    : 'p-2 hover:bg-slate-100 text-slate-600'
+                }`}>
+                    <Bell size={isDark ? 22 : 20} />
                 </div>
             </Badge>
         </Dropdown>
     );
 };
+
 
 export default NotificationBell;

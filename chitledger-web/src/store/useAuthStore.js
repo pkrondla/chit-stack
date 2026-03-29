@@ -14,7 +14,7 @@ const getInitialState = () => {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             user = {
-                id: payload.sub,
+                id: payload.sub || payload.nameid,
                 username: payload.email,
                 fullName: payload.FullName,
                 role: payload.role,
@@ -29,7 +29,7 @@ const getInitialState = () => {
         }
     }
 
-    return { user, activeBranch, authorizedBranches };
+    return { token, user, activeBranch, authorizedBranches };
 };
 
 const useAuthStore = create((set) => ({
@@ -59,7 +59,7 @@ const useAuthStore = create((set) => ({
 
             const payload = JSON.parse(atob(token.split('.')[1]));
             const userData = {
-                id: payload.sub,
+                id: payload.sub || payload.nameid,
                 username: payload.email,
                 fullName: payload.FullName,
                 role: payload.role,
@@ -67,6 +67,7 @@ const useAuthStore = create((set) => ({
             };
 
             set({
+                token: token,
                 user: userData,
                 authorizedBranches: branches,
                 activeBranch: defaultBranch,
@@ -89,7 +90,7 @@ const useAuthStore = create((set) => ({
         localStorage.removeItem('token');
         localStorage.removeItem('activeBranch');
         localStorage.removeItem('authorizedBranches');
-        set({ user: null, activeBranch: null, authorizedBranches: [] });
+        set({ token: null, user: null, activeBranch: null, authorizedBranches: [] });
     }
 }));
 

@@ -18,7 +18,7 @@ public class JournalService : IJournalService
     public async Task<Result<int>> CreateEntryAsync(string entryType, DateTime date, string description, 
         int? relatedEntityId, string relatedEntityType,
         int? branchId,
-        List<(string AccountCode, decimal Debit, decimal Credit)> lines, 
+        List<JournalLinePostingDto> lines, 
         CancellationToken cancellationToken)
     {
         // Validation: Debits must equal Credits
@@ -35,9 +35,9 @@ public class JournalService : IJournalService
         {
              EntryDate = date,
              Description = description,
-             EntryType = entryType, // e.g. "Receipt", "Auction", "Commission"
-             ReferenceId = relatedEntityId, // e.g. ReceiptID
-             ReferenceType = relatedEntityType, // e.g. "Receipt"
+             EntryType = entryType,
+             ReferenceId = relatedEntityId,
+             ReferenceType = relatedEntityType,
              BranchId = branchId
         };
         
@@ -46,11 +46,9 @@ public class JournalService : IJournalService
         // Add Lines
         foreach (var line in lines)
         {
-            // Find AccountHeadID by Code
             var account = await _context.AccountHeads.FirstOrDefaultAsync(a => a.AccountCode == line.AccountCode, cancellationToken);
             if (account == null)
             {
-                // Auto-create/Seed account if missing? Or Fail? For MVP, let's Fail.
                 return Result<int>.Failure($"Account Code {line.AccountCode} not found.");
             }
 
@@ -60,8 +58,14 @@ public class JournalService : IJournalService
                 AccountHeadId = account.Id,
                 DebitAmount = line.Debit,
                 CreditAmount = line.Credit,
-                Description = description,
-                BranchId = branchId
+                Description = line.Description ?? description,
+                BranchId = branchId,
+                
+                // Industrial Tagging
+                MemberId = line.MemberId,
+                ChitGroupId = line.ChitGroupId,
+                TicketId = line.TicketId,
+                AuctionId = line.AuctionId
             };
             _context.JournalEntryLines.Add(entryLine);
         }

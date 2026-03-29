@@ -43,8 +43,37 @@ const MyPayments = () => {
             key: 'amount',
             render: (_, record) => (
                 <div className="flex flex-col">
-                    <span className="text-slate-800 font-bold">₹{record.balanceAmount.toLocaleString()}</span>
-                    <Text delete className="text-[11px] text-slate-400">Total: ₹{record.totalAmount.toLocaleString()}</Text>
+                    <span className="text-slate-800 font-bold text-lg">₹{record.balanceAmount.toLocaleString()}</span>
+                    
+                    {/* Detailed Breakdown */}
+                    <div className="flex flex-col gap-1 mt-1">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-tight text-slate-500">
+                            <span>Subs: ₹{record.grossAmount.toLocaleString()}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-emerald-600">Div: -₹{record.dividendAmount.toLocaleString()}</span>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <Text 
+                                delete={record.paidAmount > 0} 
+                                className={`text-[10px] uppercase font-black tracking-widest ${record.paidAmount > 0 ? 'text-slate-400 font-medium' : 'text-slate-900'}`}
+                            >
+                                Net: ₹{record.netAmount.toLocaleString()}
+                            </Text>
+                            
+                            {record.penaltyAmount > 0 && (
+                                <Tag color="error" className="m-0 text-[9px] px-1.5 py-0 border-0 rounded font-black uppercase flex items-center gap-1">
+                                    +₹{record.penaltyAmount.toLocaleString()} Late Fee
+                                </Tag>
+                            )}
+
+                            {record.paidAmount > 0 && (
+                                <Tag className="m-0 text-[9px] px-1.5 py-0 border-0 rounded font-black uppercase bg-emerald-50 text-emerald-700">
+                                    -₹{record.paidAmount.toLocaleString()} Paid
+                                </Tag>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )
         },

@@ -12,6 +12,8 @@ public class AccountHeadDto
     public string AccountName { get; set; } = string.Empty;
     public string AccountCode { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
+    public bool IsGroup { get; set; }
+    public int? ParentId { get; set; }
     public bool IsSystem { get; set; }
     public string? SystemRole { get; set; }
     public string? BankDetails { get; set; }
@@ -46,6 +48,8 @@ public class GetAccountHeadsHandler : IRequestHandler<GetAccountHeadsQuery, Resu
                 AccountName = a.AccountName,
                 AccountCode = a.AccountCode,
                 Type = a.Type.ToString(),
+                IsGroup = a.IsGroup,
+                ParentId = a.ParentId,
                 IsSystem = a.IsSystem,
                 SystemRole = a.SystemRole,
                 BankDetails = a.BankDetails,
