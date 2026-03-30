@@ -14,6 +14,7 @@ public class AccountHead : TenantEntity
     public int? ParentId { get; set; } // For hierarchical accounts
     public bool IsGroup { get; set; } = false; // Is it a group or a posting account?
     public string? BankDetails { get; set; } // For Bank type accounts
+    public decimal OpeningBalance { get; set; }
 
     public virtual AccountHead? Parent { get; set; }
     public virtual ICollection<AccountHead> Children { get; set; } = new List<AccountHead>();

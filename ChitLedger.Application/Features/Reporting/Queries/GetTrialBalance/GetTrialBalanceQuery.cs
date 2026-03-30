@@ -139,14 +139,17 @@ public class GetTrialBalanceHandler : IRequestHandler<GetTrialBalanceQuery, Resu
         }
 
         // 5. Recursive aggregation of group balances
-        // We sort by depth (or just loops since COA is shallow) to ensure children add up to parents
         var lineMap = allLines.ToDictionary(x => x.Id);
         BuildHierarchy(allLines, lineMap);
 
-        // Calculate recursive balances for groups
-        RecalculateGroupBalances(allLines);
+        // 6. Recalculate balances only for GROUPS by summing their standard children
+        // (We skip virtual sub-ledger lines here to avoid double-counting)
+        foreach (var root in allLines.Where(x => x.ParentId == null))
+        {
+            RecalculateLine(root);
+        }
 
-        // 6. Convert to TrialBalanceDto
+        // 7. Convert to TrialBalanceDto
         var result = new TrialBalanceDto();
         foreach (var line in allLines.Where(x => x.ParentId == null))
         {
@@ -171,28 +174,25 @@ public class GetTrialBalanceHandler : IRequestHandler<GetTrialBalanceQuery, Resu
         }
     }
 
-    private decimal RecalculateGroupBalances(List<TrialBalanceLine> lines)
-    {
-        decimal total = 0;
-        foreach (var line in lines)
-        {
-            if (line.IsGroup)
-            {
-                line.NetBalance = RecalculateLine(line);
-            }
-        }
-        return total;
-    }
-
     private decimal RecalculateLine(TrialBalanceLine line)
     {
-        decimal sum = line.IsGroup ? 0 : line.NetBalance;
-        foreach (var child in line.Children)
+        // If it's a posting account, it already has its balance from the database map.
+        // If it's a group, its balance should be the sum of its standard children.
+        if (line.IsGroup)
         {
-            sum += RecalculateLine(child);
+            decimal sum = 0;
+            foreach (var child in line.Children)
+            {
+                // IMPORTANT: We do NOT sum up virtual sub-ledger lines because 
+                // their parent (e.g. Member Receivables) already contains their balance.
+                if (child.IsSubLedgerLine) continue; 
+                
+                sum += RecalculateLine(child);
+            }
+            line.NetBalance = sum;
         }
-        line.NetBalance = sum;
-        return sum;
+        
+        return line.NetBalance;
     }
 
     private void FinalizeLineBalances(TrialBalanceLine line)

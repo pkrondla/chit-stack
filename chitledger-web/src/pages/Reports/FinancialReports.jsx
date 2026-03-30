@@ -185,14 +185,14 @@ const FinancialReports = () => {
             dataIndex: 'debitAmount',
             key: 'debitAmount',
             align: 'right',
-            render: (val) => val > 0 ? <span className="text-red-600 font-semibold">{val.toLocaleString()}</span> : '-'
+            render: (val) => val > 0 ? <span className="text-red-600 font-semibold">{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> : '-'
         },
         {
             title: 'Credit',
             dataIndex: 'creditAmount',
             key: 'creditAmount',
             align: 'right',
-            render: (val) => val > 0 ? <span className="text-green-700 font-semibold">{val.toLocaleString()}</span> : '-'
+            render: (val) => val > 0 ? <span className="text-green-700 font-semibold">{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> : '-'
         }
     ];
 
@@ -204,21 +204,21 @@ const FinancialReports = () => {
             dataIndex: 'debitAmount',
             key: 'debitAmount',
             align: 'right',
-            render: (val) => val > 0 ? val.toLocaleString() : '-'
+            render: (val) => val > 0 ? val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'
         },
         {
             title: 'Credit',
             dataIndex: 'creditAmount',
             key: 'creditAmount',
             align: 'right',
-            render: (val) => val > 0 ? val.toLocaleString() : '-'
+            render: (val) => val > 0 ? val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'
         },
         {
             title: 'Balance',
             dataIndex: 'runningBalance',
             key: 'balance',
             align: 'right',
-            render: (val) => <span className="font-bold text-slate-800">{val.toLocaleString()}</span>
+            render: (val) => <span className="font-bold text-slate-800">{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         }
     ];
 
@@ -226,10 +226,10 @@ const FinancialReports = () => {
         { title: 'Invoice No', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
         { title: 'Date', dataIndex: 'invoiceDate', key: 'invoiceDate', render: (date) => dayjs(date).format('DD-MM-YYYY') },
         { title: 'Receiver', dataIndex: 'receiverName', key: 'receiverName' },
-        { title: 'Taxable Value', dataIndex: 'taxableValue', key: 'taxableValue', align: 'right', render: (val) => val.toLocaleString() },
-        { title: 'CGST (9%)', dataIndex: 'centralTax', key: 'centralTax', align: 'right', render: (val) => val.toLocaleString() },
-        { title: 'SGST (9%)', dataIndex: 'stateTax', key: 'stateTax', align: 'right', render: (val) => val.toLocaleString() },
-        { title: 'Total Value', dataIndex: 'invoiceValue', key: 'invoiceValue', align: 'right', render: (val) => val.toLocaleString() }
+        { title: 'Taxable Value', dataIndex: 'taxableValue', key: 'taxableValue', align: 'right', render: (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+        { title: 'CGST (9%)', dataIndex: 'centralTax', key: 'centralTax', align: 'right', render: (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+        { title: 'SGST (9%)', dataIndex: 'stateTax', key: 'stateTax', align: 'right', render: (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+        { title: 'Total Value', dataIndex: 'invoiceValue', key: 'invoiceValue', align: 'right', render: (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
     ];
 
     // Helper to build TreeSelect data with Virtual Sub-ledgers
@@ -453,7 +453,7 @@ const FinancialReports = () => {
                         <div>
                             <Title level={4}>Income</Title>
                             <Table
-                                columns={[{ title: 'Account', dataIndex: 'accountName' }, { title: 'Amount', dataIndex: 'amount', align: 'right', render: v => v.toLocaleString() }]}
+                                columns={[{ title: 'Account', dataIndex: 'accountName' }, { title: 'Amount', dataIndex: 'amount', align: 'right', render: v => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }]}
                                 dataSource={plData?.income || []}
                                 pagination={false}
                                 size="small"
@@ -463,7 +463,7 @@ const FinancialReports = () => {
                         <div>
                             <Title level={4}>Expense</Title>
                             <Table
-                                columns={[{ title: 'Account', dataIndex: 'accountName' }, { title: 'Amount', dataIndex: 'amount', align: 'right', render: v => v.toLocaleString() }]}
+                                columns={[{ title: 'Account', dataIndex: 'accountName' }, { title: 'Amount', dataIndex: 'amount', align: 'right', render: v => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }]}
                                 dataSource={plData?.expense || []}
                                 pagination={false}
                                 size="small"
@@ -475,7 +475,7 @@ const FinancialReports = () => {
                     <div className="flex justify-between text-xl font-bold">
                         <span>Net Profit:</span>
                         <span className={plData?.netProfit >= 0 ? "text-green-600" : "text-red-600"}>
-                            ₹{plData?.netProfit?.toLocaleString() || 0}
+                            ₹{plData?.netProfit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                         </span>
                     </div>
                 </div>
@@ -514,8 +514,8 @@ const FinancialReports = () => {
                                     </a>
                                 )
                             },
-                            { title: 'Debit', dataIndex: 'debitBalance', align: 'right', render: v => v > 0 ? v.toLocaleString() : '-' },
-                            { title: 'Credit', dataIndex: 'creditBalance', align: 'right', render: v => v > 0 ? v.toLocaleString() : '-' }
+                            { title: 'Debit', dataIndex: 'debitBalance', align: 'right', render: v => v > 0 ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00' },
+                            { title: 'Credit', dataIndex: 'creditBalance', align: 'right', render: v => v > 0 ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00' }
                         ]}
                         dataSource={trialBalance?.lines || []}
                         pagination={false}
@@ -528,8 +528,8 @@ const FinancialReports = () => {
                             <Table.Summary fixed>
                                 <Table.Summary.Row className="bg-slate-50 font-bold">
                                     <Table.Summary.Cell index={0}>Total (Root Levels)</Table.Summary.Cell>
-                                    <Table.Summary.Cell index={1} align="right">₹{trialBalance?.totalDebit?.toLocaleString()}</Table.Summary.Cell>
-                                    <Table.Summary.Cell index={2} align="right">₹{trialBalance?.totalCredit?.toLocaleString()}</Table.Summary.Cell>
+                                    <Table.Summary.Cell index={1} align="right">₹{trialBalance?.totalDebit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Table.Summary.Cell>
+                                    <Table.Summary.Cell index={2} align="right">₹{trialBalance?.totalCredit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Table.Summary.Cell>
                                 </Table.Summary.Row>
                             </Table.Summary>
                         )}
@@ -605,10 +605,10 @@ const FinancialReports = () => {
                                 <Table.Summary fixed>
                                     <Table.Summary.Row className="bg-slate-50 font-bold">
                                         <Table.Summary.Cell index={0} colSpan={3}>Total</Table.Summary.Cell>
-                                        <Table.Summary.Cell index={1} align="right">₹{totalTaxable.toLocaleString()}</Table.Summary.Cell>
-                                        <Table.Summary.Cell index={2} align="right">₹{totalCGST.toLocaleString()}</Table.Summary.Cell>
-                                        <Table.Summary.Cell index={3} align="right">₹{totalSGST.toLocaleString()}</Table.Summary.Cell>
-                                        <Table.Summary.Cell index={4} align="right">₹{totalInvoice.toLocaleString()}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">₹{totalTaxable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} align="right">₹{totalCGST.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={3} align="right">₹{totalSGST.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={4} align="right">₹{totalInvoice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Table.Summary.Cell>
                                     </Table.Summary.Row>
                                 </Table.Summary>
                             );

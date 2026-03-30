@@ -18,6 +18,7 @@ public class AccountHeadDto
     public string? SystemRole { get; set; }
     public string? BankDetails { get; set; }
     public int? BranchId { get; set; }
+    public decimal OpeningBalance { get; set; }
 }
 
 public class GetAccountHeadsQuery : IRequest<Result<List<AccountHeadDto>>>
@@ -53,7 +54,8 @@ public class GetAccountHeadsHandler : IRequestHandler<GetAccountHeadsQuery, Resu
                 IsSystem = a.IsSystem,
                 SystemRole = a.SystemRole,
                 BankDetails = a.BankDetails,
-                BranchId = a.BranchId
+                BranchId = a.BranchId,
+                OpeningBalance = a.OpeningBalance
             })
             .ToListAsync(cancellationToken);
 

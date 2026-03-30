@@ -54,7 +54,7 @@ public class InitialDataSeeder
             var admin = new User
             {
                 Username = "admin",
-                PasswordHash = "admin123", // Using plain text for now as per project existing pattern (TODO: Hash)
+                PasswordHash = "admin123",
                 Email = "admin@example.com",
                 FullName = "Admin User",
                 Role = "Admin",
@@ -63,7 +63,6 @@ public class InitialDataSeeder
             _context.Users.Add(admin);
             await _context.SaveChangesAsync();
 
-            // Link Admin to Branch
             var userBranch = new UserBranch
             {
                 TenantId = tenantId,
@@ -74,14 +73,11 @@ public class InitialDataSeeder
             _context.UserBranches.Add(userBranch);
             await _context.SaveChangesAsync();
         }
-        
+
         // 4. Ensure a Subscriber exists for OTP testing
         const string testMobile = "9999999999";
-        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == testMobile);
-        if (existingUser == null)
+        if (!await _context.Users.AnyAsync(u => u.Username == testMobile))
         {
-             Console.WriteLine($"[SEED] Creating demo subscriber {testMobile}...");
-             
              var existingMember = await _context.Members.FirstOrDefaultAsync(m => m.PhoneNumber == testMobile);
              if (existingMember == null)
              {
@@ -110,17 +106,11 @@ public class InitialDataSeeder
              };
              _context.Users.Add(subUser);
              await _context.SaveChangesAsync();
-             Console.WriteLine($"[SEED] Demo subscriber created successfully.");
-        }
-        else 
-        {
-             Console.WriteLine($"[SEED] Demo subscriber {testMobile} already exists.");
         }
 
         // 5. Ensure TenantSettings exist
         if (!await _context.TenantSettings.AnyAsync())
         {
-            Console.WriteLine("[SEED] Seeding default TenantSettings...");
             var settings = new TenantSettings
             {
                 TenantId = tenantId,
@@ -131,7 +121,7 @@ public class InitialDataSeeder
                 NotifyOnReceipt = true,
                 NotifyOnAuctionWon = true,
                 NotifyOnDemand = true,
-                AutoPaymentRemindersEnabled = true, // Enable for demo
+                AutoPaymentRemindersEnabled = true,
                 PaymentReminderDaysBefore = 3
             };
             _context.TenantSettings.Add(settings);
@@ -141,7 +131,6 @@ public class InitialDataSeeder
         // 6. Ensure default NotificationTemplates exist
         if (!await _context.NotificationTemplates.AnyAsync())
         {
-            Console.WriteLine("[SEED] Seeding default NotificationTemplates...");
             var templates = new List<NotificationTemplate>
             {
                 new NotificationTemplate
@@ -165,7 +154,7 @@ public class InitialDataSeeder
                     TenantId = tenantId,
                     Name = "DemandAlert",
                     TitleTemplate = "Installment Due: {ChitGroup}",
-                    MessageTemplate = "Dear {MemberName}, is installment of {Amount} for {ChitGroup} is due on {DueDate}. Please pay to avoid penalties.",
+                    MessageTemplate = "Dear {MemberName}, installment of {Amount} for {ChitGroup} is due on {DueDate}. Please pay to avoid penalties.",
                     IsEnabled = true
                 }
             };
@@ -173,40 +162,100 @@ public class InitialDataSeeder
             await _context.SaveChangesAsync();
         }
 
-        // 7. Ensure Account Hierarchy exists
-        var assetRoot = await _context.AccountHeads.FirstOrDefaultAsync(a => a.AccountName == "Assets" && a.ParentId == null);
-        if (assetRoot == null)
+        // 7. Ensure Account Hierarchy exists (The 5 Pillars of Accounting)
+        var rootsToEnsure = new List<AccountHead>
         {
-            Console.WriteLine("[SEED] Seeding Account Hierarchy...");
-            
-            // Create Root Groups
-            var roots = new List<AccountHead>
-            {
-                new AccountHead { AccountName = "Assets", AccountCode = "1000", Type = AccountType.Asset, IsGroup = true, IsSystem = true, TenantId = tenantId },
-                new AccountHead { AccountName = "Liabilities", AccountCode = "2000", Type = AccountType.Liability, IsGroup = true, IsSystem = true, TenantId = tenantId },
-                new AccountHead { AccountName = "Income", AccountCode = "3000", Type = AccountType.Income, IsGroup = true, IsSystem = true, TenantId = tenantId },
-                new AccountHead { AccountName = "Expenses", AccountCode = "4000", Type = AccountType.Expense, IsGroup = true, IsSystem = true, TenantId = tenantId }
-            };
-            
-            _context.AccountHeads.AddRange(roots);
-            await _context.SaveChangesAsync();
-            
-            assetRoot = roots.First(g => g.AccountName == "Assets");
-            var liabRoot = roots.First(g => g.AccountName == "Liabilities");
-            var incRoot = roots.First(g => g.AccountName == "Income");
-            var expRoot = roots.First(g => g.AccountName == "Expenses");
+            new AccountHead { AccountName = "Assets", AccountCode = "1000", Type = AccountType.Asset, IsGroup = true, IsSystem = true, TenantId = tenantId },
+            new AccountHead { AccountName = "Liabilities", AccountCode = "2000", Type = AccountType.Liability, IsGroup = true, IsSystem = true, TenantId = tenantId },
+            new AccountHead { AccountName = "Equity", AccountCode = "3000", Type = AccountType.Liability, IsGroup = true, IsSystem = true, TenantId = tenantId },
+            new AccountHead { AccountName = "Income", AccountCode = "4000", Type = AccountType.Income, IsGroup = true, IsSystem = true, TenantId = tenantId },
+            new AccountHead { AccountName = "Expenses", AccountCode = "5000", Type = AccountType.Expense, IsGroup = true, IsSystem = true, TenantId = tenantId }
+        };
 
-            // Sub-groups
-            var subGroups = new List<AccountHead>
+        foreach (var root in rootsToEnsure)
+        {
+            if (!await _context.AccountHeads.AnyAsync(a => a.AccountName == root.AccountName && a.ParentId == null))
             {
-                 new AccountHead { AccountName = "Current Assets", AccountCode = "1100", Type = AccountType.Asset, IsGroup = true, ParentId = assetRoot.Id, TenantId = tenantId },
-                 new AccountHead { AccountName = "Bank Accounts", AccountCode = "1110", Type = AccountType.Asset, IsGroup = true, ParentId = assetRoot.Id, TenantId = tenantId },
-                 new AccountHead { AccountName = "Current Liabilities", AccountCode = "2100", Type = AccountType.Liability, IsGroup = true, ParentId = liabRoot.Id, TenantId = tenantId },
-                 new AccountHead { AccountName = "Direct Income", AccountCode = "3100", Type = AccountType.Income, IsGroup = true, ParentId = incRoot.Id, TenantId = tenantId },
-                 new AccountHead { AccountName = "Administrative Expenses", AccountCode = "4100", Type = AccountType.Expense, IsGroup = true, ParentId = expRoot.Id, TenantId = tenantId }
-            };
-            _context.AccountHeads.AddRange(subGroups);
-            await _context.SaveChangesAsync();
+                Console.WriteLine($"[SEED] Seeding root account: {root.AccountName}");
+                _context.AccountHeads.Add(root);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        var assetRoot = await _context.AccountHeads.FirstAsync(a => a.AccountName == "Assets" && a.ParentId == null);
+        var liabRoot = await _context.AccountHeads.FirstAsync(a => a.AccountName == "Liabilities" && a.ParentId == null);
+        var equityRoot = await _context.AccountHeads.FirstAsync(a => a.AccountName == "Equity" && a.ParentId == null);
+        var incRoot = await _context.AccountHeads.FirstAsync(a => a.AccountName == "Income" && a.ParentId == null);
+        var expRoot = await _context.AccountHeads.FirstAsync(a => a.AccountName == "Expenses" && a.ParentId == null);
+
+        // Sub-groups
+        var subGroupsToEnsure = new List<(string Name, string Code, AccountType Type, int ParentId)>
+        {
+             ("Fixed Assets", "1100", AccountType.Asset, assetRoot.Id),
+             ("Bank Accounts", "1200", AccountType.Asset, assetRoot.Id),
+             ("Current Assets", "1300", AccountType.Asset, assetRoot.Id),
+             ("Current Liabilities", "2100", AccountType.Liability, liabRoot.Id),
+             ("Member Payables", "2200", AccountType.Liability, liabRoot.Id),
+             ("Capital Accounts", "3100", AccountType.Liability, equityRoot.Id),
+             ("Reserves & Surplus", "3200", AccountType.Liability, equityRoot.Id),
+             ("Direct Income (Chit)", "4100", AccountType.Income, incRoot.Id),
+             ("Indirect Income", "4200", AccountType.Income, incRoot.Id),
+             ("Direct Expenses", "5100", AccountType.Expense, expRoot.Id),
+             ("Administrative Expenses", "5200", AccountType.Expense, expRoot.Id)
+        };
+
+        foreach (var sg in subGroupsToEnsure)
+        {
+            if (!await _context.AccountHeads.AnyAsync(a => a.AccountName == sg.Name && a.ParentId == sg.ParentId))
+            {
+                _context.AccountHeads.Add(new AccountHead 
+                { 
+                    AccountName = sg.Name, 
+                    AccountCode = sg.Code, 
+                    Type = sg.Type, 
+                    IsGroup = true, 
+                    ParentId = sg.ParentId, 
+                    TenantId = tenantId 
+                });
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        // 7b. Posting Accounts
+        var bankGrp = await _context.AccountHeads.FirstAsync(g => g.AccountName == "Bank Accounts" && g.ParentId == assetRoot.Id);
+        var curAssetGrp = await _context.AccountHeads.FirstAsync(g => g.AccountName == "Current Assets" && g.ParentId == assetRoot.Id);
+        var memPayGrp = await _context.AccountHeads.FirstAsync(g => g.AccountName == "Member Payables" && g.ParentId == liabRoot.Id);
+        var resGrp = await _context.AccountHeads.FirstAsync(g => g.AccountName == "Reserves & Surplus" && g.ParentId == equityRoot.Id);
+        var capGrp = await _context.AccountHeads.FirstAsync(g => g.AccountName == "Capital Accounts" && g.ParentId == equityRoot.Id);
+        var dirIncGrp = await _context.AccountHeads.FirstAsync(g => g.AccountName == "Direct Income (Chit)" && g.ParentId == incRoot.Id);
+
+        var postingAccounts = new List<(string Name, string Code, AccountType Type, int ParentId, string? Role)>
+        {
+            ("Main Bank Account", "1201", AccountType.Asset, bankGrp.Id, null),
+            ("Cash in Hand", "1301", AccountType.Asset, curAssetGrp.Id, null),
+            ("Member Receivables", "1302", AccountType.Asset, curAssetGrp.Id, "MemberReceivable"),
+            ("Prize Money Payable", "2201", AccountType.Liability, memPayGrp.Id, "PrizePayable"),
+            ("Dividend Payable", "2202", AccountType.Liability, memPayGrp.Id, null),
+            ("Owner Capital Account", "3101", AccountType.Liability, capGrp.Id, null),
+            ("Retained Earnings", "3201", AccountType.Liability, resGrp.Id, "RetainedEarnings"),
+            ("Foreman Commission", "4101", AccountType.Income, dirIncGrp.Id, "CommissionIncome")
+        };
+
+        foreach (var pa in postingAccounts)
+        {
+            if (!await _context.AccountHeads.AnyAsync(a => a.AccountName == pa.Name && a.ParentId == pa.ParentId))
+            {
+                _context.AccountHeads.Add(new AccountHead 
+                { 
+                    AccountName = pa.Name, 
+                    AccountCode = pa.Code, 
+                    Type = pa.Type, 
+                    ParentId = pa.ParentId, 
+                    SystemRole = pa.Role,
+                    TenantId = tenantId 
+                });
+                await _context.SaveChangesAsync();
+            }
         }
 
         // 8. Find and Organize existing unmapped accounts into the hierarchy
@@ -220,30 +269,27 @@ public class InitialDataSeeder
             var bankAccountsGroup = await _context.AccountHeads.FirstOrDefaultAsync(a => a.AccountName == "Bank Accounts");
             var currentAssetsGroup = await _context.AccountHeads.FirstOrDefaultAsync(a => a.AccountName == "Current Assets");
 
-            bool modified = false;
             foreach (var acc in unmappedAccounts)
             {
                 var name = acc.AccountName.ToLower();
-
-                // Bank CHARGES is an expense, ICICI Bank is an asset
                 if (name.Contains("bank") && name.Contains("charge"))
                 {
-                    if (adminExpGroup != null) { acc.ParentId = adminExpGroup.Id; modified = true; }
+                    if (adminExpGroup != null) acc.ParentId = adminExpGroup.Id;
                 }
                 else if (name.Contains("bank") || name.Contains("hdfc") || name.Contains("icici") || name.Contains("sbi") || name.Contains("equitas"))
                 {
-                    if (bankAccountsGroup != null) { acc.ParentId = bankAccountsGroup.Id; modified = true; }
+                    if (bankAccountsGroup != null) acc.ParentId = bankAccountsGroup.Id;
                 }
                 else if (name.Contains("cash") || name.Contains("receivable"))
                 {
-                    if (currentAssetsGroup != null) { acc.ParentId = currentAssetsGroup.Id; modified = true; }
+                    if (currentAssetsGroup != null) acc.ParentId = currentAssetsGroup.Id;
                 }
                 else if (name.Contains("rent") || name.Contains("electricity") || name.Contains("salary"))
                 {
-                    if (adminExpGroup != null) { acc.ParentId = adminExpGroup.Id; modified = true; }
+                    if (adminExpGroup != null) acc.ParentId = adminExpGroup.Id;
                 }
             }
-            if (modified) await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
         // 9. Retroactive Backfill for Sub-ledger Tags
@@ -287,7 +333,6 @@ public class InitialDataSeeder
                 }
             }
             await _context.SaveChangesAsync();
-            Console.WriteLine("[SEED] Sub-ledger tagging backfill complete.");
         }
     }
 }
