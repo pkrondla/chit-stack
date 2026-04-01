@@ -4,6 +4,7 @@ using ChitLedger.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using QuestPDF.Infrastructure;
 
 namespace ChitLedger.Infrastructure;
@@ -18,10 +19,8 @@ public static class DependencyInjection
             options.UseSqlServer(globalConnectionString));
 
         services.AddDbContext<TenantDbContext>(options =>
-            // Dynamic connection handling would happen here or via factory
-            // For simplicity in Plan, we use a basic connection for now, 
-            // but in real multi-tenant, we replace string based on TenantService
-            options.UseSqlServer(configuration.GetConnectionString("TenantDBConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("TenantDBConnection"))
+                   .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         services.AddScoped<ITenantService, TenantService>();
         services.AddScoped<IBranchService, BranchService>();
@@ -38,6 +37,8 @@ public static class DependencyInjection
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IDailyNotificationProcessor, DailyNotificationWorker>();
+
+        services.AddHttpClient();
         
         // QuestPDF License
         QuestPDF.Settings.License = LicenseType.Community;

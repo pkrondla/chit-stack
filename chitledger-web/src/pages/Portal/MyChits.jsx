@@ -1,10 +1,11 @@
-import { Typography, Card, Table, Tag, Spin, Result, Button } from 'antd';
-import { History as HistoryIcon, TrendingUp, Info, User, FileText } from 'lucide-react';
+import { Typography, Card, Table, Tag, Spin, Result, Button, Row, Col, Space, Progress, Layout } from 'antd';
+import { History as HistoryIcon, Info, FileText, Wallet, CheckCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
+const { Content } = Layout;
 
 const MyChits = () => {
     const navigate = useNavigate();
@@ -21,127 +22,149 @@ const MyChits = () => {
             title: 'Group Details',
             key: 'group',
             render: (_, record) => (
-                <div>
-                    <div className="font-bold text-slate-800">{record.groupName}</div>
-                    <div className="text-xs text-slate-500">{record.groupCode}</div>
-                </div>
+                <Space direction="vertical" size={0}>
+                    <Text strong style={{ color: '#1e293b' }}>{record.groupName}</Text>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>{record.groupCode}</Text>
+                </Space>
             )
         },
         {
             title: 'Ticket',
             dataIndex: 'ticketNumber',
             key: 'ticketNumber',
-            render: (num) => <Tag className="bg-slate-100 border-0 text-slate-700 font-medium">#{num}</Tag>
+            render: (num) => <Tag style={{ background: '#f1f5f9', border: 'none', color: '#475569', fontWeight: 500 }}>#{num}</Tag>
         },
         {
             title: 'Value',
             dataIndex: 'chitValue',
             key: 'chitValue',
-            render: (val) => <span className="font-semibold text-slate-700">₹{val.toLocaleString()}</span>
+            render: (val) => <Text strong style={{ color: '#334155' }}>₹{val.toLocaleString()}</Text>
         },
         {
             title: 'Progression',
             key: 'progression',
             render: (_, record) => (
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{record.currentInstallment} / {record.duration}</span>
-                    <div className="w-20 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div
-                            className="bg-indigo-500 h-full"
-                            style={{ width: `${(record.currentInstallment / record.duration) * 100}%` }}
-                        />
+                <Space direction="vertical" size={4} style={{ width: '100%', minWidth: '120px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: '12px' }}>{record.currentInstallment} / {record.duration}</Text>
+                        <Text type="secondary" style={{ fontSize: '10px' }}>{Math.round((record.currentInstallment / record.duration) * 100)}%</Text>
                     </div>
-                </div>
+                    <Progress 
+                        percent={(record.currentInstallment / record.duration) * 100} 
+                        showInfo={false} 
+                        strokeColor="#6366f1"
+                        trailColor="#f1f5f9"
+                        size="small"
+                    />
+                </Space>
             )
         },
         {
             title: 'Paid Amount',
             dataIndex: 'totalPaid',
             key: 'totalPaid',
-            render: (val) => <span className="text-green-600 font-bold">₹{val.toLocaleString()}</span>
+            render: (val) => <Text strong style={{ color: '#10b981' }}>₹{val.toLocaleString()}</Text>
         },
         {
             title: 'Status',
             key: 'status',
             render: (_, record) => (
-                <div className="flex gap-2">
-                    {record.isPrized && <Tag color="gold" className="rounded-full border-0 font-bold">Prized</Tag>}
-                    <Tag color="cyan" className="rounded-full border-0 font-bold">In-Progress</Tag>
-                </div>
+                <Space size={4}>
+                    {record.isPrized && <Tag color="gold" style={{ borderRadius: '12px', fontWeight: 'bold', border: 'none' }}>PRIZED</Tag>}
+                    <Tag color="processing" style={{ borderRadius: '12px', fontWeight: 'bold', border: 'none' }}>ACTIVE</Tag>
+                </Space>
             )
         },
         {
             title: 'Action',
             key: 'action',
+            width: 150,
             render: (_, record) => (
                 <Button 
-                    type="primary" 
-                    variant="filled"
-                    color="default"
+                    type="primary"
                     icon={<FileText size={16} />} 
-                    className="rounded-xl font-bold flex items-center justify-center gap-2 h-10 w-full"
+                    style={{ borderRadius: '10px', fontWeight: 'bold', background: '#4f46e5', height: '36px' }}
                     onClick={() => navigate(`/portal/passbook/${record.ticketId}`)}
                 >
-                    View Passbook
+                    Passbook
                 </Button>
             )
         }
     ];
 
-    if (isLoading) return <div className="flex justify-center p-12"><Spin size="large" /></div>;
-    if (error) return <Result status="error" title="Failed to load your chits" />;
+    if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><Spin size="large" /></div>;
+    if (error) return <Result status="error" title="Data Sync Issue" subTitle={error?.response?.data?.message || "Failed to load your chits. Please try again."} />;
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-100">
-                        <HistoryIcon size={28} />
+        <Layout style={{ background: 'transparent' }}>
+            <Content style={{ padding: '0 4px' }}>
+                <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ padding: '16px', background: '#0f172a', color: 'white', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
+                        <HistoryIcon size={24} />
                     </div>
                     <div>
-                        <Title level={2} className="!m-0 text-slate-800">My Enrolled Chits</Title>
-                        <Text className="text-slate-500 font-medium">Manage and track your active participation in chit groups.</Text>
+                        <Title level={2} style={{ margin: 0, color: '#1e293b' }}>My Enrollment Portfolio</Title>
+                        <Text type="secondary">Track your active groups and participation progress.</Text>
                     </div>
                 </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="border-0 shadow-sm rounded-2xl bg-slate-100">
-                    <Text className="text-slate-900 font-bold uppercase text-[10px] tracking-widest block mb-1">Active Chits</Text>
-                    <Title level={3} className="!m-0 text-slate-900">{chits.length}</Title>
-                </Card>
-                <Card className="border-0 shadow-sm rounded-2xl bg-emerald-50">
-                    <Text className="text-emerald-600 font-bold uppercase text-[10px] tracking-widest block mb-1">Prized Tickets</Text>
-                    <Title level={3} className="!m-0 text-emerald-900">{chits.filter(c => c.isPrized).length}</Title>
-                </Card>
-                <Card className="border-0 shadow-sm rounded-2xl bg-amber-50">
-                    <Text className="text-amber-600 font-bold uppercase text-[10px] tracking-widest block mb-1">Total Paid</Text>
-                    <Title level={3} className="!m-0 text-amber-900">₹{chits.reduce((acc, c) => acc + c.totalPaid, 0).toLocaleString()}</Title>
-                </Card>
-            </div>
+                <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+                    <Col xs={24} sm={8}>
+                        <Card bordered={false} style={{ background: '#f8fafc', borderRadius: '20px' }}>
+                            <Text type="secondary" strong style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Active Chits</Text>
+                            <Title level={3} style={{ margin: '4px 0 0 0' }}>{chits.length}</Title>
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Card bordered={false} style={{ background: '#ecfdf5', borderRadius: '20px' }}>
+                            <Space align="start">
+                                <div>
+                                    <Text style={{ color: '#059669', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.1em' }}>Prized Tickets</Text>
+                                    <Title level={3} style={{ margin: '4px 0 0 0', color: '#064e3b' }}>{chits.filter(c => c.isPrized).length}</Title>
+                                </div>
+                                <CheckCircle size={16} style={{ color: '#059669', marginTop: '2px' }} />
+                            </Space>
+                        </Card>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                        <Card bordered={false} style={{ background: '#fffbeb', borderRadius: '20px' }}>
+                            <Space align="start">
+                                <div>
+                                    <Text style={{ color: '#d97706', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.1em' }}>Total Savings</Text>
+                                    <Title level={3} style={{ margin: '4px 0 0 0', color: '#78350f' }}>₹{chits.reduce((acc, c) => acc + c.totalPaid, 0).toLocaleString()}</Title>
+                                </div>
+                                <Wallet size={16} style={{ color: '#d97706', marginTop: '2px' }} />
+                            </Space>
+                        </Card>
+                    </Col>
+                </Row>
 
-            <Card className="shadow-xl shadow-slate-200/50 border-0 rounded-3xl overflow-hidden p-2">
-                <Table
-                    columns={columns}
-                    dataSource={chits}
-                    rowKey="ticketId"
-                    pagination={false}
-                    className="member-portal-table"
-                />
-            </Card>
+                <Card 
+                    style={{ borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9', overflow: 'hidden' }}
+                    bodyStyle={{ padding: '8px' }}
+                >
+                    <Table
+                        columns={columns}
+                        dataSource={chits}
+                        rowKey="ticketId"
+                        pagination={false}
+                        scroll={{ x: 800 }}
+                    />
+                </Card>
 
-            <div className="mt-8 p-6 bg-slate-50 rounded-2xl flex items-start gap-4 border border-slate-100">
-                <div className="p-2 bg-slate-200 text-slate-700 rounded-lg">
-                    <Info size={20} />
+                <div style={{ marginTop: '32px', padding: '24px', background: '#f8fafc', borderRadius: '20px', display: 'flex', gap: '16px', border: '1px solid #f1f5f9' }}>
+                    <div style={{ padding: '8px', background: '#e2e8f0', borderRadius: '8px', color: '#475569' }}>
+                        <Info size={20} />
+                    </div>
+                    <div>
+                        <Title level={5} style={{ margin: 0, color: '#334155' }}>About Your Portfolio</Title>
+                        <Text type="secondary" style={{ fontSize: '13px' }}>
+                            View granular details by clicking on the 'Passbook' button. Prized tickets represent groups where you have successfully won an auction.
+                        </Text>
+                    </div>
                 </div>
-                <div>
-                    <Title level={5} className="!m-0 text-slate-800">About Participation</Title>
-                    <Text className="text-slate-600 text-sm">
-                        You can view more details about each group by clicking on the row. Prized tickets indicate that you have successfully won the auction for that group.
-                    </Text>
-                </div>
-            </div>
-        </div>
+            </Content>
+        </Layout>
     );
 };
 

@@ -92,15 +92,41 @@ public class AdminNotificationController : ControllerBase
     [HttpGet("templates")]
     public async Task<ActionResult<IEnumerable<NotificationTemplate>>> GetTemplates()
     {
-        var templates = await _context.NotificationTemplates.ToListAsync();
-        if (!templates.Any())
+        var existingTemplates = await _context.NotificationTemplates.ToListAsync();
+        var defaultTemplates = GetDefaultTemplates();
+        
+        // 1. Cleanup old technical names to avoid duplicates
+        var legacyNames = new[] { 
+            "ReceiptConfirmation", "AuctionWinner", "DividendCredit", "DemandAlert", 
+            "ReconciliationApproval", "PaymentReminder", "AuctionAlert", "PayoutConfirmation" 
+        };
+        
+        var toDelete = existingTemplates.Where(t => legacyNames.Contains(t.Name)).ToList();
+        if (toDelete.Any())
         {
-            // Seed defaults if empty
-            templates = GetDefaultTemplates();
-            _context.NotificationTemplates.AddRange(templates);
+            _context.NotificationTemplates.RemoveRange(toDelete);
             await _context.SaveChangesAsync();
+            existingTemplates = await _context.NotificationTemplates.ToListAsync();
         }
-        return templates;
+
+        // 2. Sync missing default templates
+        bool addedAny = false;
+        foreach (var def in defaultTemplates)
+        {
+            if (!existingTemplates.Any(t => t.Name == def.Name))
+            {
+                _context.NotificationTemplates.Add(def);
+                addedAny = true;
+            }
+        }
+        
+        if (addedAny)
+        {
+            await _context.SaveChangesAsync();
+            return await _context.NotificationTemplates.OrderBy(t => t.Name).ToListAsync();
+        }
+        
+        return existingTemplates.OrderBy(t => t.Name).ToList();
     }
 
     [HttpPut("templates/{id}")]
@@ -116,11 +142,70 @@ public class AdminNotificationController : ControllerBase
     {
         return new List<NotificationTemplate>
         {
-            new NotificationTemplate { Name = "ReceiptConfirmation", TitleTemplate = "Payment Received", MessageTemplate = "Dear {MemberName}, we received ₹{Amount} for {ChitGroup}. Balance: ₹{Balance}. Receipt: {ReceiptNo}.", Placeholders = "{MemberName}, {Amount}, {ChitGroup}, {Balance}, {ReceiptNo}" },
-            new NotificationTemplate { Name = "AuctionWinner", TitleTemplate = "Congratulations!", MessageTemplate = "Dear {MemberName}, you won the auction for {ChitGroup} with bid ₹{BidAmount}. Net Payout: ₹{Payout}.", Placeholders = "{MemberName}, {ChitGroup}, {BidAmount}, {Payout}" },
-            new NotificationTemplate { Name = "DividendCredit", TitleTemplate = "Dividend Alert", MessageTemplate = "Dividend of ₹{Amount} credited for {ChitGroup}. Next installment: ₹{NetInstallment}.", Placeholders = "{Amount}, {ChitGroup}, {NetInstallment}" },
-            new NotificationTemplate { Name = "DemandAlert", TitleTemplate = "Installment Due", MessageTemplate = "Installment for {Month} is ready: ₹{Amount}. Due on {DueDate}. Group: {ChitGroup}.", Placeholders = "{Month}, {Amount}, {DueDate}, {ChitGroup}" },
-            new NotificationTemplate { Name = "ReconciliationApproval", TitleTemplate = "Collections Approved", MessageTemplate = "Your submission for {Date} (₹{Amount}) has been approved. Status: {Status}.", Placeholders = "{Date}, {Amount}, {Status}" }
+            new NotificationTemplate 
+            { 
+                Name = "Payment Receipts", 
+                TitleTemplate = "Payment Received", 
+                MessageTemplate = "Dear {MemberName}, we received ₹{Amount} for {ChitGroup}. Balance: ₹{Balance}. Receipt: {ReceiptNo}.",
+                WhatsAppTemplate = "✅ *Payment Received*\n\nDear {MemberName}, we received *₹{Amount}* for {ChitGroup}. \n\n*Balance*: ₹{Balance}\n*Receipt*: {ReceiptNo}",
+                Placeholders = "{MemberName}, {Amount}, {ChitGroup}, {Balance}, {ReceiptNo}" 
+            },
+            new NotificationTemplate 
+            { 
+                Name = "Auction Winner", 
+                TitleTemplate = "Congratulations!", 
+                MessageTemplate = "Dear {MemberName}, you won the auction for {ChitGroup} with bid ₹{BidAmount}. Net Payout: ₹{Payout}.",
+                WhatsAppTemplate = "🎉 *Congratulations!*\n\nDear {MemberName}, you won the auction for *{ChitGroup}*.\n\n*Bid*: ₹{BidAmount}\n*Net Payout*: ₹{Payout}",
+                Placeholders = "{MemberName}, {ChitGroup}, {BidAmount}, {Payout}" 
+            },
+            new NotificationTemplate 
+            { 
+                Name = "Dividend Credits", 
+                TitleTemplate = "Dividend Alert", 
+                MessageTemplate = "Dividend of ₹{Amount} credited for {ChitGroup}. Next installment: ₹{NetInstallment}.",
+                WhatsAppTemplate = "💰 *Dividend Alert*\n\nDividend of *₹{Amount}* credited for {ChitGroup}.\n\n*Next Installment*: ₹{NetInstallment}",
+                Placeholders = "{Amount}, {ChitGroup}, {NetInstallment}" 
+            },
+            new NotificationTemplate 
+            { 
+                Name = "Monthly Demands", 
+                TitleTemplate = "Installment Due", 
+                MessageTemplate = "Installment for {Month} is ready: ₹{Amount}. Due on {DueDate}. Group: {ChitGroup}.",
+                WhatsAppTemplate = "📅 *Installment Due*\n\nInstallment for {Month}: *₹{Amount}*\n*Due Date*: {DueDate}\n*Group*: {ChitGroup}",
+                Placeholders = "{Month}, {Amount}, {DueDate}, {ChitGroup}" 
+            },
+            new NotificationTemplate 
+            { 
+                Name = "Payment Reminders", 
+                TitleTemplate = "Payment Reminder", 
+                MessageTemplate = "Gentle reminder: Your installment for {ChitGroup} (₹{Amount}) is due on {DueDate}. Please ensure timely payment.",
+                WhatsAppTemplate = "🔔 *Payment Reminder*\n\nYour installment for *{ChitGroup}* is due on *{DueDate}*.\n\n*Amount*: ₹{Amount}",
+                Placeholders = "{ChitGroup}, {Amount}, {DueDate}" 
+            },
+            new NotificationTemplate 
+            { 
+                Name = "Auction Alerts", 
+                TitleTemplate = "Auction Reminder", 
+                MessageTemplate = "Auction for {ChitGroup} starts in {Hours} hours. Place your bids in the portal.",
+                WhatsAppTemplate = "🔨 *Auction Reminder*\n\nAuction for *{ChitGroup}* starts in {Hours} hours.\n\nBe ready to bid in the portal!",
+                Placeholders = "{ChitGroup}, {Hours}" 
+            },
+            new NotificationTemplate 
+            { 
+                Name = "Prize Payouts", 
+                TitleTemplate = "Prize Payout", 
+                MessageTemplate = "Your prize payout of ₹{Amount} for {ChitGroup} has been processed. Reference: {RefNo}.",
+                WhatsAppTemplate = "🎊 *Prize Payout processed*\n\nYour prize payout of *₹{Amount}* for {ChitGroup} has been processed.\n\n*Ref*: {RefNo}",
+                Placeholders = "{Amount}, {ChitGroup}, {RefNo}" 
+            },
+             new NotificationTemplate 
+            { 
+                Name = "Agent Submissions", 
+                TitleTemplate = "Collections Approved", 
+                MessageTemplate = "Your submission for {Date} (₹{Amount}) has been approved. Status: {Status}.",
+                WhatsAppTemplate = "✅ *Collections Approved*\n\nYour submission for {Date} (₹{Amount}) has been *Approved*.\n\n*Status*: {Status}",
+                Placeholders = "{Date}, {Amount}, {Status}" 
+            }
         };
     }
     [HttpGet("recent")]

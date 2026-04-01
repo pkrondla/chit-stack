@@ -1,0 +1,53 @@
+Using project 'C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj'.
+Using startup project 'C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj'.
+dotnet msbuild /getProperty:ProjectName /getProperty:AssemblyName /getProperty:DesignAssembly /getProperty:Language /getProperty:OutputPath /getProperty:PlatformTarget /getProperty:ProjectAssetsFile /getProperty:ProjectDir /getProperty:RootNamespace /getProperty:RuntimeFrameworkVersion /getProperty:TargetFileName /getProperty:TargetFrameworkMoniker /getProperty:Nullable /getProperty:TargetFramework /getProperty:TargetPlatformIdentifier /getProperty:Platform /t:ResolvePackageAssets /getItem:RuntimeCopyLocalItems C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj
+dotnet msbuild /getProperty:ProjectName /getProperty:AssemblyName /getProperty:DesignAssembly /getProperty:Language /getProperty:OutputPath /getProperty:PlatformTarget /getProperty:ProjectAssetsFile /getProperty:ProjectDir /getProperty:RootNamespace /getProperty:RuntimeFrameworkVersion /getProperty:TargetFileName /getProperty:TargetFrameworkMoniker /getProperty:Nullable /getProperty:TargetFramework /getProperty:TargetPlatformIdentifier /getProperty:Platform /t:ResolvePackageAssets /getItem:RuntimeCopyLocalItems C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj
+Build started...
+dotnet build C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj /verbosity:quiet /nologo /p:PublishAot=false
+C:\PK\Source\chit-ledger\ChitLedger.Application\ChitLedger.Application.csproj : warning NU1903: Package 'AutoMapper' 16.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x [C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.SqlServer 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved. [C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.NetCore 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved. [C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Application\ChitLedger.Application.csproj : warning NU1903: Package 'AutoMapper' 16.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.SqlServer 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved.
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.NetCore 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved.
+
+Build succeeded.
+
+C:\PK\Source\chit-ledger\ChitLedger.Application\ChitLedger.Application.csproj : warning NU1903: Package 'AutoMapper' 16.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x [C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.SqlServer 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved. [C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.NetCore 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved. [C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj]
+C:\PK\Source\chit-ledger\ChitLedger.Application\ChitLedger.Application.csproj : warning NU1903: Package 'AutoMapper' 16.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-rvv3-g6hj-g44x
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.SqlServer 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved.
+C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj : warning NU1608: Detected package version outside of dependency constraint: Hangfire.NetCore 1.8.22 requires Hangfire.Core (= 1.8.22) but version Hangfire.Core 1.8.23 was resolved.
+    6 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.00
+
+Build succeeded.
+dotnet exec --depsfile C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\ChitLedger.API.deps.json --additionalprobingpath C:\Users\windows\.nuget\packages --additionalprobingpath "C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages" --runtimeconfig C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\ChitLedger.API.runtimeconfig.json C:\Users\windows\.dotnet\tools\.store\dotnet-ef\10.0.5\dotnet-ef\10.0.5\tools\net8.0\any\tools\net8.0\any\ef.dll migrations add AddModeSpecificTemplates --output-dir Data\TenantMigrations --assembly C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\ChitLedger.Infrastructure.dll --project C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ChitLedger.Infrastructure.csproj --startup-assembly C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0\ChitLedger.API.dll --startup-project C:\PK\Source\chit-ledger\ChitLedger.API\ChitLedger.API.csproj --project-dir C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\ --root-namespace ChitLedger.Infrastructure --language C# --framework net9.0 --design-assembly C:\Users\windows\.nuget\packages\microsoft.entityframeworkcore.design\9.0.0\lib\net8.0\Microsoft.EntityFrameworkCore.Design.dll --nullable --working-dir C:\PK\Source\chit-ledger --verbose
+Using assembly 'ChitLedger.Infrastructure'.
+Using startup assembly 'ChitLedger.API'.
+Using application base 'C:\PK\Source\chit-ledger\ChitLedger.API\bin\Debug\net9.0'.
+Using working directory 'C:\PK\Source\chit-ledger\ChitLedger.API'.
+Using root namespace 'ChitLedger.Infrastructure'.
+Using project directory 'C:\PK\Source\chit-ledger\ChitLedger.Infrastructure\'.
+Remaining arguments: .
+Finding DbContext classes...
+Finding IDesignTimeDbContextFactory implementations...
+Finding DbContext classes in the project...
+Found DbContext 'GlobalDbContext'.
+Found DbContext 'TenantDbContext'.
+Finding application service provider in assembly 'ChitLedger.API'...
+Finding Microsoft.Extensions.Hosting service provider...
+Using environment 'Development'.
+Using application service provider from Microsoft.Extensions.Hosting.
+Microsoft.EntityFrameworkCore.Design.OperationException: More than one DbContext was found. Specify which one to use. Use the '-Context' parameter for PowerShell commands and the '--context' parameter for dotnet commands.
+   at Microsoft.EntityFrameworkCore.Design.Internal.DbContextOperations.FindContextType(String name)
+   at Microsoft.EntityFrameworkCore.Design.Internal.DbContextOperations.CreateContext(String contextType)
+   at Microsoft.EntityFrameworkCore.Design.Internal.MigrationsOperations.AddMigration(String name, String outputDir, String contextType, String namespace, Boolean dryRun)
+   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.AddMigrationImpl(String name, String outputDir, String contextType, String namespace, Boolean dryRun)
+   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.AddMigration.<>c__DisplayClass0_0.<.ctor>b__0()
+   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.OperationBase.<>c__DisplayClass3_0`1.<Execute>b__0()
+   at Microsoft.EntityFrameworkCore.Design.OperationExecutor.OperationBase.Execute(Action action)
+More than one DbContext was found. Specify which one to use. Use the '-Context' parameter for PowerShell commands and the '--context' parameter for dotnet commands.

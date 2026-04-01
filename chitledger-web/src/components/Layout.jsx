@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, Dropdown, Select } from 'antd';
 import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
-    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen, Bell
+    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen, Bell, User
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import useAuthStore from '../store/useAuthStore';
@@ -101,7 +101,18 @@ const Layout = () => {
                 { key: '/reports?tab=TrialBalance', label: 'Trial Balance' },
             ]
         },
-        { key: '/admin/notifications', icon: <Bell size={18} />, label: 'Notifications' },
+        {
+            key: 'notifGrp',
+            icon: <Bell size={18} />,
+            label: 'Notifications',
+            children: [
+                { key: '/admin/broadcast', label: 'Broadcast Center' },
+                { key: '/admin/notifications', label: 'Notifications' },
+                { key: '/settings/templates', label: 'Message Designer' },
+                { key: '/settings/automation', label: 'Automation Rules' },
+                { key: '/settings/notifications', label: 'Gateway Config' }
+            ]
+        },
         { type: 'divider' },
         {
             key: 'setupGrp', label: 'Setup', type: 'group', children: [
@@ -130,6 +141,20 @@ const Layout = () => {
         menuItems = agentItems;
     }
 
+    const getPageTitle = (items, path) => {
+        for (const item of items) {
+            if (item.key === path) return item.label;
+            if (item.children) {
+                const found = getPageTitle(item.children, path);
+                if (found) return found;
+            }
+        }
+        // Fallback to pretty-printing the path segment if no menu item matches
+        return path.startsWith('/agent') ? 'Field Agent Portal' : (path.split('/')[1] || 'Dashboard');
+    };
+
+    const currentTitle = getPageTitle(menuItems, location.pathname);
+
     return (
         <AntLayout className="h-screen font-sans">
             <Sider
@@ -157,7 +182,7 @@ const Layout = () => {
                     style={{ backgroundColor: '#ffffff', lineHeight: 'inherit' }}
                 >
                     <h1 className="text-xl font-bold text-gray-900 capitalize m-0">
-                        {location.pathname.startsWith('/agent') ? 'Field Agent Portal' : (location.pathname.split('/')[1] || 'Dashboard')}
+                        {currentTitle}
                     </h1>
                     <div className="flex items-center gap-6">
                         {authorizedBranches && authorizedBranches.length > 0 && (
@@ -181,6 +206,8 @@ const Layout = () => {
                         <NotificationBell />
                         <Dropdown menu={{
                             items: [
+                                { key: 'profile', label: 'My Profile', icon: <User size={16} />, onClick: () => navigate('/profile') },
+                                { type: 'divider' },
                                 { key: 'logout', label: 'Logout', icon: <LogOut size={16} />, onClick: handleLogout, danger: true }
                             ]
                         }} trigger={['click']} placement="bottomRight">

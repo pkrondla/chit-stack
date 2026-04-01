@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Switch, List, Typography, Button, Space, Form, Input, InputNumber, message, Spin, Tabs } from 'antd';
+import { Card, Switch, List, Typography, Button, Space, Form, Input, InputNumber, message, Spin, Tabs, Badge, Select, Collapse } from 'antd';
 import { Bell, Smartphone, MessageSquare, Mail, Settings, ShieldCheck, Zap, Cog, LayoutList } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
@@ -9,7 +9,6 @@ const { Title, Text, Paragraph } = Typography;
 const NotificationSettings = () => {
     const [userSettings, setUserSettings] = useState(null);
     const [adminConfig, setAdminConfig] = useState(null);
-    const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const user = useAuthStore(state => state.user);
@@ -23,12 +22,8 @@ const NotificationSettings = () => {
             setUserSettings(userRes.data);
 
             if (isAdmin) {
-                const [adminRes, templateRes] = await Promise.all([
-                    api.get('/adminnotification/config'),
-                    api.get('/adminnotification/templates')
-                ]);
+                const adminRes = await api.get('/adminnotification/config');
                 setAdminConfig(adminRes.data);
-                setTemplates(templateRes.data);
                 adminForm.setFieldsValue(adminRes.data);
             }
         } catch (err) {
@@ -76,168 +71,117 @@ const NotificationSettings = () => {
 
     if (loading) return <div className="p-10 text-center"><Spin /></div>;
 
-    const userTabs = [
+    const adminTabs = [
         {
-            key: 'my-channels',
-            label: <span className="flex items-center gap-2"><Settings size={16} /> My Channels</span>,
+            key: 'system-setup',
+            label: <span className="flex items-center gap-2 text-indigo-600"><Settings size={16} /> System Gateways</span>,
             children: (
-                <Card className="shadow-sm border-0">
-                    <Paragraph type="secondary">Choose how you want to receive alerts for your account and groups.</Paragraph>
-                    <List itemLayout="horizontal">
-                        <List.Item actions={[<Switch checked={userSettings?.inPortalEnabled} onChange={(v) => handleUserToggle('inPortalEnabled', v)} />]}>
-                            <List.Item.Meta avatar={<Bell className="text-blue-500" />} title="In-Portal Dashboard" description="Receive real-time alerts while using the application." />
-                        </List.Item>
-                        <List.Item actions={[<Switch checked={userSettings?.whatsAppEnabled} onChange={(v) => handleUserToggle('whatsAppEnabled', v)} />]}>
-                            <List.Item.Meta avatar={<MessageSquare className="text-green-500" />} title="WhatsApp Messages" description="Get instant updates on your WhatsApp number." />
-                        </List.Item>
-                        <List.Item actions={[<Switch checked={userSettings?.smsEnabled} onChange={(v) => handleUserToggle('smsEnabled', v)} />]}>
-                            <List.Item.Meta avatar={<Smartphone className="text-purple-500" />} title="SMS Alerts" description="Traditional text message alerts for important events." />
-                        </List.Item>
-                        <List.Item actions={[<Switch checked={userSettings?.emailEnabled} onChange={(v) => handleUserToggle('emailEnabled', v)} />]}>
-                            <List.Item.Meta avatar={<Mail className="text-orange-500" />} title="Email Notifications" description="Receive detailed updates and statements via email." />
-                        </List.Item>
-                    </List>
-                </Card>
+                <div className="space-y-6">
+                    <Form form={adminForm} layout="vertical" onFinish={onAdminSubmit}>
+                        <Card className="shadow-sm border-0 rounded-[2rem] overflow-hidden p-0">
+                            <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+                                <Title level={4} className="!m-0 text-slate-800">Global Communication Gateways</Title>
+                                <Text className="text-slate-500 text-sm">Configure the delivery providers for your system-wide notifications.</Text>
+                            </div>
+                            
+                            <Collapse 
+                                ghost 
+                                expandIconPosition="end"
+                                className="gateway-collapse"
+                                defaultActiveKey={['email']}
+                            >
+                                <Collapse.Panel 
+                                    header={
+                                        <div className="flex items-center gap-4 py-2">
+                                            <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shadow-sm"><Mail size={20} /></div>
+                                            <div>
+                                                <div className="font-bold text-slate-700 text-base">Email (SMTP)</div>
+                                                <div className="text-xs text-slate-400">Configure mail server for transactional statements</div>
+                                            </div>
+                                        </div>
+                                    } 
+                                    key="email"
+                                    className="border-b border-slate-50 px-4"
+                                >
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/20 rounded-3xl m-2 border border-slate-100">
+                                        <Form.Item name="smtpHost" label={<span className="text-xs font-bold text-slate-500 uppercase">SMTP Host</span>}><Input placeholder="smtp.gmail.com" className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="smtpPort" label={<span className="text-xs font-bold text-slate-500 uppercase">Port</span>}><InputNumber className="w-full rounded-xl h-10 flex items-center" /></Form.Item>
+                                        <Form.Item name="smtpUser" label={<span className="text-xs font-bold text-slate-500 uppercase">User</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="smtpPass" label={<span className="text-xs font-bold text-slate-500 uppercase">Password</span>}><Input.Password className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="emailFrom" label={<span className="text-xs font-bold text-slate-500 uppercase">Sender Email</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                    </div>
+                                </Collapse.Panel>
+
+                                <Collapse.Panel 
+                                    header={
+                                        <div className="flex items-center gap-4 py-2">
+                                            <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shadow-sm"><MessageSquare size={20} /></div>
+                                            <div>
+                                                <div className="font-bold text-slate-700 text-base">WhatsApp (Gupshup)</div>
+                                                <div className="text-xs text-slate-400">Manage instant messaging API credentials</div>
+                                            </div>
+                                        </div>
+                                    } 
+                                    key="whatsapp"
+                                    className="border-b border-slate-50 px-4"
+                                >
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/20 rounded-3xl m-2 border border-slate-100">
+                                        <Form.Item name="whatsAppApiUrl" label={<span className="text-xs font-bold text-slate-500 uppercase">API Endpoint</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="whatsAppApiKey" label={<span className="text-xs font-bold text-slate-500 uppercase">API Key</span>}><Input.Password className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="whatsAppSenderNumber" label={<span className="text-xs font-bold text-slate-500 uppercase">Sender Number</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                    </div>
+                                </Collapse.Panel>
+
+                                <Collapse.Panel 
+                                    header={
+                                        <div className="flex items-center gap-4 py-2">
+                                            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-sm"><Smartphone size={20} /></div>
+                                            <div>
+                                                <div className="font-bold text-slate-700 text-base">SMS Gateway</div>
+                                                <div className="text-xs text-slate-400">Configure primary SMS provider and Sender ID</div>
+                                            </div>
+                                        </div>
+                                    } 
+                                    key="sms"
+                                    className="px-4"
+                                >
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/20 rounded-3xl m-2 border border-slate-100">
+                                        <Form.Item name="smsApiUrl" label={<span className="text-xs font-bold text-slate-500 uppercase">API Endpoint</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="smsApiKey" label={<span className="text-xs font-bold text-slate-500 uppercase">API Key</span>}><Input.Password className="rounded-xl h-10" /></Form.Item>
+                                        <Form.Item name="smsSenderId" label={<span className="text-xs font-bold text-slate-500 uppercase">Sender ID</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                    </div>
+                                </Collapse.Panel>
+                            </Collapse>
+                        </Card>
+                    </Form>
+                </div>
             )
         }
     ];
 
-    const adminTabs = [
-        ...userTabs,
-        {
-            key: 'provider-setup',
-            label: <span className="flex items-center gap-2 text-indigo-600"><ShieldCheck size={16} /> Providers</span>,
-            children: (
-                <Form form={adminForm} layout="vertical" onFinish={onAdminSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <Card title="Email (SMTP)" size="small" className="shadow-sm">
-                            <Form.Item name="smtpHost" label="Host"><Input placeholder="smtp.gmail.com" /></Form.Item>
-                            <Form.Item name="smtpPort" label="Port"><InputNumber className="w-full" /></Form.Item>
-                            <Form.Item name="smtpUser" label="User"><Input /></Form.Item>
-                            <Form.Item name="smtpPass" label="Pass"><Input.Password /></Form.Item>
-                            <Form.Item name="emailFrom" label="From"><Input /></Form.Item>
-                        </Card>
-                        <Card title="WhatsApp (Gupshup)" size="small" className="shadow-sm">
-                            <Form.Item name="whatsAppApiUrl" label="API Endpoint"><Input /></Form.Item>
-                            <Form.Item name="whatsAppApiKey" label="API Key"><Input.Password /></Form.Item>
-                            <Form.Item name="whatsAppSenderNumber" label="No."><Input /></Form.Item>
-                        </Card>
-                        <Card title="SMS Gateway" size="small" className="shadow-sm">
-                            <Form.Item name="smsApiUrl" label="API Endpoint"><Input /></Form.Item>
-                            <Form.Item name="smsApiKey" label="API Key"><Input.Password /></Form.Item>
-                            <Form.Item name="smsSenderId" label="Sender ID"><Input /></Form.Item>
-                        </Card>
-                    </div>
-                </Form>
-            )
-        },
-        {
-            key: 'system-rules',
-            label: <span className="flex items-center gap-2 text-indigo-600"><Cog size={16} /> Automation Roles</span>,
-            children: (
-                <Form form={adminForm} layout="vertical" onFinish={onAdminSubmit}>
-                    <Card className="shadow-sm border-0">
-                        <Title level={5}>Background Reminders</Title>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                            <Space direction="vertical" className="w-full bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <Space><Form.Item name="autoPaymentRemindersEnabled" valuePropName="checked" noStyle><Switch /></Form.Item> <Text strong>Payment Reminders</Text></Space>
-                                <Space><Text className="text-xs">Send</Text> <Form.Item name="paymentReminderDaysBefore" noStyle><InputNumber size="small" min={1} /></Form.Item> <Text className="text-xs text-slate-500">days before due</Text></Space>
-                            </Space>
-                            <Space direction="vertical" className="w-full bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <Space><Form.Item name="autoAuctionRemindersEnabled" valuePropName="checked" noStyle><Switch /></Form.Item> <Text strong>Auction Alerts</Text></Space>
-                                <Space><Text className="text-xs">Send</Text> <Form.Item name="auctionReminderHoursBefore" noStyle><InputNumber size="small" min={1} /></Form.Item> <Text className="text-xs text-slate-500">hours before start</Text></Space>
-                            </Space>
-                        </div>
-                        
-                        <Title level={5}>Transactional Auto-Alerts</Title>
-                        <Paragraph type="secondary">Automatically notify members when these events occur.</Paragraph>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {[
-                                { name: 'NotifyOnReceipt', label: 'Payment Receipts' },
-                                { name: 'NotifyOnAuctionWon', label: 'Auction Winner' },
-                                { name: 'NotifyOnDividend', label: 'Dividend Credits' },
-                                { name: 'NotifyOnDemand', label: 'Monthly Demands' },
-                                { name: 'NotifyOnReconciliation', label: 'Agent Submissions' },
-                                { name: 'NotifyOnPayout', label: 'Prize Payouts' },
-                            ].map(x => (
-                                <div key={x.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                    <Text className="text-xs font-medium">{x.label}</Text>
-                                    <Form.Item name={x.name} valuePropName="checked" noStyle><Switch size="small" /></Form.Item>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </Form>
-            )
-        },
-        {
-            key: 'templates',
-            label: <span className="flex items-center gap-2 text-amber-600"><LayoutList size={16} /> Message Templates</span>,
-            children: (
-                <Card className="shadow-sm border-0">
-                    <Paragraph type="secondary">Customize the message content for each automated trigger. Use {`{brackets}`} as placeholders.</Paragraph>
-                    <div className="space-y-6">
-                        {templates.map(tmp => (
-                            <div key={tmp.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <Text strong className="text-indigo-900">{tmp.name.replace(/([A-Z])/g, ' $1').trim()}</Text>
-                                        <div className="text-[10px] text-amber-600 font-mono mt-0.5">Available Tags: {tmp.placeholders}</div>
-                                    </div>
-                                    <Button size="small" type="primary" onClick={() => handleSaveTemplate(tmp)}>Update Template</Button>
-                                </div>
-                                <div className="space-y-3">
-                                    <Input 
-                                        placeholder="Alert Title" 
-                                        value={tmp.titleTemplate} 
-                                        onChange={e => {
-                                            const newTemplates = [...templates];
-                                            const t = newTemplates.find(t => t.id === tmp.id);
-                                            if (t) t.titleTemplate = e.target.value;
-                                            setTemplates(newTemplates);
-                                        }}
-                                        className="rounded-lg shadow-sm"
-                                    />
-                                    <Input.TextArea 
-                                        rows={2} 
-                                        placeholder="Message Format" 
-                                        value={tmp.messageTemplate} 
-                                        onChange={e => {
-                                            const newTemplates = [...templates];
-                                            const t = newTemplates.find(t => t.id === tmp.id);
-                                            if (t) t.messageTemplate = e.target.value;
-                                            setTemplates(newTemplates);
-                                        }}
-                                        className="rounded-lg shadow-sm"
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-            )
-        }
-    ];
+    if (!isAdmin) return null;
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto">
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                <div>
-                    <Title level={4} className="!m-0">Notification Dashboard</Title>
-                    <Text type="secondary">Configure your personalized and automated system alerts.</Text>
+        <div className="space-y-6 max-w-6xl mx-auto pb-12">
+            <div className="flex justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
+                        <Settings size={24} />
+                    </div>
+                    <div>
+                        <Title level={2} className="!m-0 text-slate-800">Gateway Config</Title>
+                        <Text className="text-slate-500 text-sm">Manage global delivery providers for your system notifications.</Text>
+                    </div>
                 </div>
-                {isAdmin && (
-                    <Button type="primary" onClick={() => adminForm.submit()} loading={saving} icon={<Cog size={16} />}>
-                        Save All System Rules
-                    </Button>
-                )}
+                <Button type="primary" size="large" onClick={() => adminForm.submit()} loading={saving} icon={<Cog size={18} />} className="shadow-lg shadow-indigo-100 rounded-2xl h-12 px-8 font-bold">
+                    Save System Config
+                </Button>
             </div>
 
             <Tabs 
-                defaultActiveKey="my-channels" 
-                items={isAdmin ? adminTabs : userTabs}
-                type="card"
-                className="notification-tabs"
+                defaultActiveKey="system-setup" 
+                items={adminTabs}
+                className="notification-tabs-custom"
             />
         </div>
     );

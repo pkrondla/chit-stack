@@ -2,8 +2,7 @@ import { Typography, Tabs } from 'antd';
 import CompanySettings from './CompanySettings';
 import HolidaySettings from './HolidaySettings';
 import AuctionSettings from './AuctionSettings';
-import NotificationSettings from './NotificationSettings';
-import { Building2, CalendarX2, SlidersHorizontal, Gavel, Bell } from 'lucide-react';
+import { Building2, CalendarX2, SlidersHorizontal, Gavel } from 'lucide-react';
 
 const { Title, Text } = Typography;
 
@@ -37,16 +36,6 @@ const tabs = [
             </span>
         ),
         children: <AuctionSettings />,
-    },
-    {
-        key: 'notifications',
-        label: (
-            <span className="flex items-center gap-2">
-                <Bell size={15} />
-                Notifications
-            </span>
-        ),
-        children: <NotificationSettings />,
     },
 ];
 

@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Typography, Tag, Spin, Result, Button, Row, Col, Space } from 'antd';
+import { Card, Typography, Tag, Spin, Result, Button, Row, Col, Space, Layout, Badge } from 'antd';
 import {
     ChevronRight,
     Gavel,
-    ShieldCheck,
     CreditCard,
     PlayCircle,
     History as HistoryIcon,
@@ -13,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
+const { Content } = Layout;
 
 const PortalDashboard = () => {
     const navigate = useNavigate();
@@ -26,16 +26,30 @@ const PortalDashboard = () => {
         retry: 1
     });
 
-    if (isLoading) return <div className="flex justify-center items-center min-h-[60vh]"><Spin size="large" /></div>;
+    if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><Spin size="large" /></div>;
 
-    if (error || !data) {
+    if (error) {
+        const errorMessage = error?.response?.data?.message || error?.message || "Failed to load dashboard. Please try again.";
         return (
-            <div className="p-4">
+            <div style={{ padding: '24px' }}>
                 <Result
-                    status="403"
-                    title="Access Restricted"
-                    subTitle="Please ensure you are logged in as a Member."
-                    extra={<Button type="primary" onClick={() => navigate('/login')}>Back to Login</Button>}
+                    status="error"
+                    title="Data Sync Error"
+                    subTitle={errorMessage}
+                    extra={<Button type="primary" onClick={() => window.location.reload()}>Retry</Button>}
+                />
+            </div>
+        );
+    }
+
+    if (!data) {
+        return (
+            <div style={{ padding: '24px' }}>
+                <Result
+                    status="warning"
+                    title="Account Incomplete"
+                    subTitle="Please ensure your profile is linked to a Member record."
+                    extra={<Button type="primary" onClick={() => navigate('/portal/settings')}>Check Profile</Button>}
                 />
             </div>
         );
@@ -53,187 +67,162 @@ const PortalDashboard = () => {
     });
 
     return (
-        <div className="max-w-7xl mx-auto py-6 animate-in fade-in duration-700" style={{ paddingLeft: '5px', paddingRight: '5px' }}>
+        <Layout style={{ background: 'transparent', padding: '24px' }}>
+            <Content style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+                {/* Header Section */}
+                <div style={{ marginBottom: '32px' }}>
+                    <Text type="secondary" strong style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.4em', display: 'block', marginBottom: '4px' }}>
+                        Account Insights
+                    </Text>
+                    <Title level={2} style={{ margin: 0, fontWeight: 900, letterSpacing: '-0.02em' }}>
+                        Member Portal
+                    </Title>
+                </div>
 
-            {/* Minimal Header Section */}
-            <div className="mb-6">
-                <Text className="text-[10px] font-bold text-slate-900 uppercase tracking-[0.4em] mb-1 block">Account Insights</Text>
-                <Title level={3} className="!m-0 !font-black tracking-tight text-slate-900">Member Portal</Title>
-            </div>
-
-            <Row gutter={[24, 24]} style={{ marginBottom: '30px', paddingLeft: '20px', paddingRight: '20px' }}>
-                {/* 1. Outstanding & Payments */}
-                <Col xs={24} lg={12}>
-                    <div
-                        className="h-full border border-slate-200 shadow-sm rounded-3xl overflow-hidden relative bg-white"
-                    >
-                        <div className="relative z-10 h-full flex flex-col justify-between" style={{ padding: '20px' }}>
+                <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+                    {/* 1. Outstanding & Payments */}
+                    <Col xs={24} lg={12}>
+                        <Card 
+                            bordered 
+                            style={{ borderRadius: '24px', height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                            bodyStyle={{ padding: '32px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                        >
                             <div>
-                                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mb-1 block m-0">Total Outstanding</p>
-                                <h2 className="text-slate-900 m-0 font-black tracking-tighter text-4xl md:text-5xl">
+                                <Text type="secondary" strong style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
+                                    Total Outstanding
+                                </Text>
+                                <Title level={1} style={{ margin: 0, fontWeight: 900, letterSpacing: '-0.05em', fontSize: '48px' }}>
                                     ₹{totalLiability.toLocaleString()}
-                                </h2>
+                                </Title>
                                 {data.totalPenalty > 0 && (
-                                    <Text className="text-[10px] font-bold text-red-500 block mt-1 uppercase tracking-tight">
+                                    <Text type="danger" strong style={{ fontSize: '10px', display: 'block', marginTop: '4px', textTransform: 'uppercase' }}>
                                         Includes ₹{data.totalPenalty.toLocaleString()} Late Fees
                                     </Text>
                                 )}
-                                <div className={`mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full border transition-colors ${data.accountStatus === 'Healthy' ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
-                                    <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${data.accountStatus === 'Healthy' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
-                                    <span className={`font-black text-[9px] uppercase tracking-widest leading-none ${data.accountStatus === 'Healthy' ? 'text-emerald-700' : 'text-orange-700'}`}>{data.accountStatus} Account Status</span>
+                                <div style={{ marginTop: '16px' }}>
+                                    <Badge 
+                                        status={data.accountStatus === 'Healthy' ? 'success' : 'warning'} 
+                                        text={<Text strong style={{ fontSize: '10px', textTransform: 'uppercase' }}>{data.accountStatus}</Text>} 
+                                    />
                                 </div>
                             </div>
 
-                            <div className="mt-6">
+                            <div style={{ marginTop: '24px' }}>
                                 <Button
                                     type="primary"
                                     size="large"
                                     block
                                     onClick={() => navigate('/portal/payments')}
-                                    className="h-12 rounded-xl bg-indigo-600 text-white border-none font-black text-sm shadow-md hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                                    icon={<CreditCard size={18} />}
+                                    style={{ height: '56px', borderRadius: '12px', fontWeight: 900, fontSize: '16px', background: '#4f46e5' }}
                                 >
-                                    <CreditCard size={18} /> Pay Outstanding
+                                    Pay Outstanding
                                 </Button>
                             </div>
-                        </div>
-                    </div>
-                </Col>
+                        </Card>
+                    </Col>
 
-                {/* 2. Upcoming Auctions & Live Room */}
-                <Col xs={24} lg={12}>
-                    <Card
-                        className="h-full border border-slate-200 shadow-sm rounded-3xl overflow-hidden bg-white"
-                        styles={{ body: { padding: '30px' } }}
-                    >
-                        <div className="mb-4 flex items-center justify-between">
-                            <div>
-                                <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 block">Auction Schedule</Text>
-                                <Title level={4} className="!m-0 !font-black tracking-tight text-slate-900">Next 30 Days</Title>
-                            </div>
-                            <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200">
-                                <Gavel size={20} />
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            {filteredAuctions.length === 0 ? (
-                                <div className="py-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                    <Text type="secondary" className="text-xs font-medium italic">No pending auctions in next 30 days</Text>
-                                </div>
-                            ) : (
-                                filteredAuctions.slice(0, 1).map((auction) => (
-                                    <div
-                                        key={auction.auctionId}
-                                        className="rounded-2xl border border-slate-200 relative overflow-hidden group bg-slate-50 hover:bg-white transition-all mb-3 last:mb-0"
-                                        style={{ padding: '16px' }}
-                                    >
-                                        <div className="relative z-10 flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                                                {/* Date Badge */}
-                                                <div className="h-12 w-12 bg-white border border-slate-200 rounded-xl flex flex-col items-center justify-center shrink-0 shadow-sm text-slate-900">
-                                                    <span className="text-[8px] font-black uppercase text-slate-900 leading-none mb-0.5">
-                                                        {new Date(auction.date).toLocaleDateString(undefined, { month: 'short' })}
-                                                    </span>
-                                                    <span className="text-lg font-black leading-none">
-                                                        {new Date(auction.date).toLocaleDateString(undefined, { day: 'numeric' })}
-                                                    </span>
-                                                </div>
-
-                                                {/* Group Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="text-slate-900 m-0 font-black tracking-tight truncate mb-1 text-sm">
-                                                        {auction.groupName}
-                                                    </h4>
-                                                    <Tag color="blue" className="m-0 border-0 rounded-full font-black text-[7px] uppercase px-2 py-0">
-                                                        Inst. #{auction.installment}
-                                                    </Tag>
-                                                </div>
-                                            </div>
-
-                                            {/* Action Button */}
-                                            <Button
-                                                type="primary"
-                                                size="middle"
-                                                onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
-                                                icon={auction.status === 'Closed' ? <HistoryIcon size={14} /> : <PlayCircle size={14} />}
-                                                className={`h-9 px-6 rounded-lg border-none font-black text-[10px] uppercase tracking-wider shadow-sm flex items-center justify-center shrink-0 ${auction.status === 'Closed' ? 'bg-slate-500 hover:bg-slate-600' : 'bg-indigo-600 hover:bg-indigo-700'
-                                                    }`}
-                                            >
-                                                {auction.status === 'Closed' ? 'Room' : 'Join'}
-                                            </Button>
-                                        </div>
+                    {/* 2. Upcoming Auctions */}
+                    <Col xs={24} lg={12}>
+                        <Card
+                            bordered
+                            title={<Space><Gavel size={20} /><Text strong>Upcoming Auctions</Text></Space>}
+                            style={{ borderRadius: '24px', height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                            bodyStyle={{ padding: '24px' }}
+                        >
+                            <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                                {filteredAuctions.length === 0 ? (
+                                    <div style={{ padding: '32px 0', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>
+                                        No pending auctions
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </Card>
-                </Col>
-            </Row>
+                                ) : (
+                                    filteredAuctions.slice(0, 3).map((auction) => (
+                                        <Card 
+                                            key={auction.auctionId} 
+                                            size="small" 
+                                            style={{ borderRadius: '16px', background: '#f8fafc', border: '1px solid #f1f5f9' }}
+                                            bodyStyle={{ padding: '12px' }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <Space size={12}>
+                                                    <div style={{ width: '44px', height: '44px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900 }}>
+                                                        <span style={{ color: '#64748b' }}>{new Date(auction.date).toLocaleDateString(undefined, { month: 'short' })}</span>
+                                                        <span style={{ fontSize: '14px' }}>{new Date(auction.date).getDate()}</span>
+                                                    </div>
+                                                    <div>
+                                                        <Text strong style={{ display: 'block' }}>{auction.groupName}</Text>
+                                                        <Text type="secondary" style={{ fontSize: '10px', textTransform: 'uppercase' }}>Inst. #{auction.installment}</Text>
+                                                    </div>
+                                                </Space>
+                                                <Button
+                                                    type="primary"
+                                                    size="small"
+                                                    onClick={() => navigate(`/portal/auctions`)}
+                                                    icon={<PlayCircle size={14} />}
+                                                    style={{ borderRadius: '8px', fontSize: '10px', fontWeight: 900, background: '#4f46e5' }}
+                                                >
+                                                    JOIN
+                                                </Button>
+                                            </div>
+                                        </Card>
+                                    ))
+                                )}
+                            </Space>
+                        </Card>
+                    </Col>
+                </Row>
 
-            <div className="space-y-4" style={{ marginBottom: '30px', paddingLeft: '25px', paddingRight: '25px' }}>
+                {/* Portfolio Section */}
                 <Card
-                    className="border border-slate-200 shadow-sm rounded-3xl bg-white overflow-hidden"
-                    styles={{ body: { padding: '20px' } }}
+                    bordered
+                    title={<Space><HistoryIcon size={20} /><Text strong>My Portfolio</Text></Space>}
+                    style={{ borderRadius: '32px', boxShadow: '0 8px 24px rgba(0,0,0,0.04)' }}
+                    bodyStyle={{ padding: '24px' }}
                 >
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 block">Enrollment Portfolio</Text>
-                            <Title level={4} className="!m-0 !font-black tracking-tight text-slate-900">Active Subscriptions</Title>
-                        </div>
-                        <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center border border-slate-200">
-                            <HistoryIcon size={20} />
-                        </div>
-                    </div>
-
-                    <Row gutter={[16, 16]}>
+                    <Row gutter={[20, 20]}>
                         {myTickets.length === 0 ? (
                             <Col span={24}>
-                                <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                    <Text type="secondary" className="text-xs">No active chits found</Text>
+                                <div style={{ padding: '48px 0', textAlign: 'center', background: '#f8fafc', borderRadius: '24px', border: '1px dashed #e2e8f0', color: '#94a3b8', fontSize: '13px' }}>
+                                    No active chits found in your portfolio.
                                 </div>
                             </Col>
                         ) : (
                             myTickets.map(ticket => (
-                                <Col xs={24} sm={12} lg={8} xl={6} key={ticket.ticketId}>
-                                    <div
+                                <Col xs={24} sm={12} md={8} lg={6} key={ticket.ticketId}>
+                                    <Card
+                                        hoverable
+                                        style={{ borderRadius: '20px', height: '100%', border: '1px solid #f1f5f9' }}
                                         onClick={() => navigate('/portal/my-chits')}
-                                        className="rounded-2xl border border-slate-200 flex flex-col transition-all cursor-pointer group hover:border-slate-300 hover:shadow-md bg-white h-full relative"
-                                        style={{ padding: '20px' }}
+                                        bodyStyle={{ padding: '20px' }}
                                     >
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="h-10 w-10 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center shrink-0 shadow-sm text-slate-900 font-black text-sm">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                            <div style={{ width: '36px', height: '36px', background: '#f8fafc', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px' }}>
                                                 #{ticket.ticketNumber}
                                             </div>
-                                            <Tag color={ticket.isPrized ? "gold" : "blue"} className="m-0 border-0 rounded-full font-black text-[7px] uppercase px-2 py-0">
-                                                {ticket.isPrized ? "Prized" : "Active"}
+                                            <Tag color={ticket.isPrized ? "gold" : "blue"} style={{ margin: 0, borderRadius: '20px', fontWeight: 'bold', fontSize: '10px' }}>
+                                                {ticket.isPrized ? "PRIZED" : "ACTIVE"}
                                             </Tag>
                                         </div>
-
-                                        <div className="flex-1 flex flex-col mb-4">
-                                            <h4 className="text-slate-900 m-0 font-black tracking-tight truncate mb-1 text-base">
-                                                {ticket.groupName}
-                                            </h4>
-                                            <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Subscriber ID: {String(ticket.ticketId).slice(0, 8)}</Text>
+                                        
+                                        <div style={{ marginBottom: '20px' }}>
+                                            <Title level={5} style={{ margin: 0, fontWeight: 800, fontSize: '15px' }}>{ticket.groupName}</Title>
+                                            <Space style={{ marginTop: '8px' }}>
+                                                <Wallet size={14} style={{ color: '#94a3b8' }} />
+                                                <Text strong style={{ fontSize: '16px' }}>₹{ticket.chitValue?.toLocaleString()}</Text>
+                                            </Space>
                                         </div>
 
-                                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Wallet size={14} className="text-slate-900" />
-                                                <span className="text-slate-900 font-black text-base">₹{ticket.chitValue?.toLocaleString()}</span>
-                                            </div>
-                                            <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-1 transition-all" />
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f8fafc', paddingTop: '12px' }}>
+                                            <ChevronRight size={18} style={{ color: '#cbd5e1' }} />
                                         </div>
-                                    </div>
+                                    </Card>
                                 </Col>
                             ))
                         )}
                     </Row>
                 </Card>
-            </div>
-
-
-
-        </div>
+            </Content>
+        </Layout>
     );
 };
 

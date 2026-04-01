@@ -18,6 +18,10 @@ public class UpdateMemberCommand : IRequest<Result<int>>
     public string? AadhaarDocumentUrl { get; set; }
     public string? PhotoUrl { get; set; }
     public string? Address { get; set; }
+    public bool? InPortalEnabled { get; set; }
+    public bool? WhatsAppEnabled { get; set; }
+    public bool? SmsEnabled { get; set; }
+    public bool? EmailEnabled { get; set; }
 }
 
 public class UpdateMemberValidator : AbstractValidator<UpdateMemberCommand>
@@ -68,6 +72,11 @@ public class UpdateMemberHandler : IRequestHandler<UpdateMemberCommand, Result<i
         entity.PanNumber = request.PanNumber;
         entity.AadhaarNumber = request.AadhaarNumber;
         entity.Address = request.Address;
+
+        if (request.InPortalEnabled.HasValue) entity.InPortalEnabled = request.InPortalEnabled.Value;
+        if (request.WhatsAppEnabled.HasValue) entity.WhatsAppEnabled = request.WhatsAppEnabled.Value;
+        if (request.SmsEnabled.HasValue) entity.SmsEnabled = request.SmsEnabled.Value;
+        if (request.EmailEnabled.HasValue) entity.EmailEnabled = request.EmailEnabled.Value;
 
         // Only overwrite document URLs if new ones were successfully uploaded and passed in
         if (!string.IsNullOrEmpty(request.PanDocumentUrl))

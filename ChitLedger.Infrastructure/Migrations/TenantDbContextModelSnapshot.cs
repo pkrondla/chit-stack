@@ -65,6 +65,9 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal>("OpeningBalance")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("int");
 
@@ -1112,6 +1115,9 @@ namespace ChitLedger.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("EmailHtmlTemplate")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -1136,11 +1142,17 @@ namespace ChitLedger.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SmsTemplate")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
                     b.Property<string>("TitleTemplate")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WhatsAppTemplate")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");

@@ -1,64 +1,82 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Typography, Space, Card, Alert } from 'antd';
+import { Button, Typography, Space, Card, Row, Col, Layout } from 'antd';
 import { ChevronLeft, Info, HelpCircle } from 'lucide-react';
 import Passbook from '../../components/Passbook';
 
 const { Title, Text } = Typography;
+const { Content } = Layout;
 
 const PortalPassbook = () => {
     const { ticketId } = useParams();
     const navigate = useNavigate();
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                <Button 
-                    icon={<ChevronLeft size={18} />} 
-                    size="large" 
-                    shape="round" 
-                    className="font-bold border-none bg-slate-100 flex items-center justify-center gap-2 self-start"
-                    onClick={() => navigate('/portal/my-chits')}
-                >
-                    Back to My Chits
-                </Button>
-                <div className="text-left md:text-right">
-                    <Title level={2} className="!mb-0 text-slate-800">My Digital Passbook</Title>
-                    <Text className="text-slate-500 font-medium">Real-time status of your participation.</Text>
+        <Layout style={{ background: 'transparent' }}>
+            <Content style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', padding: '0 4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                        <Button 
+                            icon={<ChevronLeft size={18} />} 
+                            size="large" 
+                            style={{ borderRadius: '24px', fontWeight: 'bold', border: 'none', background: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            onClick={() => navigate('/portal/my-chits')}
+                        >
+                            Back to My Chits
+                        </Button>
+                        <div style={{ textAlign: 'right' }}>
+                            <Title level={2} style={{ margin: 0, color: '#1e293b' }}>My Digital Passbook</Title>
+                            <Text type="secondary" style={{ fontWeight: 500 }}>Real-time status of your participation.</Text>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <Passbook ticketId={ticketId} />
+                <div style={{ marginBottom: '32px' }}>
+                    <Passbook ticketId={ticketId} />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="rounded-3xl border-0 shadow-lg bg-indigo-600 text-white p-2">
-                    <div className="flex items-start gap-4">
-                        <div className="bg-white/20 p-3 rounded-2xl">
-                            <Info size={24} />
-                        </div>
-                        <div>
-                            <Title level={5} className="!text-white !mb-1">Payment Status</Title>
-                            <Text className="text-indigo-100 text-xs">
-                                Recent collections by agents will show as "Pending" until verified by the office staff. Verified payments are instantly credited to your ticket.
-                            </Text>
-                        </div>
-                    </div>
-                </Card>
+                <Row gutter={[24, 24]}>
+                    <Col xs={24} md={12}>
+                        <Card 
+                            bordered={false} 
+                            style={{ borderRadius: '24px', background: '#4f46e5', boxShadow: '0 8px 24px rgba(79,70,229,0.15)' }}
+                            bodyStyle={{ padding: '24px' }}
+                        >
+                            <Space align="start" size={16}>
+                                <div style={{ background: 'rgba(255,255,255,0.15)', padding: '12px', borderRadius: '16px', color: 'white' }}>
+                                    <Info size={24} />
+                                </div>
+                                <div>
+                                    <Title level={5} style={{ color: 'white', margin: '0 0 8px 0' }}>Payment Status</Title>
+                                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', lineHeight: '1.6' }}>
+                                        Recent collections by agents will show as "Pending" until verified by the office staff. Verified payments are instantly credited to your ticket.
+                                    </Text>
+                                </div>
+                            </Space>
+                        </Card>
+                    </Col>
 
-                <Card className="rounded-3xl border-0 shadow-lg bg-slate-100 p-2">
-                    <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-2xl bg-white text-slate-600">
-                            <HelpCircle size={24} />
-                        </div>
-                        <div>
-                            <Title level={5} className="!mb-1 text-slate-800">Need Help?</Title>
-                            <Text className="text-slate-500 text-xs">
-                                If you find any discrepancy in the passbook, please contact your collection agent or visit the branch office.
-                            </Text>
-                        </div>
-                    </div>
-                </Card>
-            </div>
-        </div>
+                    <Col xs={24} md={12}>
+                        <Card 
+                            bordered={false} 
+                            style={{ borderRadius: '24px', background: '#f8fafc', border: '1px solid #f1f5f9' }}
+                            bodyStyle={{ padding: '24px' }}
+                        >
+                            <Space align="start" size={16}>
+                                <div style={{ background: 'white', padding: '12px', borderRadius: '16px', color: '#64748b', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                                    <HelpCircle size={24} />
+                                </div>
+                                <div>
+                                    <Title level={5} style={{ color: '#1e293b', margin: '0 0 8px 0' }}>Need Help?</Title>
+                                    <Text type="secondary" style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                                        If you find any discrepancy in the passbook, please contact your collection agent or visit the branch office.
+                                    </Text>
+                                </div>
+                            </Space>
+                        </Card>
+                    </Col>
+                </Row>
+            </Content>
+        </Layout>
     );
 };
 

@@ -1,98 +1,76 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import useAuthStore from './store/useAuthStore';
-import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import Loading from './components/Loading';
 
-import Groups from './pages/Groups/GroupList';
-import CreateGroup from './pages/Groups/CreateGroup';
-import EditGroup from './pages/Groups/EditGroup';
-import EnrollMember from './pages/Groups/EnrollMember';
-import GroupTickets from './pages/Groups/GroupTickets';
-import Members from './pages/Members/MemberList';
-import RegisterMember from './pages/Members/RegisterMember';
-import MemberDetails from './pages/Members/MemberDetails';
-import EditMember from './pages/Members/EditMember';
-import Auctions from './pages/Auctions/AuctionList';
-import AuctionConsole from './pages/Auctions/AuctionConsole';
-import AuctionScheduler from './pages/Auctions/AuctionScheduler';
-import LiveAuction from './pages/Auctions/LiveAuction';
-import CollectionEntry from './pages/Finance/CollectionEntry';
+// Pages
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const Unauthorized = lazy(() => import('./pages/Unauthorized'));
+
+// Feature Pages
+const Groups = lazy(() => import('./pages/Groups/GroupList'));
+const CreateGroup = lazy(() => import('./pages/Groups/CreateGroup'));
+const EditGroup = lazy(() => import('./pages/Groups/EditGroup'));
+const EnrollMember = lazy(() => import('./pages/Groups/EnrollMember'));
+const GroupTickets = lazy(() => import('./pages/Groups/GroupTickets'));
+const Members = lazy(() => import('./pages/Members/MemberList'));
+const RegisterMember = lazy(() => import('./pages/Members/RegisterMember'));
+const MemberDetails = lazy(() => import('./pages/Members/MemberDetails'));
+const EditMember = lazy(() => import('./pages/Members/EditMember'));
+const Auctions = lazy(() => import('./pages/Auctions/AuctionList'));
+const AuctionConsole = lazy(() => import('./pages/Auctions/AuctionConsole'));
+const LiveAuction = lazy(() => import('./pages/Auctions/LiveAuction'));
+const AuctionScheduler = lazy(() => import('./pages/Auctions/AuctionScheduler'));
+const CollectionEntry = lazy(() => import('./pages/Finance/CollectionEntry'));
 const Payouts = lazy(() => import('./pages/Finance/Payouts'));
 const VoucherEntry = lazy(() => import('./pages/Finance/VoucherEntry'));
-import StatutoryForms from './pages/Reports/StatutoryForms';
-import FinancialReports from './pages/Reports/FinancialReports';
-import UserManagement from './pages/Admin/UserManagement';
-import Settings from './pages/Settings/Settings';
-import ChartOfAccounts from './pages/Finance/ChartOfAccounts';
-import BankReconciliation from './pages/Finance/BankReconciliation';
-import AuditorDashboard from './pages/Admin/AuditorDashboard';
-import PortalDashboard from './pages/Portal/PortalDashboard';
-import MyChits from './pages/Portal/MyChits';
-import MyAuctions from './pages/Portal/MyAuctions';
+const ChartOfAccounts = lazy(() => import('./pages/Finance/ChartOfAccounts'));
+const BankReconciliation = lazy(() => import('./pages/Finance/BankReconciliation'));
+const FinancialReports = lazy(() => import('./pages/Reports/FinancialReports'));
+const StatutoryForms = lazy(() => import('./pages/Reports/StatutoryForms'));
+
+// Member Portal
+import MemberPassbookSelector from './pages/Shared/MemberPassbookSelector';
+import AgentPassbook from './pages/Agent/AgentPassbook';
 import MyPayments from './pages/Portal/MyPayments';
+const PortalDashboard = lazy(() => import('./pages/Portal/PortalDashboard'));
+const MyChits = lazy(() => import('./pages/Portal/MyChits'));
+const MyAuctions = lazy(() => import('./pages/Portal/MyAuctions'));
 const PortalPassbook = lazy(() => import('./pages/Portal/PortalPassbook'));
 import MemberLayout from './components/MemberLayout';
+const UserProfile = lazy(() => import('./pages/Shared/UserProfile'));
+import AutomationRules from './pages/Settings/AutomationRules';
 
 const AgentDashboard = lazy(() => import('./pages/Agent/AgentDashboard'));
 const AgentRoute = lazy(() => import('./pages/Agent/AgentRoute'));
 const CollectPayment = lazy(() => import('./pages/Agent/CollectPayment'));
-const VacantTickets = lazy(() => import('./pages/Agent/VacantTickets'));
-const AgentPassbook = lazy(() => import('./pages/Agent/AgentPassbook'));
-const RouteSummary = lazy(() => import('./pages/Agent/RouteSummary'));
 
+// Admin Pages
+const UserManagement = lazy(() => import('./pages/Admin/UserManagement'));
+const AuditorDashboard = lazy(() => import('./pages/Admin/AuditorDashboard'));
 const SubmissionReconciliation = lazy(() => import('./pages/Admin/SubmissionReconciliation'));
 const RouteManagement = lazy(() => import('./pages/Admin/RouteManagement'));
-const MemberPassbookSelector = lazy(() => import('./pages/Shared/MemberPassbookSelector'));
-const Notifications = lazy(() => import('./pages/Shared/Notifications'));
 const AdminNotifications = lazy(() => import('./pages/Admin/Notifications'));
-
-// Placeholder Pages
-const Dashboard = () => {
-  const user = useAuthStore((state) => state.user);
-  if (user?.role === 'Subscriber') {
-    return <Navigate to="/portal" replace />;
-  }
-  return <div><h2>Welcome to Dashboard</h2><p>Select a module from the sidebar.</p></div>;
-};
-
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const user = useAuthStore((state) => state.user);
-  const loading = useAuthStore((state) => state.loading);
-
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
+const BroadcastCenter = lazy(() => import('./pages/Admin/BroadcastCenter'));
+const Settings = lazy(() => import('./pages/Settings/Settings'));
+const MessageTemplates = lazy(() => import('./pages/Settings/MessageTemplates'));
+const NotificationSettings = lazy(() => import('./pages/Settings/NotificationSettings'));
 
 function App() {
   return (
     <Router>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/login" element={<Login />} />
-
-          {/* Member Portal Routes */}
-          <Route path="/portal" element={<ProtectedRoute allowedRoles={['Subscriber']}><MemberLayout /></ProtectedRoute>}>
-            <Route index element={<PortalDashboard />} />
-            <Route path="my-chits" element={<MyChits />} />
-            <Route path="auctions" element={<MyAuctions />} />
-            <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
-            <Route path="payments" element={<MyPayments />} />
-            <Route path="passbook/:ticketId" element={<PortalPassbook />} />
-            <Route path="notifications" element={<Notifications />} />
-          </Route>
-
-          {/* Staff / Admin Routes */}
-          <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Staff', 'Auditor']}><Layout /></ProtectedRoute>}>
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          
+          {/* Main App Layout */}
+          <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Staff', 'Manager', 'Auditor']}><Layout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications" element={<AdminNotifications />} />
             <Route path="groups" element={<Groups />} />
             <Route path="groups/new" element={<CreateGroup />} />
             <Route path="groups/:id/edit" element={<EditGroup />} />
@@ -120,7 +98,25 @@ function App() {
             <Route path="admin/reconciliation" element={<SubmissionReconciliation />} />
             <Route path="admin/routes" element={<RouteManagement />} />
             <Route path="admin/notifications" element={<AdminNotifications />} />
+            <Route path="admin/broadcast" element={<BroadcastCenter />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="settings/templates" element={<MessageTemplates />} />
+            <Route path="settings/notifications" element={<NotificationSettings />} />
+            <Route path="settings/automation" element={<AutomationRules />} />
+            <Route path="profile" element={<UserProfile />} />
+          </Route>
+
+          {/* Member Portal Routes */}
+          <Route path="/portal" element={<ProtectedRoute allowedRoles={['Subscriber']}><MemberLayout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/portal/dashboard" replace />} />
+            <Route path="dashboard" element={<PortalDashboard />} />
+            <Route path="my-chits" element={<MyChits />} />
+            <Route path="auctions" element={<MyAuctions />} />
+            <Route path="auctions/live/:auctionId" element={<LiveAuction />} />
+            <Route path="payments" element={<MyPayments />} />
+            <Route path="passbook/:ticketId" element={<PortalPassbook />} />
+            <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="settings" element={<UserProfile />} />
           </Route>
 
           {/* Agent Portal Routes */}
@@ -130,11 +126,7 @@ function App() {
             <Route path="route" element={<AgentRoute />} />
             <Route path="passbook-selector" element={<MemberPassbookSelector role="agent" />} />
             <Route path="collect/:memberId" element={<CollectPayment />} />
-            <Route path="vacancies" element={<VacantTickets />} />
-            <Route path="summary" element={<RouteSummary />} />
-            <Route path="passbook/:ticketId" element={<AgentPassbook />} />
-            <Route path="notifications" element={<Notifications />} />
-        </Route>
+          </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

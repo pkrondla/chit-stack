@@ -22,6 +22,10 @@ public class MemberDto
     public DateTime JoinedDate { get; set; }
     public List<MemberTicketDto> Tickets { get; set; } = new();
     public bool IsPortalEnabled { get; set; }
+    public bool InPortalEnabled { get; set; }
+    public bool WhatsAppEnabled { get; set; }
+    public bool SmsEnabled { get; set; }
+    public bool EmailEnabled { get; set; }
 
     private class Mapping : Profile
     {

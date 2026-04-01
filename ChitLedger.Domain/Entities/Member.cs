@@ -25,5 +25,11 @@ public class Member : TenantEntity
     public int? CollectionRouteId { get; set; }
     public CollectionRoute? CollectionRoute { get; set; }
     
+    // Communication Preferences
+    public bool InPortalEnabled { get; set; } = true;
+    public bool WhatsAppEnabled { get; set; } = true;
+    public bool SmsEnabled { get; set; } = true;
+    public bool EmailEnabled { get; set; } = true;
+    
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
 }

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Typography, Card, Table, Tag, Spin, Result, Button, Select } from 'antd';
+import { Typography, Card, Table, Tag, Spin, Result, Button, Select, Row, Col, Space, Layout } from 'antd';
 import { Gavel, Calendar, Clock, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
+const { Content } = Layout;
 
 const MyAuctions = () => {
     const navigate = useNavigate();
@@ -29,13 +30,13 @@ const MyAuctions = () => {
             title: 'Group',
             dataIndex: 'groupName',
             key: 'groupName',
-            render: (text) => <span className="font-bold text-slate-800">{text}</span>
+            render: (text) => <Text strong style={{ color: '#334155' }}>{text}</Text>
         },
         {
             title: 'Installment',
             dataIndex: 'installmentNumber',
             key: 'installmentNumber',
-            render: (val) => <Tag color="blue">#{val}</Tag>
+            render: (val) => <Tag color="blue" style={{ borderRadius: '8px', border: 'none' }}>#{val}</Tag>
         },
         {
             title: 'Auction Date',
@@ -44,10 +45,10 @@ const MyAuctions = () => {
             sorter: (a, b) => new Date(a.auctionDate) - new Date(b.auctionDate),
             defaultSortOrder: 'ascend',
             render: (date) => (
-                <div className="flex items-center gap-2 text-slate-600">
-                    <Calendar size={14} />
-                    <span>{new Date(date).toLocaleDateString()}</span>
-                </div>
+                <Space size={8}>
+                    <Calendar size={14} style={{ color: '#64748b' }} />
+                    <Text style={{ color: '#475569' }}>{new Date(date).toLocaleDateString()}</Text>
+                </Space>
             )
         },
         {
@@ -61,25 +62,25 @@ const MyAuctions = () => {
                     'Closed': 'default',
                     'Cancelled': 'error'
                 };
-                return <Tag color={colors[status] || 'default'} className="rounded-full px-3">{status}</Tag>;
+                return <Tag color={colors[status] || 'default'} style={{ borderRadius: '12px', padding: '0 12px', fontWeight: 'bold', border: 'none' }}>{status}</Tag>;
             }
         },
         {
             title: 'Winning Bid',
             dataIndex: 'winningBidAmount',
             key: 'winningBidAmount',
-            render: (val) => val ? <span className="font-mono font-bold text-slate-700">₹{val.toLocaleString()}</span> : '-'
+            render: (val) => val ? <Text strong style={{ color: '#334155' }}>₹{val.toLocaleString()}</Text> : '-'
         },
         {
             title: 'Action',
             key: 'action',
             render: (_, record) => (
-                <div className="flex gap-2">
+                <Space>
                     {record.status === 'Open' ? (
                         <Button
                             type="primary"
                             size="small"
-                            className="bg-indigo-600 hover:bg-indigo-700 border-0 rounded-lg font-bold"
+                            style={{ background: '#4f46e5', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}
                             onClick={() => navigate(`/portal/auctions/live/${record.auctionId}`)}
                         >
                             Join Auction
@@ -87,88 +88,110 @@ const MyAuctions = () => {
                     ) : record.status === 'Closed' ? (
                         <Button
                             size="small"
-                            className="border-slate-200 text-slate-600 rounded-lg font-bold"
+                            style={{ borderRadius: '8px', fontWeight: 'bold', borderColor: '#e2e8f0', color: '#64748b' }}
                             onClick={() => navigate(`/portal/auctions/live/${record.auctionId}`)}
                         >
                             View Room
                         </Button>
                     ) : null}
-                </div>
+                </Space>
             )
         }
     ];
 
-    if (isLoading) return <div className="flex justify-center p-12"><Spin size="large" /></div>;
-    if (error) return <Result status="error" title="Failed to load auctions" />;
+    if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><Spin size="large" /></div>;
+    if (error) return <Result status="error" title="Data Sync Issue" subTitle="Failed to load auctions" />;
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="p-4 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-100">
-                        <Gavel size={28} />
-                    </div>
-                    <div>
-                        <Title level={2} className="!m-0 text-slate-800">Auctions</Title>
-                        <Text className="text-slate-500 font-medium">Participate in live bidding and view auction history.</Text>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <Text className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Filter By Group:</Text>
-                    <Select
-                        className="w-64"
-                        value={selectedGroup}
-                        onChange={setSelectedGroup}
-                        options={[
-                            { label: 'All Groups', value: 'All' },
-                            ...uniqueGroups.map(g => ({ label: g, value: g }))
-                        ]}
-                    />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {filteredAuctions.filter(a => a.status === 'Open').map(auction => (
-                    <Card key={auction.auctionId} className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white overflow-hidden relative">
-                        <div className="relative z-10">
-                            <Tag color="orange" className="mb-4 border-0 font-bold uppercase text-[10px]">Live Auction</Tag>
-                            <Title level={3} className="!text-white !m-0 mb-1">{auction.groupName}</Title>
-                            <div className="flex items-center gap-4 mt-4">
-                                <div className="flex items-center gap-2">
-                                    <Clock size={16} />
-                                    <span className="font-medium">Ends in 2h 45m</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Trophy size={16} />
-                                    <span className="font-medium">Current: ₹15,000</span>
-                                </div>
-                            </div>
-                            <Button
-                                onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
-                                className="mt-6 bg-white text-slate-900 border-0 font-bold h-10 px-8 rounded-xl hover:!bg-slate-100 hover:!text-slate-800"
-                            >
-                                Join Live Room
-                            </Button>
+        <Layout style={{ background: 'transparent' }}>
+            <Content style={{ padding: '0 4px' }}>
+                <div style={{ marginBottom: '32px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ padding: '16px', background: '#f59e0b', color: 'white', borderRadius: '16px', boxShadow: '0 8px 16px rgba(245,158,11,0.1)' }}>
+                            <Gavel size={24} />
                         </div>
-                        <Gavel className="absolute -bottom-8 -right-8 text-white/10 w-48 h-48" />
-                    </Card>
-                ))}
-            </div>
+                        <div>
+                            <Title level={2} style={{ margin: 0 }}>Auction Schedule</Title>
+                            <Text type="secondary">Join live bidding and view previous auction history.</Text>
+                        </div>
+                    </div>
 
-            <Card className="shadow-xl shadow-slate-200/50 border-0 rounded-3xl overflow-hidden p-2">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-                    <Title level={4} className="!m-0 text-slate-700">Auction History</Title>
+                    <Space direction="horizontal" align="center" size={12}>
+                        <Text strong style={{ color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>Group:</Text>
+                        <Select
+                            style={{ width: '240px' }}
+                            value={selectedGroup}
+                            onChange={setSelectedGroup}
+                            options={[
+                                { label: 'All Registered Groups', value: 'All' },
+                                ...uniqueGroups.map(g => ({ label: g, value: g }))
+                            ]}
+                        />
+                    </Space>
                 </div>
-                <Table
-                    columns={columns}
-                    dataSource={filteredAuctions}
-                    rowKey="auctionId"
-                    pagination={{ pageSize: 10 }}
-                    className="member-portal-table"
-                />
-            </Card>
-        </div >
+
+                <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
+                    {filteredAuctions.filter(a => a.status === 'Open').map(auction => (
+                        <Col xs={24} lg={12} key={auction.auctionId}>
+                            <Card 
+                                bordered={false} 
+                                style={{ 
+                                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+                                    borderRadius: '24px', 
+                                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                                    height: '100%'
+                                }}
+                                bodyStyle={{ padding: '32px', position: 'relative', overflow: 'hidden' }}
+                            >
+                                <div style={{ position: 'relative', zIndex: 1 }}>
+                                    <Tag color="warning" style={{ marginBottom: '16px', border: 'none', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', fontSize: '10px' }}>Live Now</Tag>
+                                    <Title level={3} style={{ color: 'white', margin: '0 0 16px 0' }}>{auction.groupName}</Title>
+                                    
+                                    <Row gutter={24} style={{ marginBottom: '24px' }}>
+                                        <Col>
+                                            <Space size={8}>
+                                                <Clock size={16} style={{ color: '#94a3b8' }} />
+                                                <Text style={{ color: '#cbd5e1', fontWeight: 500 }}>Bidding in Progress</Text>
+                                            </Space>
+                                        </Col>
+                                        <Col>
+                                            <Space size={8}>
+                                                <Trophy size={16} style={{ color: '#f59e0b' }} />
+                                                <Text style={{ color: '#cbd5e1', fontWeight: 500 }}>Ticket #{auction.installmentNumber}</Text>
+                                            </Space>
+                                        </Col>
+                                    </Row>
+
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
+                                        style={{ background: 'white', color: '#0f172a', border: 'none', borderRadius: '12px', fontWeight: 900, height: '48px', padding: '0 32px' }}
+                                    >
+                                        Join Live Room
+                                    </Button>
+                                </div>
+                                <Gavel size={200} style={{ position: 'absolute', right: '-40px', bottom: '-80px', color: 'rgba(255,255,255,0.03)' }} />
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
+
+                <Card 
+                    title={<Text strong>Participation History</Text>}
+                    style={{ borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9', overflow: 'hidden' }}
+                    bodyStyle={{ padding: '8px' }}
+                >
+                    <Table
+                        columns={columns}
+                        dataSource={filteredAuctions}
+                        rowKey="auctionId"
+                        pagination={{ pageSize: 12 }}
+                        scroll={{ x: 800 }}
+                    />
+                </Card>
+            </Content>
+        </Layout>
     );
 };
 

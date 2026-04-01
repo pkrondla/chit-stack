@@ -115,7 +115,7 @@ const AuctionSettings = () => {
                     </div>
 
                     <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                        <Title level={5} className="text-[13px] !mb-2 uppercase tracking-wider text-slate-500">How it works</Title>
+                        <Title level={5} className="text-sm !mb-2 uppercase tracking-wider text-slate-500">How it works</Title>
                         <ul className="text-sm text-slate-600 space-y-2 list-disc pl-4">
                             <li>The system will prevent any proxy bid or manual entry that exceeds this percentage of the total chit value.</li>
                             <li>For auctions where multiple people bid the maximum, the winner will be determined by lot.</li>

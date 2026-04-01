@@ -6,15 +6,14 @@ import {
   Typography,
   Spin,
   Alert,
-  Descriptions,
-  Divider,
+  Space,
+  Row,
+  Col,
 } from "antd";
 import {
   FileText,
   Clock,
   CheckCircle2,
-  AlertTriangle,
-  IndianRupee,
 } from "lucide-react";
 import api from "../api/axios";
 import dayjs from "dayjs";
@@ -37,12 +36,14 @@ const Passbook = ({ ticketId }) => {
 
   if (isLoading)
     return (
-      <div className="flex justify-center p-12">
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
         <Spin size="large" />
       </div>
     );
+    
   if (error)
     return <Alert type="error" message="Failed to load passbook" showIcon />;
+    
   if (!passbook)
     return <Alert type="info" message="No passbook data available" showIcon />;
 
@@ -59,12 +60,12 @@ const Passbook = ({ ticketId }) => {
       dataIndex: "description",
       key: "description",
       render: (text, record) => (
-        <div className="flex flex-col">
-          <span className="font-semibold">{text}</span>
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ color: '#1e293b' }}>{text}</Text>
           {record.reference && (
-            <span className="text-xs text-slate-400">{record.reference}</span>
+            <Text type="secondary" style={{ fontSize: '11px' }}>{record.reference}</Text>
           )}
-        </div>
+        </Space>
       ),
     },
     {
@@ -73,20 +74,18 @@ const Passbook = ({ ticketId }) => {
       align: "right",
       render: (_, record) =>
         record.installmentAmount > 0 ? (
-          <div className="flex flex-col items-end">
-            <span className="text-rose-600 font-medium">
+          <Space direction="vertical" size={0} align="end">
+            <Text strong style={{ color: '#e11d48' }}>
               {(
                 record.installmentAmount -
                 record.dividend +
                 record.penalty
-              ).toLocaleString("en-IN", { style: "currency", currency: "INR" })}
-            </span>
-            <span className="text-[10px] text-slate-400">
-              {record.installmentAmount.toLocaleString()} -{" "}
-              {record.dividend.toLocaleString()} +{" "}
-              {record.penalty.toLocaleString()}
-            </span>
-          </div>
+              ).toLocaleString("en-IN")}
+            </Text>
+            <Text type="secondary" style={{ fontSize: '10px' }}>
+              {record.installmentAmount.toLocaleString()} - {record.dividend.toLocaleString()} + {record.penalty.toLocaleString()}
+            </Text>
+          </Space>
         ) : (
           "-"
         ),
@@ -98,19 +97,16 @@ const Passbook = ({ ticketId }) => {
       align: "right",
       render: (val, record) =>
         val > 0 ? (
-          <div className="flex flex-col items-end">
-            <span className="text-green-600 font-bold">
-              {val.toLocaleString("en-IN", {
-                style: "currency",
-                currency: "INR",
-              })}
-            </span>
+          <Space direction="vertical" size={0} align="end">
+            <Text strong style={{ color: '#059669' }}>
+              {val.toLocaleString("en-IN")}
+            </Text>
             {record.status === "Pending" && (
-              <Tag color="orange" className="mr-0 mt-1">
+              <Tag color="orange" style={{ margin: 0, marginTop: '4px', fontSize: '10px', borderRadius: '4px' }}>
                 Pending Verification
               </Tag>
             )}
-          </div>
+          </Space>
         ) : (
           "-"
         ),
@@ -121,82 +117,57 @@ const Passbook = ({ ticketId }) => {
       key: "balance",
       align: "right",
       render: (val) => (
-        <span
-          className={`font-bold ${val > 0 ? "text-rose-600" : "text-green-600"}`}
-        >
-          {val.toLocaleString("en-IN", { style: "currency", currency: "INR" })}
-        </span>
+        <Text strong style={{ color: val > 0 ? '#e11d48' : '#059669' }}>
+          {val.toLocaleString("en-IN")}
+        </Text>
       ),
     },
   ];
 
   return (
     <Card
-      className="shadow-lg border-0 rounded-[2rem] overflow-hidden"
-      styles={{ body: { padding: 0 } }}
+      bordered={false}
+      style={{ borderRadius: '32px', boxShadow: '0 8px 32px rgba(0,0,0,0.06)', overflow: 'hidden' }}
+      bodyStyle={{ padding: 0 }}
     >
-      <div className="bg-slate-900 p-8 md:p-10 text-white">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 p-2 rounded-lg">
-              <FileText className="text-blue-400" size={24} />
-            </div>
-            <div>
-            <Title level={4} className="!text-white !mb-0">
-                {passbook.groupName}
-              </Title>
-              <Text className="!text-white/60">
-                Ticket #{passbook.ticketNumber} • {passbook.memberName}
-              </Text>
-            </div>
-          </div>
-          <div className="text-right">
-            <Text className="!text-white/40 block text-xs uppercase tracking-wider">
+      <div style={{ background: '#0f172a', padding: '40px', color: 'white' }}>
+        <Row justify="space-between" align="top" style={{ marginBottom: '32px' }}>
+          <Col>
+            <Space size={16} align="center">
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '12px', borderRadius: '16px', color: '#60a5fa' }}>
+                <FileText size={24} />
+              </div>
+              <Space direction="vertical" size={0}>
+                <Title level={4} style={{ color: 'white', margin: 0, fontWeight: 900 }}>{passbook.groupName}</Title>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Ticket #{passbook.ticketNumber} • {passbook.memberName}</Text>
+              </Space>
+            </Space>
+          </Col>
+          <Col style={{ textAlign: 'right' }}>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
               Total Outstanding
             </Text>
-            <Title level={2} className="!text-white !mb-0">
-              {passbook.totalDue.toLocaleString("en-IN", {
-                style: "currency",
-                currency: "INR",
-              })}
+            <Title level={2} style={{ color: 'white', margin: 0, fontWeight: 900, fontSize: '36px' }}>
+              ₹{passbook.totalDue.toLocaleString()}
             </Title>
-          </div>
-        </div>
+          </Col>
+        </Row>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/10">
-          <div>
-            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
-              Chit Value
-            </Text>
-            <Text className="text-white font-semibold">
-              ₹{passbook.chitValue.toLocaleString()}
-            </Text>
-          </div>
-          <div>
-            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
-              Duration
-            </Text>
-            <Text className="text-white font-semibold">
-              {passbook.duration} Months
-            </Text>
-          </div>
-          <div>
-            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
-              Total Paid
-            </Text>
-            <Text className="text-green-400 font-semibold">
-              ₹{passbook.totalPaid.toLocaleString()}
-            </Text>
-          </div>
-          <div>
-            <Text className="!text-white/40 block text-[10px] uppercase font-bold tracking-widest">
-              Advance Balance
-            </Text>
-            <Text className="text-blue-400 font-semibold">
-              ₹{passbook.advanceBalance.toLocaleString()}
-            </Text>
-          </div>
-        </div>
+        <Row gutter={[24, 24]} style={{ paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          {[
+            { label: 'Chit Value', value: `₹${passbook.chitValue.toLocaleString()}`, color: 'white' },
+            { label: 'Duration', value: `${passbook.duration} Months`, color: 'white' },
+            { label: 'Total Paid', value: `₹${passbook.totalPaid.toLocaleString()}`, color: '#4ade80' },
+            { label: 'Advance Balance', value: `₹${passbook.advanceBalance.toLocaleString()}`, color: '#60a5fa' },
+          ].map((item, idx) => (
+            <Col xs={12} md={6} key={idx}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>
+                {item.label}
+              </Text>
+              <Text strong style={{ color: item.color, fontSize: '16px' }}>{item.value}</Text>
+            </Col>
+          ))}
+        </Row>
       </div>
 
       <Table
@@ -204,24 +175,24 @@ const Passbook = ({ ticketId }) => {
         columns={columns}
         rowKey={(record, index) => `${record.date}-${index}`}
         pagination={false}
-        className="passbook-table"
-        scroll={{ x: true }}
-        rowClassName={(record) =>
-          record.status === "Pending" ? "bg-orange-50/30" : ""
-        }
+        scroll={{ x: 800 }}
+        style={{ borderTop: '1px solid #f1f5f9' }}
       />
 
-      <div className="px-8 py-5 bg-slate-50 border-t flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-500 font-medium">
-        <div className="flex flex-wrap gap-4">
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 size={14} className="text-green-500" /> Confirmed
-          </span>
-          <span className="flex items-center gap-1.5 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">
-            <Clock size={14} className="text-orange-500" /> Pending Office
-            Verification
-          </span>
-        </div>
-        <span className="opacity-60 italic">Generated on {dayjs().format("DD MMM YYYY HH:mm")}</span>
+      <div style={{ padding: '24px 40px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+        <Space size={24}>
+          <Space size={8}>
+            <CheckCircle2 size={16} style={{ color: '#22c55e' }} />
+            <Text style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>CONFIRMED</Text>
+          </Space>
+          <Space size={8} style={{ background: '#fffbeb', padding: '4px 12px', borderRadius: '8px', border: '1px solid #fef3c7' }}>
+            <Clock size={16} style={{ color: '#f59e0b' }} />
+            <Text style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>OFFICE VERIFICATION PENDING</Text>
+          </Space>
+        </Space>
+        <Text style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+          Generated: {dayjs().format("DD MMM YYYY, HH:mm")}
+        </Text>
       </div>
     </Card>
   );

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Typography, Button, Spin, Avatar, Descriptions, Tag, Divider, Table, App } from 'antd';
-import { User, ArrowLeft, Phone, Mail, Hash, FileText, Edit } from 'lucide-react';
+import { Card, Typography, Button, Spin, Avatar, Descriptions, Tag, Divider, Table, App, Switch } from 'antd';
+import { User, ArrowLeft, Phone, Mail, Hash, FileText, Edit, Bell, MessageSquare, Smartphone } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
 
@@ -107,6 +107,35 @@ const MemberDetails = () => {
                 </div>
 
                 <Divider className="my-6" />
+
+                <Title level={4} className="mb-4 text-slate-700">Communication Preferences</Title>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    {[
+                        { label: 'In-Portal', key: 'inPortalEnabled', icon: <Bell size={18} />, color: 'blue' },
+                        { label: 'WhatsApp', key: 'whatsAppEnabled', icon: <MessageSquare size={18} />, color: 'green' },
+                        { label: 'SMS Alert', key: 'smsEnabled', icon: <Smartphone size={18} />, color: 'purple' },
+                        { label: 'Email', key: 'emailEnabled', icon: <Mail size={18} />, color: 'orange' }
+                    ].map(pref => (
+                        <Card key={pref.key} className="bg-slate-50 border-slate-200 rounded-2xl shadow-none">
+                            <div className="flex items-center justify-between">
+                                <div className={`flex items-center gap-2 text-${pref.color}-600 font-bold text-xs uppercase tracking-tight`}>
+                                    {pref.icon} {pref.label}
+                                </div>
+                                <Switch 
+                                    checked={member[pref.key]} 
+                                    onChange={(checked) => {
+                                        const formData = new FormData();
+                                        formData.append(pref.key, checked);
+                                        api.put(`/Members/${id}`, formData).then(() => {
+                                            message.success(`${pref.label} ${checked ? 'Enabled' : 'Disabled'}`);
+                                            queryClient.invalidateQueries(['member', id]);
+                                        });
+                                    }}
+                                />
+                            </div>
+                        </Card>
+                    ))}
+                </div>
 
                 <Title level={4} className="mb-4 text-slate-700">Contact Information</Title>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">

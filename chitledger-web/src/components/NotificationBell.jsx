@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Badge, Dropdown, List, Typography, Button, Empty, Spin, message } from 'antd';
-import { Bell, CheckCheck, Trash2, Info, TriangleAlert, CircleCheck, CircleX } from 'lucide-react';
+import { Badge, Dropdown, List, Typography, Button, Empty, Spin, message, Space, Divider } from 'antd';
+import { Bell, Info, TriangleAlert, CircleCheck, CircleX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import useAuthStore from '../store/useAuthStore';
@@ -98,11 +98,11 @@ const NotificationBell = ({ isDark = false }) => {
 
     const getTypeIcon = (type) => {
         switch (type) {
-            case 0: return <Info size={16} className="text-blue-500" />; // Info
-            case 1: return <CircleCheck size={16} className="text-green-500" />; // Success
-            case 2: return <TriangleAlert size={16} className="text-orange-500" />; // Warning
-            case 3: return <CircleX size={16} className="text-red-500" />; // Error
-            default: return <Info size={16} className="text-blue-500" />;
+            case 0: return <Info size={16} style={{ color: '#3b82f6' }} />; // Info
+            case 1: return <CircleCheck size={16} style={{ color: '#22c55e' }} />; // Success
+            case 2: return <TriangleAlert size={16} style={{ color: '#f59e0b' }} />; // Warning
+            case 3: return <CircleX size={16} style={{ color: '#ef4444' }} />; // Error
+            default: return <Info size={16} style={{ color: '#3b82f6' }} />;
         }
     };
 
@@ -110,10 +110,10 @@ const NotificationBell = ({ isDark = false }) => {
         {
             key: 'header',
             label: (
-                <div className="flex justify-between items-center p-2 border-b border-gray-100 min-w-[300px]">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px solid #f1f5f9', minWidth: '320px' }}>
                     <Text strong>Notifications</Text>
                     {unreadCount > 0 && (
-                        <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); markAllAsRead(); }}>
+                        <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); markAllAsRead(); }} style={{ padding: 0 }}>
                             Mark all as read
                         </Button>
                     )}
@@ -123,33 +123,38 @@ const NotificationBell = ({ isDark = false }) => {
         {
             key: 'list',
             label: (
-                <div className="max-h-[400px] overflow-y-auto">
+                <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
                     {loading ? (
-                        <div className="flex justify-center p-4"><Spin size="small" /></div>
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}><Spin size="small" /></div>
                     ) : notifications.length === 0 ? (
-                        <Empty description="No notifications" image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-4" />
+                        <Empty description="No notifications" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ padding: '32px 0' }} />
                     ) : (
                         <List
                             itemLayout="horizontal"
                             dataSource={notifications.slice(0, 10)}
                             renderItem={(n) => (
                                 <List.Item
-                                    className={`cursor-pointer hover:bg-slate-50 transition-colors px-3 ${!n.isRead ? 'bg-blue-50/50' : ''}`}
+                                    style={{ 
+                                        cursor: 'pointer', 
+                                        padding: '12px 16px', 
+                                        transition: 'all 0.3s',
+                                        background: !n.isRead ? 'rgba(59,130,246,0.05)' : 'transparent'
+                                    }}
                                     onClick={() => {
                                         if (!n.isRead) markAsRead(n.id);
                                         if (n.actionUrl) navigate(n.actionUrl);
                                     }}
                                 >
                                     <List.Item.Meta
-                                        avatar={<div className="mt-1">{getTypeIcon(n.type)}</div>}
-                                        title={<Text strong={!n.isRead} className="text-xs">{n.title}</Text>}
+                                        avatar={<div style={{ marginTop: '4px' }}>{getTypeIcon(n.type)}</div>}
+                                        title={<Text strong={!n.isRead} style={{ fontSize: '13px', display: 'block' }}>{n.title}</Text>}
                                         description={
-                                            <div className="flex flex-col">
-                                                <Text type="secondary" className="text-[11px] line-clamp-2">{n.message}</Text>
-                                                <Text type="secondary" className="text-[10px] mt-1">
-                                                    {new Date(n.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                            <Space direction="vertical" size={2}>
+                                                <Text type="secondary" style={{ fontSize: '11px', display: 'block', maxWidth: '240px' }} ellipsis>{n.message}</Text>
+                                                <Text type="secondary" style={{ fontSize: '10px' }}>
+                                                    {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </Text>
-                                            </div>
+                                            </Space>
                                         }
                                     />
                                 </List.Item>
@@ -162,36 +167,46 @@ const NotificationBell = ({ isDark = false }) => {
         {
             key: 'footer',
             label: (
-                <Button 
-                    block 
-                    className="w-full text-blue-600 border-t border-gray-100 rounded-none shadow-none" 
-                    onClick={() => {
-                        const path = user?.role === 'Subscriber' ? '/portal/notifications' 
-                                   : user?.role === 'Agent' ? '/agent/notifications' 
-                                   : '/notifications';
-                        navigate(path);
-                    }}
-                >
-                    View All Notifications
-                </Button>
+                <div style={{ borderTop: '1px solid #f1f5f9', padding: '4px' }}>
+                    <Button 
+                        type="link"
+                        block 
+                        style={{ fontSize: '12px', fontWeight: 600 }}
+                        onClick={() => {
+                            const path = user?.role === 'Subscriber' ? '/portal/notifications' 
+                                       : user?.role === 'Agent' ? '/agent/notifications' 
+                                       : '/notifications';
+                            navigate(path);
+                        }}
+                    >
+                        View All Activity
+                    </Button>
+                </div>
             ),
         }
     ];
 
     return (
-        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" arrow>
-            <Badge count={unreadCount} overflowCount={99} size="small" offset={isDark ? [-4, 4] : [-2, 6]}>
-                <div className={`flex items-center justify-center rounded-2xl cursor-pointer transition-all ${
-                    isDark 
-                    ? 'h-12 w-12 bg-white/5 border border-white/10 hover:border-white/20 hover:text-white text-slate-400' 
-                    : 'p-2 hover:bg-slate-100 text-slate-600'
-                }`}>
+        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight" arrow={{ pointAtCenter: true }}>
+            <Badge count={unreadCount} overflowCount={99} size="small" offset={isDark ? [-4, 4] : [-2, 6]} style={{ boxShadow: '0 0 0 2px #0f172a' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderRadius: '16px', 
+                    cursor: 'pointer', 
+                    transition: 'all 0.3s',
+                    width: isDark ? '48px' : '40px',
+                    height: isDark ? '48px' : '40px',
+                    background: isDark ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    border: isDark ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                    color: isDark ? '#94a3b8' : '#475569'
+                }}>
                     <Bell size={isDark ? 22 : 20} />
                 </div>
             </Badge>
         </Dropdown>
     );
 };
-
 
 export default NotificationBell;
