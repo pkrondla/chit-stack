@@ -1,0 +1,31 @@
+using ChitStack.Domain.Common;
+
+namespace ChitStack.Domain.Entities;
+
+public class Ticket : BranchEntity
+{
+    public int ChitGroupId { get; set; }
+    public ChitGroup ChitGroup { get; set; } = null!;
+    
+    public int? MemberId { get; set; }
+    public Member? Member { get; set; }
+    
+    public int TicketNumber { get; set; }
+    public bool IsPrized { get; set; } = false; // Has verified prize money?
+    public int? PrizedInstallment { get; set; }
+    public TicketStatus Status { get; set; } = TicketStatus.Active;
+    public bool IsForeman { get; set; } = false;
+    public DateTime? RemovalDate { get; set; }
+    public decimal AdvanceBalance { get; set; } = 0; // Tracks overpaid money waiting for next demand
+
+    public ICollection<Demand> Demands { get; set; } = new List<Demand>();
+    public ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
+}
+
+public enum TicketStatus
+{
+    Active,
+    Removed,
+    Vacant,
+    Pending
+}

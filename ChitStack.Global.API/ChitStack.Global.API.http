@@ -1,0 +1,6 @@
+@ChitStack.Global.API_HostAddress = http://localhost:5062
+
+GET {{ChitStack.Global.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
