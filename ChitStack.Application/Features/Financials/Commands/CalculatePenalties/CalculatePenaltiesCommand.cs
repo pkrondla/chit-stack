@@ -16,12 +16,14 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
     private readonly IApplicationDbContext _context;
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public CalculatePenaltiesHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService)
+    public CalculatePenaltiesHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, IStaffNotificationService staffNotification)
     {
         _context = context;
         _journalService = journalService;
         _accountService = accountService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(CalculatePenaltiesCommand request, CancellationToken cancellationToken)
@@ -108,6 +110,10 @@ public class CalculatePenaltiesHandler : IRequestHandler<CalculatePenaltiesComma
         if (updatedCount > 0)
         {
             await _context.SaveChangesAsync(cancellationToken);
+
+            _staffNotification.Broadcast(
+                "Penalties Calculated",
+                $"{updatedCount} overdue demand(s) have had late fees applied.");
         }
 
         return Result<int>.Success(updatedCount);

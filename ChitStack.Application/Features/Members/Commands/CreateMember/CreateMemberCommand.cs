@@ -48,10 +48,12 @@ public class CreateMemberValidator : AbstractValidator<CreateMemberCommand>
 public class CreateMemberHandler : IRequestHandler<CreateMemberCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public CreateMemberHandler(IApplicationDbContext context)
+    public CreateMemberHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
     {
         _context = context;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(CreateMemberCommand request, CancellationToken cancellationToken)
@@ -71,6 +73,10 @@ public class CreateMemberHandler : IRequestHandler<CreateMemberCommand, Result<i
 
         _context.Members.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "New Member Enrolled",
+            $"{request.FullName} (Ph: {request.PhoneNumber}) has been registered as a new member.");
 
         return Result<int>.Success(entity.Id);
     }

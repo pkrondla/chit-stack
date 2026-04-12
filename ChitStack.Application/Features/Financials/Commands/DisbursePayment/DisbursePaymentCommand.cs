@@ -21,13 +21,15 @@ public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Re
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
     private readonly INotificationService _notificationService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public DisbursePaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, INotificationService notificationService)
+    public DisbursePaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, INotificationService notificationService, IStaffNotificationService staffNotification)
     {
         _context = context;
         _journalService = journalService;
         _accountService = accountService;
         _notificationService = notificationService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(DisbursePaymentCommand request, CancellationToken cancellationToken)
@@ -117,6 +119,11 @@ public class DisbursePaymentHandler : IRequestHandler<DisbursePaymentCommand, Re
             };
             await _notificationService.SendTemplatedNotificationAsync(auction.WinningTicket.MemberId.Value, "PayoutDisbursement", placeholders);
         }
+
+        _staffNotification.Broadcast(
+            "Prize Disbursed",
+            $"Auction #{auction.Id} ({auction.ChitGroup.GroupName}): ₹{auction.NetPayableAmount:N2} disbursed to {auction.WinningTicket?.Member?.FullName ?? "winner"} via {request.PaymentMode}. Ref: {request.ReferenceNumber}.",
+            ChitStack.Domain.Entities.NotificationType.Success);
 
         return Result<int>.Success(auction.Id);
     }

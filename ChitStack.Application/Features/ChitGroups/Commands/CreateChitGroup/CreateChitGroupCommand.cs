@@ -50,10 +50,12 @@ public class CreateChitGroupValidator : AbstractValidator<CreateChitGroupCommand
 public class CreateChitGroupHandler : IRequestHandler<CreateChitGroupCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public CreateChitGroupHandler(IApplicationDbContext context)
+    public CreateChitGroupHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
     {
         _context = context;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(CreateChitGroupCommand request, CancellationToken cancellationToken)
@@ -89,6 +91,10 @@ public class CreateChitGroupHandler : IRequestHandler<CreateChitGroupCommand, Re
         _context.Tickets.Add(foremanTicket);
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "New Chit Group Created",
+            $"'{request.GroupName}' (₹{request.ChitValue:N0}, {request.DurationMonths} months) has been created and is awaiting launch.");
 
         return Result<int>.Success(entity.Id);
     }

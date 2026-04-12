@@ -27,10 +27,12 @@ public class ScheduleAuctionValidator : AbstractValidator<ScheduleAuctionCommand
 public class ScheduleAuctionHandler : IRequestHandler<ScheduleAuctionCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public ScheduleAuctionHandler(IApplicationDbContext context)
+    public ScheduleAuctionHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
     {
         _context = context;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(ScheduleAuctionCommand request, CancellationToken cancellationToken)
@@ -58,6 +60,10 @@ public class ScheduleAuctionHandler : IRequestHandler<ScheduleAuctionCommand, Re
 
         _context.Auctions.Add(auction);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Auction Scheduled",
+            $"Installment #{request.InstallmentNumber} for '{group.GroupName}' scheduled on {request.AuctionDate:dd MMM yyyy}.");
 
         return Result<int>.Success(auction.Id);
     }

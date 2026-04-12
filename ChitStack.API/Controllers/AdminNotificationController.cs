@@ -81,6 +81,12 @@ public class AdminNotificationController : ControllerBase
             existing.NotifyOnDemand = settings.NotifyOnDemand;
             existing.NotifyOnReconciliation = settings.NotifyOnReconciliation;
             existing.NotifyOnPayout = settings.NotifyOnPayout;
+
+            // Staff Alert Configuration
+            existing.TelegramBotToken = settings.TelegramBotToken;
+            existing.TelegramChannelId = settings.TelegramChannelId;
+            existing.StaffInPortalAlertsEnabled = settings.StaffInPortalAlertsEnabled;
+            existing.StaffTelegramAlertsEnabled = settings.StaffTelegramAlertsEnabled;
             
             _context.TenantSettings.Update(existing);
         }
@@ -98,7 +104,8 @@ public class AdminNotificationController : ControllerBase
         // 1. Cleanup old friendly names to avoid duplicates
         var legacyNames = new[] { 
             "Payment Receipts", "Auction Winner", "Dividend Credits", "Monthly Demands", 
-            "Agent Submissions", "Prize Payouts", "PaymentReminder", "AuctionAlert", "PayoutConfirmation"
+            "Agent Submissions", "Prize Payouts", "PaymentReminder", "AuctionAlert", "PayoutConfirmation",
+            "ReconciliationApproval"
         };
         
         var toDelete = existingTemplates.Where(t => legacyNames.Contains(t.Name)).ToList();
@@ -197,14 +204,6 @@ public class AdminNotificationController : ControllerBase
                 MessageTemplate = "Your prize payout of ₹{Amount} for {ChitGroup} has been processed. Reference: {RefNo}.",
                 WhatsAppTemplate = "🎊 *Prize Payout processed*\n\nYour prize payout of *₹{Amount}* for {ChitGroup} has been processed.\n\n*Ref*: {RefNo}",
                 Placeholders = "{Amount}, {ChitGroup}, {RefNo}" 
-            },
-            new NotificationTemplate 
-            { 
-                Name = "ReconciliationApproval", 
-                TitleTemplate = "Collections Approved", 
-                MessageTemplate = "Your submission for {Date} (₹{Amount}) has been approved. Status: {Status}.",
-                WhatsAppTemplate = "✅ *Collections Approved*\n\nYour submission for {Date} (₹{Amount}) has been *Approved*.\n\n*Status*: {Status}",
-                Placeholders = "{Date}, {Amount}, {Status}" 
             }
         };
     }

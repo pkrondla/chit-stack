@@ -14,10 +14,12 @@ public class CloseRouteBatchCommand : IRequest<Result<int>>
 public class CloseRouteBatchHandler : IRequestHandler<CloseRouteBatchCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public CloseRouteBatchHandler(IApplicationDbContext context)
+    public CloseRouteBatchHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
     {
         _context = context;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(CloseRouteBatchCommand request, CancellationToken cancellationToken)
@@ -58,6 +60,10 @@ public class CloseRouteBatchHandler : IRequestHandler<CloseRouteBatchCommand, Re
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Route Batch Submitted",
+            $"Agent #{request.AgentId} submitted batch #{submission.Id}: {pendingReceipts.Count} receipt(s) totalling ₹{totalAmount:N2} (Cash: ₹{totalCash:N2}, Cheque: ₹{totalCheque:N2}).");
 
         return Result<int>.Success(submission.Id);
     }

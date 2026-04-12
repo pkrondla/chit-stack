@@ -12,7 +12,7 @@ public class DesignTimeTenantDbContextFactory : IDesignTimeDbContextFactory<Tena
     {
         IConfigurationRoot configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("C:\\PK\\Source\\chitstack\\ChitStack.API\\appsettings.json")
+            .AddJsonFile("C:\\PK\\Source\\chit-stack\\ChitStack.API\\appsettings.json")
             .Build();
 
         var builder = new DbContextOptionsBuilder<TenantDbContext>();

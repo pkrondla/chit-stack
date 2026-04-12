@@ -14,10 +14,12 @@ public class ReconcileTransactionsCommand : IRequest<Result<int>>
 public class ReconcileTransactionsHandler : IRequestHandler<ReconcileTransactionsCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public ReconcileTransactionsHandler(IApplicationDbContext context)
+    public ReconcileTransactionsHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
     {
         _context = context;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(ReconcileTransactionsCommand request, CancellationToken cancellationToken)
@@ -33,6 +35,10 @@ public class ReconcileTransactionsHandler : IRequestHandler<ReconcileTransaction
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Transactions Reconciled",
+            $"{lines.Count} journal line(s) marked as reconciled on {request.ReconciliationDate:dd MMM yyyy}.");
 
         return Result<int>.Success(lines.Count);
     }

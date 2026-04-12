@@ -201,7 +201,13 @@ public class LaunchGroupWithScheduleCommand : IRequest<Result<int>>
 public class LaunchGroupWithScheduleHandler : IRequestHandler<LaunchGroupWithScheduleCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
-    public LaunchGroupWithScheduleHandler(IApplicationDbContext context) => _context = context;
+    private readonly IStaffNotificationService _staffNotification;
+
+    public LaunchGroupWithScheduleHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
+    {
+        _context = context;
+        _staffNotification = staffNotification;
+    }
 
     public async Task<Result<int>> Handle(LaunchGroupWithScheduleCommand request, CancellationToken cancellationToken)
     {
@@ -229,6 +235,12 @@ public class LaunchGroupWithScheduleHandler : IRequestHandler<LaunchGroupWithSch
         group.LaunchDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Chit Group Launched",
+            $"'{group.GroupName}' (₹{group.ChitValue:N0}, {group.DurationMonths} months) is now Active.",
+            ChitStack.Domain.Entities.NotificationType.Success);
+
         return Result<int>.Success(group.Id);
     }
 }

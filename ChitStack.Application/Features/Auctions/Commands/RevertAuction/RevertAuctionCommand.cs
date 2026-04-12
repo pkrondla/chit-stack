@@ -13,10 +13,12 @@ public class RevertAuctionCommand : IRequest<Result<int>>
 public class RevertAuctionHandler : IRequestHandler<RevertAuctionCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public RevertAuctionHandler(IApplicationDbContext context)
+    public RevertAuctionHandler(IApplicationDbContext context, IStaffNotificationService staffNotification)
     {
         _context = context;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(RevertAuctionCommand request, CancellationToken cancellationToken)
@@ -97,6 +99,12 @@ public class RevertAuctionHandler : IRequestHandler<RevertAuctionCommand, Result
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Auction Reverted",
+            $"Auction #{request.AuctionId} (installment #{auction.InstallmentNumber} of '{auction.ChitGroup.GroupName}') has been reverted to Scheduled.",
+            ChitStack.Domain.Entities.NotificationType.Warning);
+
         return Result<int>.Success(auction.Id);
     }
 }

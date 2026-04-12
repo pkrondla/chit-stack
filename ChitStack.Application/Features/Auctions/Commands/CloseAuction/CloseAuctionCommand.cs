@@ -2,6 +2,7 @@ using ChitStack.Application.Common.Constants;
 using ChitStack.Application.Common.Interfaces;
 using ChitStack.Application.Features.Financials.Commands.GenerateDemands;
 using ChitStack.Domain.Common;
+using ChitStack.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,9 +21,10 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
     private readonly IAccountResolutionService _accountService;
     private readonly IAuctionNotificationService _notificationService;
     private readonly INotificationService _persistentNotificationService;
+    private readonly IStaffNotificationService _staffNotification;
     private readonly ISender _sender;
 
-    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService, INotificationService persistentNotificationService, ISender sender)
+    public CloseAuctionHandler(IApplicationDbContext context, IGSTService gstService, IJournalService journalService, IAccountResolutionService accountService, IAuctionNotificationService notificationService, INotificationService persistentNotificationService, IStaffNotificationService staffNotification, ISender sender)
     {
         _context = context;
         _gstService = gstService;
@@ -30,6 +32,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         _accountService = accountService;
         _notificationService = notificationService;
         _persistentNotificationService = persistentNotificationService;
+        _staffNotification = staffNotification;
         _sender = sender;
     }
 
@@ -246,6 +249,11 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             auction.WinningTicketId.Value, 
             auction.WinningTicket?.Member?.FullName ?? "Member", 
             auction.WinningBidAmount);
+
+        _staffNotification.Broadcast(
+            "Auction Closed",
+            $"Auction #{auction.Id} (installment #{auction.InstallmentNumber}, '{auction.ChitGroup.GroupName}') closed. Winner: {auction.WinningTicket?.Member?.FullName ?? "Ticket #" + auction.WinningTicket?.TicketNumber}, Bid: ₹{auction.WinningBidAmount:N2}.",
+            NotificationType.Success);
 
         // Auto-Generate Demands!
         var demandsResult = await _sender.Send(new GenerateDemandsCommand { AuctionId = auction.Id }, cancellationToken);

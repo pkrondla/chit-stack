@@ -15,11 +15,13 @@ public class EnablePortalAccessHandler : IRequestHandler<EnablePortalAccessComma
 {
     private readonly IApplicationDbContext _context;
     private readonly ITenantService _tenantService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public EnablePortalAccessHandler(IApplicationDbContext context, ITenantService tenantService)
+    public EnablePortalAccessHandler(IApplicationDbContext context, ITenantService tenantService, IStaffNotificationService staffNotification)
     {
         _context = context;
         _tenantService = tenantService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(EnablePortalAccessCommand request, CancellationToken cancellationToken)
@@ -54,6 +56,10 @@ public class EnablePortalAccessHandler : IRequestHandler<EnablePortalAccessComma
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Member Portal Access Enabled",
+            $"{member.FullName} has been granted subscriber portal access.");
 
         return Result<int>.Success(user.Id);
     }

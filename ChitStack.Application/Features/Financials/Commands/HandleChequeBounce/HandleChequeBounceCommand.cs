@@ -20,12 +20,14 @@ public class HandleChequeBounceHandler : IRequestHandler<HandleChequeBounceComma
     private readonly IApplicationDbContext _context;
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public HandleChequeBounceHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService)
+    public HandleChequeBounceHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, IStaffNotificationService staffNotification)
     {
         _context = context;
         _journalService = journalService;
         _accountService = accountService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(HandleChequeBounceCommand request, CancellationToken cancellationToken)
@@ -127,6 +129,11 @@ public class HandleChequeBounceHandler : IRequestHandler<HandleChequeBounceComma
         // For now, we manually adjust if needed or just let the user re-pay them.
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Cheque Bounced",
+            $"Receipt #{receipt.Id} has been reversed due to cheque bounce. Bounce charges: ₹{request.BounceCharge:N2}. {request.Remarks}",
+            ChitStack.Domain.Entities.NotificationType.Warning);
 
         return Result<int>.Success(receipt.Id);
     }

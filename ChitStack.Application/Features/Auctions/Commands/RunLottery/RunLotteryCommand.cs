@@ -16,12 +16,14 @@ public class RunLotteryHandler : IRequestHandler<RunLotteryCommand, Result<int>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IAuctionNotificationService _notificationService;
+    private readonly IStaffNotificationService _staffNotification;
     private readonly IMediator _mediator;
 
-    public RunLotteryHandler(IApplicationDbContext context, IAuctionNotificationService notificationService, IMediator mediator)
+    public RunLotteryHandler(IApplicationDbContext context, IAuctionNotificationService notificationService, IStaffNotificationService staffNotification, IMediator mediator)
     {
         _context = context;
         _notificationService = notificationService;
+        _staffNotification = staffNotification;
         _mediator = mediator;
     }
 
@@ -88,6 +90,10 @@ public class RunLotteryHandler : IRequestHandler<RunLotteryCommand, Result<int>>
                 auction.Id, 
                 tiedParticipants.Select(p => new { p.TicketId, p.MemberName, p.TicketNumber }), 
                 winner.TicketId);
+
+            _staffNotification.Broadcast(
+                "Lottery Conducted",
+                $"Auction #{auction.Id} lottery: winner is {winner.MemberName} (Ticket #{winner.TicketNumber}) out of {tiedParticipants.Count} tied bidders.");
 
             // Automatically close the auction after lottery is done
             var closeResult = await _mediator.Send(new CloseAuctionCommand { AuctionId = auction.Id }, cancellationToken);

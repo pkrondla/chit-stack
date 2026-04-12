@@ -23,10 +23,12 @@ public class JournalLineDto
 public class CreateJournalEntryHandler : IRequestHandler<CreateJournalEntryCommand, Result<int>>
 {
     private readonly IJournalService _journalService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public CreateJournalEntryHandler(IJournalService journalService)
+    public CreateJournalEntryHandler(IJournalService journalService, IStaffNotificationService staffNotification)
     {
         _journalService = journalService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(CreateJournalEntryCommand request, CancellationToken cancellationToken)
@@ -61,6 +63,13 @@ public class CreateJournalEntryHandler : IRequestHandler<CreateJournalEntryComma
             request.BranchId,
             serviceLines,
             cancellationToken);
+
+        if (result.Succeeded)
+        {
+            _staffNotification.Broadcast(
+                "Journal Entry Posted",
+                $"{request.EntryType} journal entry: \"{request.Description}\" (₹{totalDebit:N2}) posted for {request.EntryDate:dd MMM yyyy}.");
+        }
 
         return result;
     }

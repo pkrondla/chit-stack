@@ -36,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<IPdfService, PdfService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IStaffNotificationService, StaffNotificationService>();
+        services.AddScoped<StaffNotificationWorker>();
         services.AddScoped<IDailyNotificationProcessor, DailyNotificationWorker>();
 
         services.AddHttpClient();

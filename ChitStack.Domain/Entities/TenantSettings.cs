@@ -71,4 +71,12 @@ public class TenantSettings : TenantEntity
     public bool NotifyOnDemand { get; set; } = true;
     public bool NotifyOnReconciliation { get; set; } = true;
     public bool NotifyOnPayout { get; set; } = true;
+
+    // Staff Notification Configuration (Telegram Channel)
+    public string? TelegramBotToken { get; set; }
+    public string? TelegramChannelId { get; set; }  // e.g. @channelname or -1001234567890
+
+    // Staff Alert Toggles
+    public bool StaffInPortalAlertsEnabled { get; set; } = true;
+    public bool StaffTelegramAlertsEnabled { get; set; } = false;
 }

@@ -30,13 +30,15 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
     private readonly IJournalService _journalService;
     private readonly IAccountResolutionService _accountService;
     private readonly INotificationService _notificationService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public RecordPaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, INotificationService notificationService)
+    public RecordPaymentHandler(IApplicationDbContext context, IJournalService journalService, IAccountResolutionService accountService, INotificationService notificationService, IStaffNotificationService staffNotification)
     {
         _context = context;
         _journalService = journalService;
         _accountService = accountService;
         _notificationService = notificationService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(RecordPaymentCommand request, CancellationToken cancellationToken)
@@ -269,6 +271,10 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
 
             await _notificationService.SendTemplatedNotificationAsync(targetTicket.MemberId.Value, "ReceiptConfirmation", placeholders);
         }
+
+        _staffNotification.Broadcast(
+            "Payment Recorded",
+            $"Receipt #{receipt.Id}: ₹{request.Amount:N2} received from {targetTicket?.Member?.FullName ?? $"Ticket #{targetTicket?.TicketNumber}"} ({request.PaymentMode}).");
 
         return Result<int>.Success(receipt.Id);
     }

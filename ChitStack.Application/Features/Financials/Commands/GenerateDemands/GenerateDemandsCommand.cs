@@ -15,11 +15,13 @@ public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Re
 {
     private readonly IApplicationDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly IStaffNotificationService _staffNotification;
 
-    public GenerateDemandsHandler(IApplicationDbContext context, INotificationService notificationService)
+    public GenerateDemandsHandler(IApplicationDbContext context, INotificationService notificationService, IStaffNotificationService staffNotification)
     {
         _context = context;
         _notificationService = notificationService;
+        _staffNotification = staffNotification;
     }
 
     public async Task<Result<int>> Handle(GenerateDemandsCommand request, CancellationToken cancellationToken)
@@ -83,6 +85,10 @@ public class GenerateDemandsHandler : IRequestHandler<GenerateDemandsCommand, Re
 
         _context.Demands.AddRange(demands);
         await _context.SaveChangesAsync(cancellationToken);
+
+        _staffNotification.Broadcast(
+            "Demands Generated",
+            $"{demands.Count} demand(s) generated for '{auction.ChitGroup.GroupName}' installment #{auction.InstallmentNumber} (₹{(auction.ChitGroup.InstallmentAmount - auction.DividendAmount):N2} each).");
 
         // Notify Members about new Demand
         foreach (var ticket in auction.ChitGroup.Tickets)
