@@ -271,7 +271,8 @@ const CollectionEntry = () => {
                             rules={[{ required: true, message: 'Amount is required' }]}
                         >
                             <InputNumber
-                                className="w-full text-lg font-bold text-slate-800"
+                                className="text-lg font-bold text-slate-800"
+                                style={{ width: '100%' }}
                                 size="large"
                                 placeholder="0.00"
                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}

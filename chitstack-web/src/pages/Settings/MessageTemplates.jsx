@@ -9,67 +9,56 @@ import 'quill/dist/quill.snow.css';
 
 const { Title, Text, Paragraph } = Typography;
 
-// High-fidelity custom editor for React 19 / Quill compatibility
+// Tracks which DOM nodes already have a Quill instance attached.
+// Survives React Strict Mode's double-invoke because the WeakMap key is the actual DOM node.
+const quillInstances = new WeakMap();
+
 const QuillEditor = ({ value, onChange, placeholder, modules, formats }) => {
-    const containerRef = useRef(null);
-    const quillRef = useRef(null);
-    const isUpdating = useRef(false);
+    const editorRef = useRef(null);
+    const onChangeRef = useRef(onChange);
+
+    useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
     useEffect(() => {
-        if (!containerRef.current || quillRef.current) return;
-        
-        // Create editor div
-        const editorDiv = document.createElement('div');
-        editorDiv.style.minHeight = '300px';
-        containerRef.current.appendChild(editorDiv);
+        const el = editorRef.current;
+        if (!el || quillInstances.has(el)) return;
 
-        const quill = new Quill(editorDiv, {
+        // Set a minimum height on the editor element itself
+        el.style.minHeight = '300px';
+
+        const quill = new Quill(el, {
             theme: 'snow',
             placeholder: placeholder || 'Start designing...',
-            modules: modules,
-            formats: formats
+            modules,
+            formats,
         });
 
-        quillRef.current = quill;
+        quillInstances.set(el, quill);
 
-        // Set initial content
         if (value) {
             quill.clipboard.dangerouslyPasteHTML(value);
         }
 
         quill.on('text-change', () => {
-            if (!isUpdating.current) {
-                const html = quill.root.innerHTML;
-                onChange(html === '<p><br></p>' ? '' : html);
-            }
+            const html = quill.root.innerHTML;
+            onChangeRef.current(html === '<p><br></p>' ? '' : html);
         });
 
         return () => {
-            if (quillRef.current) {
-                quillRef.current = null;
-                if (containerRef.current) {
-                    containerRef.current.innerHTML = ''; // Full cleanup
-                }
+            quillInstances.delete(el);
+            // Remove the Quill-generated toolbar sibling and clear the editor element
+            const toolbar = el.previousElementSibling;
+            if (toolbar && toolbar.classList.contains('ql-toolbar')) {
+                toolbar.remove();
             }
+            el.innerHTML = '';
+            el.className = '';
         };
-    }, []); // Init only once
-
-    // Sync external changes into the editor
-    useEffect(() => {
-        if (quillRef.current && value !== undefined && value !== quillRef.current.root.innerHTML) {
-            isUpdating.current = true;
-            const selection = quillRef.current.getSelection();
-            quillRef.current.clipboard.dangerouslyPasteHTML(value || '');
-            if (selection) {
-                quillRef.current.setSelection(selection);
-            }
-            isUpdating.current = false;
-        }
-    }, [value]);
+    }, []); // key prop on the parent drives remount when template changes
 
     return (
         <div className="bg-white rounded-2xl border border-orange-100 overflow-hidden shadow-sm">
-            <div ref={containerRef} />
+            <div ref={editorRef} />
         </div>
     );
 };
@@ -335,6 +324,7 @@ const MessageTemplates = () => {
                                     Email Logic (Rich Text & Visual Designer)
                                 </div>
                                 <QuillEditor 
+                                    key={currentTemplate.id}
                                     value={currentTemplate.emailHtmlTemplate || ''}
                                     onChange={content => {
                                         const newTemplates = [...templates];

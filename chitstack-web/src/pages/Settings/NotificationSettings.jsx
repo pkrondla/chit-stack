@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Switch, List, Typography, Button, Space, Form, Input, InputNumber, message, Spin, Tabs, Badge, Select, Collapse } from 'antd';
-import { Bell, Smartphone, MessageSquare, Mail, Settings, ShieldCheck, Zap, Cog, LayoutList } from 'lucide-react';
+import { Bell, Smartphone, MessageSquare, Mail, Settings, ShieldCheck, Zap, Cog, LayoutList, Send } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
 
@@ -143,12 +143,63 @@ const NotificationSettings = () => {
                                         </div>
                                     } 
                                     key="sms"
-                                    className="px-4"
+                                    className="border-b border-slate-50 px-4"
                                 >
                                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/20 rounded-3xl m-2 border border-slate-100">
                                         <Form.Item name="smsApiUrl" label={<span className="text-xs font-bold text-slate-500 uppercase">API Endpoint</span>}><Input className="rounded-xl h-10" /></Form.Item>
                                         <Form.Item name="smsApiKey" label={<span className="text-xs font-bold text-slate-500 uppercase">API Key</span>}><Input.Password className="rounded-xl h-10" /></Form.Item>
                                         <Form.Item name="smsSenderId" label={<span className="text-xs font-bold text-slate-500 uppercase">Sender ID</span>}><Input className="rounded-xl h-10" /></Form.Item>
+                                    </div>
+                                </Collapse.Panel>
+
+                                <Collapse.Panel 
+                                    header={
+                                        <div className="flex items-center gap-4 py-2">
+                                            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center shadow-sm"><Send size={20} /></div>
+                                            <div>
+                                                <div className="font-bold text-slate-700 text-base">Telegram (Staff Alerts)</div>
+                                                <div className="text-xs text-slate-400">Broadcast operational events to a Telegram channel for staff</div>
+                                            </div>
+                                        </div>
+                                    } 
+                                    key="telegram"
+                                    className="px-4"
+                                >
+                                    <div className="p-4 bg-slate-50/20 rounded-3xl m-2 border border-slate-100 space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <Form.Item
+                                                name="telegramBotToken"
+                                                label={<span className="text-xs font-bold text-slate-500 uppercase">Bot Token</span>}
+                                                extra={<span className="text-xs text-slate-400">Get this from @BotFather on Telegram</span>}
+                                            >
+                                                <Input.Password placeholder="123456789:ABCdef..." className="rounded-xl h-10" />
+                                            </Form.Item>
+                                            <Form.Item
+                                                name="telegramChannelId"
+                                                label={<span className="text-xs font-bold text-slate-500 uppercase">Channel ID</span>}
+                                                extra={<span className="text-xs text-slate-400">e.g. @yourchannel or -1001234567890</span>}
+                                            >
+                                                <Input placeholder="@channelname" className="rounded-xl h-10" />
+                                            </Form.Item>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
+                                            <Form.Item
+                                                name="staffInPortalAlertsEnabled"
+                                                label={<span className="text-xs font-bold text-slate-500 uppercase">In-Portal Staff Alerts</span>}
+                                                valuePropName="checked"
+                                                extra={<span className="text-xs text-slate-400">Push events to staff users' in-portal notification inbox</span>}
+                                            >
+                                                <Switch />
+                                            </Form.Item>
+                                            <Form.Item
+                                                name="staffTelegramAlertsEnabled"
+                                                label={<span className="text-xs font-bold text-slate-500 uppercase">Telegram Channel Alerts</span>}
+                                                valuePropName="checked"
+                                                extra={<span className="text-xs text-slate-400">Post operational events to the configured Telegram channel</span>}
+                                            >
+                                                <Switch />
+                                            </Form.Item>
+                                        </div>
                                     </div>
                                 </Collapse.Panel>
                             </Collapse>

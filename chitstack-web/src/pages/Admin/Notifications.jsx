@@ -112,6 +112,7 @@ const ManageNotifications = () => {
                             if (c === 'WhatsApp') { icon = <MessageSquare size={10} />; color = 'green'; }
                             if (c === 'SMS') { icon = <Smartphone size={10} />; color = 'purple'; }
                             if (c === 'Email') { icon = <Mail size={10} />; color = 'orange'; }
+                            if (c === 'Telegram') { icon = <Send size={10} />; color = 'cyan'; }
                             
                             return (
                                 <Tag key={c} color={color} className="rounded-md border-0 bg-opacity-10 font-bold text-xs px-2 py-0.5 flex items-center gap-1">
