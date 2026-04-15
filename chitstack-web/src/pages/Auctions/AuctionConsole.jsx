@@ -37,6 +37,11 @@ const AuctionConsole = () => {
 
     const [demands, setDemands] = useState([]);
     const [isDemandsLoading, setIsDemandsLoading] = useState(false);
+    const getApiErrorMessage = (err, fallback) =>
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0] ||
+        fallback;
 
     const startMutation = useMutation({
         mutationFn: async (payload) => {
@@ -157,7 +162,7 @@ const AuctionConsole = () => {
             setIsEditing(false);
         },
         onError: (err) => {
-            message.error(err.response?.data?.error || "Failed to revert auction");
+            message.error(getApiErrorMessage(err, "Failed to revert auction"));
         }
     });
 

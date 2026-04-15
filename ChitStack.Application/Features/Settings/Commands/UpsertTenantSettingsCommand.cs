@@ -26,6 +26,8 @@ public class TenantSettingsDto
     public decimal GstPercent { get; set; }
     public decimal DefaultLateFeePercent { get; set; }
     public int DefaultGracePeriodDays { get; set; }
+    public bool LiveRoomTtsEnabled { get; set; }
+    public string PreferredAuctionVoiceLanguage { get; set; } = "en";
 }
 
 // Command: Upsert (create or update) the company profile
@@ -46,6 +48,8 @@ public class UpsertTenantSettingsCommand : IRequest<Result<TenantSettingsDto>>
     public decimal GstPercent { get; set; }
     public decimal DefaultLateFeePercent { get; set; } = 2;
     public int DefaultGracePeriodDays { get; set; } = 5;
+    public bool LiveRoomTtsEnabled { get; set; } = false;
+    public string PreferredAuctionVoiceLanguage { get; set; } = "en";
 }
 
 public class UpsertTenantSettingsValidator : AbstractValidator<UpsertTenantSettingsCommand>
@@ -55,7 +59,16 @@ public class UpsertTenantSettingsValidator : AbstractValidator<UpsertTenantSetti
         RuleFor(v => v.CompanyName).NotEmpty().WithMessage("Company Name is required.").MaximumLength(200);
         RuleFor(v => v.RegisteredOfficeAddress).NotEmpty().WithMessage("Registered Office Address is required.").MaximumLength(500);
         RuleFor(v => v.ForemanName).NotEmpty().WithMessage("Foreman Name is required.").MaximumLength(200);
+        RuleFor(v => v.PreferredAuctionVoiceLanguage)
+            .NotEmpty()
+            .Must(v => SupportedVoiceLanguages.Contains(v.Trim().ToLowerInvariant()))
+            .WithMessage("Preferred auction voice language must be one of: en, hi, ta, te, kn, ml.");
     }
+
+    private static readonly HashSet<string> SupportedVoiceLanguages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "en", "hi", "ta", "te", "kn", "ml"
+    };
 }
 
 public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsCommand, Result<TenantSettingsDto>>
@@ -94,6 +107,8 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         existing.GstPercent = request.GstPercent;
         existing.DefaultLateFeePercent = request.DefaultLateFeePercent;
         existing.DefaultGracePeriodDays = request.DefaultGracePeriodDays;
+        existing.LiveRoomTtsEnabled = request.LiveRoomTtsEnabled;
+        existing.PreferredAuctionVoiceLanguage = request.PreferredAuctionVoiceLanguage.Trim().ToLowerInvariant();
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -118,6 +133,8 @@ public class UpsertTenantSettingsHandler : IRequestHandler<UpsertTenantSettingsC
         GstPercent = s.GstPercent,
         DefaultLateFeePercent = s.DefaultLateFeePercent,
         DefaultGracePeriodDays = s.DefaultGracePeriodDays,
+        LiveRoomTtsEnabled = s.LiveRoomTtsEnabled,
+        PreferredAuctionVoiceLanguage = s.PreferredAuctionVoiceLanguage,
     };
 }
 
@@ -153,6 +170,8 @@ public class GetTenantSettingsHandler : IRequestHandler<GetTenantSettingsQuery, 
             GstPercent = settings.GstPercent,
             DefaultLateFeePercent = settings.DefaultLateFeePercent,
             DefaultGracePeriodDays = settings.DefaultGracePeriodDays,
+            LiveRoomTtsEnabled = settings.LiveRoomTtsEnabled,
+            PreferredAuctionVoiceLanguage = settings.PreferredAuctionVoiceLanguage,
         });
     }
 }

@@ -57,14 +57,9 @@ const PortalDashboard = () => {
 
     const { totalLiability = 0, myTickets = [], upcomingAuctions = [] } = data;
 
-    // Filter auctions for the next 30 days
-    const today = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
-    const filteredAuctions = upcomingAuctions.filter(auction => {
-        const auctionDate = new Date(auction.date);
-        return auctionDate >= today && auctionDate <= thirtyDaysFromNow;
-    });
+    const filteredAuctions = [...upcomingAuctions]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, 3);
 
     return (
         <Layout style={{ background: 'transparent', padding: '24px' }}>
@@ -136,7 +131,7 @@ const PortalDashboard = () => {
                                         No pending auctions
                                     </div>
                                 ) : (
-                                    filteredAuctions.slice(0, 3).map((auction) => (
+                                    filteredAuctions.map((auction) => (
                                         <Card 
                                             key={auction.auctionId} 
                                             size="small" 
@@ -157,7 +152,7 @@ const PortalDashboard = () => {
                                                 <Button
                                                     type="primary"
                                                     size="small"
-                                                    onClick={() => navigate(`/portal/auctions`)}
+                                                    onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
                                                     icon={<PlayCircle size={14} />}
                                                     style={{ borderRadius: '8px', fontSize: '10px', fontWeight: 900, background: '#4f46e5' }}
                                                 >

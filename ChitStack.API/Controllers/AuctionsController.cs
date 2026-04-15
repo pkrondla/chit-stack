@@ -11,6 +11,7 @@ using ChitStack.Application.Features.Auctions.Queries.GetAuctionDemands;
 using ChitStack.Application.Features.Auctions.Commands.UpdateAuctionCompletion;
 using ChitStack.Application.Features.Auctions.Commands.RevertAuction;
 using ChitStack.Application.Features.Auctions.Commands.RunLottery;
+using ChitStack.API.Services;
 using ChitStack.Domain.Common;
 using ChitStack.Application.Common.Interfaces;
 using MediatR;
@@ -25,10 +26,12 @@ namespace ChitStack.API.Controllers;
 public class AuctionsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly TieBreakerOrchestrator _tieBreakerOrchestrator;
 
-    public AuctionsController(IMediator mediator)
+    public AuctionsController(IMediator mediator, TieBreakerOrchestrator tieBreakerOrchestrator)
     {
         _mediator = mediator;
+        _tieBreakerOrchestrator = tieBreakerOrchestrator;
     }
 
     [HttpGet]
@@ -139,26 +142,21 @@ public class AuctionsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Subscriber")]
     [HttpPost("{auctionId}/lottery")]
     public async Task<ActionResult<Result<int>>> Lottery(int auctionId)
     {
+        _tieBreakerOrchestrator.Cancel(auctionId);
         var result = await _mediator.Send(new RunLotteryCommand { AuctionId = auctionId });
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Subscriber")]
     [HttpPost("{auctionId}/start-tiebreaker")]
     public async Task<ActionResult<Result<bool>>> StartTieBreaker(int auctionId)
     {
-        var auction = await _mediator.Send(new GetAuctionsQuery { ChitGroupId = null }); 
-        // Wait, I need a better way to get the auction for validation, but just triggering notification is okay for now as it's just a signal.
-        // For production, I'd validate.
-        
-        // Actually I'll just use the service directly.
-        var notificationService = HttpContext.RequestServices.GetRequiredService<IAuctionNotificationService>();
-        await notificationService.NotifyTieBreakerDetectedAsync(auctionId, 15);
-        return Ok(Result<bool>.Success(true));
+        var started = await _tieBreakerOrchestrator.StartAsync(auctionId, HttpContext.RequestAborted);
+        return Ok(Result<bool>.Success(started));
     }
 }

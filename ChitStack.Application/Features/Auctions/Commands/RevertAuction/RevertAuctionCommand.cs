@@ -30,8 +30,21 @@ public class RevertAuctionHandler : IRequestHandler<RevertAuctionCommand, Result
             
         if (auction == null) return Result<int>.Failure("Auction not found.");
         
-        if (auction.AuctionStatus != "Closed") 
-            return Result<int>.Failure("Only completed auctions can be reverted.");
+        var normalizedStatus = auction.AuctionStatus?.Trim();
+        var isCompletedStatus =
+            string.Equals(normalizedStatus, "Closed", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalizedStatus, "Completed", StringComparison.OrdinalIgnoreCase);
+
+        // Some legacy flows mark a winner/payout but keep status non-standard.
+        var hasCompletionData =
+            auction.WinningTicketId.HasValue ||
+            auction.WinningBidAmount > 0 ||
+            auction.NetPayableAmount > 0;
+
+        if (!isCompletedStatus && !hasCompletionData)
+        {
+            return Result<int>.Failure($"Only completed auctions can be reverted. Current status: {auction.AuctionStatus}");
+        }
 
         // 1. Unmark ANY tickets in this group that were prized in THIS installment
         var ticketsInGroup = await _context.Tickets

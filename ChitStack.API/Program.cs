@@ -1,6 +1,7 @@
 using ChitStack.Application;
 using ChitStack.Infrastructure;
 using ChitStack.API.Middleware;
+using ChitStack.API.Services;
 using Serilog;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -73,6 +74,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ChitStack.Application.Common.Interfaces.IAuctionNotificationService, ChitStack.API.Services.AuctionNotificationService>();
 builder.Services.AddScoped<ChitStack.Application.Common.Interfaces.INotificationsHubService, ChitStack.API.Services.NotificationsHubService>();
+builder.Services.AddSingleton<TieBreakerOrchestrator>();
+builder.Services.Configure<AzureSpeechOptions>(builder.Configuration.GetSection("AzureSpeech"));
+builder.Services.AddHttpClient<IAzureSpeechSynthesisService, AzureSpeechSynthesisService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(8);
+});
 
 // CORS
 builder.Services.AddCors(options =>

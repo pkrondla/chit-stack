@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
-import { Card, Typography, Input, Button, Spin, Tag, App, Avatar, Tooltip, Tabs, List } from 'antd';
-import { Gavel, Globe, Smartphone, Building2, User as UserIcon, Users, Activity, Trophy } from 'lucide-react';
+import { Card, Typography, Input, Button, Spin, Tag, App, Avatar, Tooltip, Tabs, Result } from 'antd';
+import { Gavel, Globe, Smartphone, Building2, User as UserIcon, Users, Activity, Trophy, Volume2, VolumeX } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
+import { LiveRoomVoiceQueue } from '../../utils/liveRoomVoiceQueue';
 
 const { Title, Text } = Typography;
 
@@ -19,6 +20,7 @@ const SourceIcon = ({ source }) => {
 
 const LiveAuction = () => {
     const { auctionId } = useParams();
+    const navigate = useNavigate();
     const user = useAuthStore(state => state.user);
     const { message } = App.useApp();
 
@@ -46,6 +48,20 @@ const LiveAuction = () => {
     const [wheelRotation, setWheelRotation] = useState(0);
     const [tieBreakerTimer, setTieBreakerTimer] = useState(null);
     const [lastWinnerTicketId, setLastWinnerTicketId] = useState(null);
+    const [isTenantTtsEnabled, setIsTenantTtsEnabled] = useState(false);
+    const [preferredVoiceLanguage, setPreferredVoiceLanguage] = useState('en');
+    const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+    const [sidebarTab, setSidebarTab] = useState('activity');
+    const hasShownVoiceUnlockPromptRef = useRef(false);
+    const voiceQueueRef = useRef(null);
+    const isVoiceEnabledRef = useRef(false);
+    const isTenantTtsEnabledRef = useRef(false);
+    const preferredVoiceLanguageRef = useRef('en');
+    const voiceUserKey = user?.id || user?.memberId || user?.username || 'anonymous';
+    const normalizedStatus = (auctionStatus || '').toLowerCase();
+    const isLive = normalizedStatus === 'live';
+    const isClosed = normalizedStatus === 'closed';
+    const isAwaitingCoordinator = ['scheduled', 'open', 'pending'].includes(normalizedStatus);
 
     const handleFinalClosure = (data) => {
         setAuctionStatus("Closed");
@@ -53,6 +69,11 @@ const LiveAuction = () => {
         setTimer(0);
         fetchData();
         message.info(`Auction closed. Winner: ${data.winnerName} (Ticket #${data.winningTicketId})`);
+        voiceQueueRef.current?.enqueue({
+            eventType: "AuctionClosed",
+            text: buildVoiceText("AuctionClosed", data),
+            priority: 'high'
+        });
     };
 
     useEffect(() => {
@@ -73,10 +94,82 @@ const LiveAuction = () => {
     const auctionDataRef = useRef(null);
     useEffect(() => { bidsRef.current = bids; }, [bids]);
     useEffect(() => { auctionDataRef.current = auctionData; }, [auctionData]);
+    useEffect(() => { isVoiceEnabledRef.current = isVoiceEnabled; }, [isVoiceEnabled]);
+    useEffect(() => { isTenantTtsEnabledRef.current = isTenantTtsEnabled; }, [isTenantTtsEnabled]);
+    useEffect(() => { preferredVoiceLanguageRef.current = preferredVoiceLanguage; }, [preferredVoiceLanguage]);
+
+    useEffect(() => {
+        voiceQueueRef.current = new LiveRoomVoiceQueue({
+            auctionId,
+            getLanguageCode: () => preferredVoiceLanguageRef.current,
+            getEnabled: () => isTenantTtsEnabledRef.current && isVoiceEnabledRef.current,
+            onUserGestureRequired: () => {
+                if (hasShownVoiceUnlockPromptRef.current) return;
+                hasShownVoiceUnlockPromptRef.current = true;
+                message.info('Tap the speaker icon to enable live announcements.');
+            },
+            onVoiceUnlocked: () => {
+                hasShownVoiceUnlockPromptRef.current = false;
+            }
+        });
+
+        return () => {
+            voiceQueueRef.current?.destroy();
+            voiceQueueRef.current = null;
+        };
+    }, [auctionId]);
+
+    useEffect(() => {
+        const key = `liveRoomVoiceEnabled:${auctionId}:${voiceUserKey}`;
+        localStorage.setItem(key, isVoiceEnabled ? '1' : '0');
+    }, [isVoiceEnabled, auctionId, voiceUserKey]);
+
+    useEffect(() => {
+        if (isTenantTtsEnabled) return;
+        setIsVoiceEnabled(false);
+        voiceQueueRef.current?.clear();
+    }, [isTenantTtsEnabled]);
 
     const getInitials = (name) => {
         if (!name) return "?";
         return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+    };
+
+    const buildVoiceText = (eventType, payload = {}) => {
+        const lang = (preferredVoiceLanguageRef.current || 'en').toLowerCase();
+        const isTamil = lang === 'ta' || lang === 'ta-in' || lang === 'tamil';
+
+        if (isTamil) {
+            switch (eventType) {
+                case "AuctionClosed":
+                    return `ஏலம் முடிவடைந்தது. வெற்றியாளர் ${payload.winnerName}. டிக்கெட் எண் ${payload.winningTicketId}. இறுதி ஏலத் தொகை ${Math.round(payload.winningBid || 0).toLocaleString()} ரூபாய்.`;
+                case "ReceiveBid":
+                    return `${payload.userName} ${Math.round(payload.amount || 0).toLocaleString()} ரூபாய் ஏலம் போட்டார்.`;
+                case "AuctionStarted":
+                    return `ஏலம் தொடங்கியுள்ளது. நேரம் ${payload.durationMinutes} நிமிடங்கள்.`;
+                case "LotteryStarted":
+                    return `சமநிலை குலுக்கல் தொடங்கியது. பங்கேற்பாளர்கள் ${payload.participantCount}.`;
+                case "TieBreakerDetected":
+                    return `அதிகபட்ச ஏலத்தில் சமநிலை. குலுக்கல் ${payload.seconds} விநாடிகளில் தொடங்கும்.`;
+                default:
+                    return payload.fallbackText || "";
+            }
+        }
+
+        switch (eventType) {
+            case "AuctionClosed":
+                return `Auction closed. Winner is ${payload.winnerName}. Ticket number ${payload.winningTicketId}. Final bid ${Math.round(payload.winningBid || 0).toLocaleString()} rupees.`;
+            case "ReceiveBid":
+                return `${payload.userName} bids ${Math.round(payload.amount || 0).toLocaleString()} rupees.`;
+            case "AuctionStarted":
+                return `Auction is now live. ${payload.durationMinutes} minutes on the clock.`;
+            case "LotteryStarted":
+                return `Tie breaker lottery started for ${payload.participantCount} participants.`;
+            case "TieBreakerDetected":
+                return `Tie detected at maximum bid. Lottery starts in ${payload.seconds} seconds.`;
+            default:
+                return payload.fallbackText || "";
+        }
     };
 
     const fetchData = async () => {
@@ -93,6 +186,11 @@ const LiveAuction = () => {
                 if (settings?.maxBiddingDiscountPercent) {
                     setMaxCapPercent(settings.maxBiddingDiscountPercent);
                 }
+                setIsTenantTtsEnabled(settings?.liveRoomTtsEnabled ?? false);
+                setPreferredVoiceLanguage(settings?.preferredAuctionVoiceLanguage || 'en');
+                const tenantEnabled = settings?.liveRoomTtsEnabled ?? false;
+                // Start OFF; user must click icon to enable/unlock.
+                setIsVoiceEnabled(false);
             }
 
             // Handle Auction List
@@ -135,7 +233,8 @@ const LiveAuction = () => {
                             photoUrl: b.photoUrl,
                             source: b.source,
                             time: new Date(b.bidTime),
-                            isLotteryWinner: b.isLotteryWinner
+                            isLotteryWinner: b.isLotteryWinner,
+                            ticketId: b.ticketId
                         }));
                         setBids(initialBids);
 
@@ -170,7 +269,7 @@ const LiveAuction = () => {
     // Fetch initial data
     useEffect(() => {
         if (user) fetchData();
-    }, [auctionId, user]);
+    }, [auctionId, user, voiceUserKey]);
 
     useEffect(() => {
         let isStopped = false;
@@ -209,6 +308,12 @@ const LiveAuction = () => {
                     }, ...prev]);
                     setCurrentBid(amount);
                     setLastWinnerTicketId(ticketId);
+                    voiceQueueRef.current?.enqueue({
+                        eventType: "ReceiveBid",
+                        text: buildVoiceText("ReceiveBid", { userName, amount }),
+                        priority: 'medium',
+                        coalesceKey: 'latest-bid'
+                    });
                 });
 
                 newConnection.on("ReceiveAttendance", (ticketId, memberName, isPresent) => {
@@ -241,6 +346,11 @@ const LiveAuction = () => {
                     setTimer(durationMinutes * 60);
                     setAuctionStatus("Live");
                     message.success("Auction is now LIVE!");
+                    voiceQueueRef.current?.enqueue({
+                        eventType: "AuctionStarted",
+                        text: buildVoiceText("AuctionStarted", { durationMinutes }),
+                        priority: 'high'
+                    });
                 });
 
                 newConnection.on("AuctionClosed", (winningTicketId, winnerName, winningBid) => {
@@ -274,10 +384,20 @@ const LiveAuction = () => {
                     setTimeout(() => {
                         setLotteryFinished(true);
                     }, 7000);
+                    voiceQueueRef.current?.enqueue({
+                        eventType: "LotteryStarted",
+                        text: buildVoiceText("LotteryStarted", { participantCount: participants.length }),
+                        priority: 'high'
+                    });
                 });
 
                 newConnection.on("TieBreakerDetected", (seconds) => {
                     setTieBreakerTimer(seconds);
+                    voiceQueueRef.current?.enqueue({
+                        eventType: "TieBreakerDetected",
+                        text: buildVoiceText("TieBreakerDetected", { seconds }),
+                        priority: 'high'
+                    });
                 });
 
             } catch (err) {
@@ -305,16 +425,16 @@ const LiveAuction = () => {
     // Timer Logic - Keep it simple so it doesn't clear on every bid
     useEffect(() => {
         const interval = setInterval(() => {
-            if (auctionStatus === 'Live') {
+            if (isLive) {
                 setTimer(t => (t > 0 ? t - 1 : 0));
             }
         }, 1000);
         return () => clearInterval(interval);
-    }, [auctionStatus]);
+    }, [isLive]);
 
     // Timer Expiration Trigger
     useEffect(() => {
-        if (timer === 0 && auctionStatus === 'Live' && (user?.role === 'Admin' || user?.role === 'Manager')) {
+        if (timer === 0 && isLive) {
             const chitValue = auctionDataRef.current?.chitValue || 0;
             const maxBidAmount = Math.round(chitValue * (maxCapPercent / 100));
 
@@ -330,7 +450,7 @@ const LiveAuction = () => {
                 api.post(`/Auctions/${auctionId}/start-tiebreaker`).catch(() => { });
             }
         }
-    }, [timer, auctionStatus, user?.role, auctionId, maxCapPercent]);
+    }, [timer, isLive, auctionId, maxCapPercent]);
 
     // lottery Cleanup
     useEffect(() => {
@@ -345,17 +465,13 @@ const LiveAuction = () => {
         }
     }, [isLotteryVisible]);
 
-    // Tie-Breaker Countdown & Auto-Trigger
+    // Tie-Breaker countdown display (server orchestrates lottery trigger).
     useEffect(() => {
         let interval;
         if (tieBreakerTimer !== null && tieBreakerTimer > 0) {
             interval = setInterval(() => {
                 setTieBreakerTimer(t => {
                     if (t <= 1) {
-                        // When timer hits 0, trigger lottery automatically from Admin accounts
-                        if (user?.role === 'Admin' || user?.role === 'Manager') {
-                            api.post(`/Auctions/${auctionId}/lottery`).catch(() => { });
-                        }
                         return null;
                     }
                     return t - 1;
@@ -363,7 +479,7 @@ const LiveAuction = () => {
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [tieBreakerTimer, user?.role, auctionId]);
+    }, [tieBreakerTimer]);
 
     const handleBid = async () => {
         const amount = parseFloat(inputBid);
@@ -426,6 +542,31 @@ const LiveAuction = () => {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
+    // Keep member room status in sync even if the start event was missed.
+    useEffect(() => {
+        if (!auctionId) return;
+
+        const syncAuctionStatus = async () => {
+            try {
+                const res = await api.get('/Auctions');
+                const auctionsList = res.data.data || res.data || [];
+                const latest = auctionsList.find(a => String(a.id) === String(auctionId));
+                if (!latest) return;
+
+                setAuctionStatus(latest.auctionStatus || "");
+                if (typeof latest.winningBidAmount === 'number') {
+                    setCurrentBid(latest.winningBidAmount);
+                }
+            } catch {
+                // Best-effort sync; keep existing state on transient failures.
+            }
+        };
+
+        syncAuctionStatus();
+        const intervalId = setInterval(syncAuctionStatus, 5000);
+        return () => clearInterval(intervalId);
+    }, [auctionId]);
+
     if (isLoading) {
         return (
             <div className="flex flex-col justify-center items-center min-h-[60vh] gap-4">
@@ -455,6 +596,7 @@ const LiveAuction = () => {
     const uniqueTiedMembersCount = new Set(tiedBidsHistory.map(h => Number(h.ticketId))).size;
     const isStatutoryMaxReached = Math.round(currentBid) >= maxBidAmount;
     const isTieBreakerActive = isStatutoryMaxReached && uniqueTiedMembersCount > 1;
+    const visibleMembers = attendance.filter(item => item.isPresent || onlineUsers.has(item.ticketId));
 
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-8">
@@ -463,13 +605,38 @@ const LiveAuction = () => {
                 {/* Main Auction Area */}
                 <div className="lg:col-span-2">
                     <Card className="shadow-lg rounded-2xl border-0 mb-8 text-center relative overflow-hidden" styles={{ body: { padding: '3rem' } }}>
-                        {auctionStatus === 'Closed' && (
+                        {isClosed && (
                             <div className="absolute top-0 right-0 p-4">
                                 <Tag color="success" className="font-bold uppercase">Completed</Tag>
                             </div>
                         )}
 
                         <Title level={2} className="!mb-2 text-slate-800">Live Auction Room</Title>
+                        <div className="absolute left-4 top-4 flex items-center gap-2">
+                            {isTenantTtsEnabled ? (
+                                <Button
+                                    type={isVoiceEnabled ? "primary" : "default"}
+                                    shape="circle"
+                                    icon={isVoiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                                    onClick={() => {
+                                        if (!isVoiceEnabled) {
+                                            voiceQueueRef.current?.setUserInteracted?.();
+                                            setIsVoiceEnabled(true);
+                                            return;
+                                        }
+                                        setIsVoiceEnabled(false);
+                                    }}
+                                />
+                            ) : (
+                                <Tooltip title="Voice announcements are disabled by tenant settings">
+                                    <Button
+                                        shape="circle"
+                                        icon={<VolumeX size={16} />}
+                                        disabled
+                                    />
+                                </Tooltip>
+                            )}
+                        </div>
                         <Text className="text-slate-500 block mb-1">
                             {myTicket ? `Identified as: ${user?.fullName} (Ticket #${myTicket.ticketNumber})` : "Viewing Mode Only"}
                         </Text>
@@ -481,12 +648,12 @@ const LiveAuction = () => {
 
                         <div className="mb-16">
                             <Text className="text-slate-500 font-semibold mb-2 block text-lg">
-                                {auctionStatus === 'Closed' ? 'Final Winning Bid' : 'Current Highest Bid'}
+                                {isClosed ? 'Final Winning Bid' : 'Current Highest Bid'}
                             </Text>
-                            <div className={`text-6xl md:text-7xl font-bold font-mono tracking-tight ${auctionStatus === 'Closed' ? 'text-slate-800' : 'text-green-700'}`}>
+                            <div className={`text-6xl md:text-7xl font-bold font-mono tracking-tight ${isClosed ? 'text-slate-800' : 'text-green-700'}`}>
                                 ₹{currentBid.toLocaleString()}
                             </div>
-                            {isTieBreakerActive && auctionStatus !== 'Closed' && (
+                            {isTieBreakerActive && !isClosed && (
                                 <Tag color="warning" className="mt-4 px-4 py-1.5 rounded-full font-black border-amber-200 uppercase tracking-wider shadow-sm animate-pulse">
                                     <div className="flex items-center gap-2">
                                         <Users size={14} />
@@ -497,20 +664,32 @@ const LiveAuction = () => {
                         </div>
 
                         <div className="flex justify-center items-center gap-4 text-red-600 font-bold text-2xl mb-8">
-                            <span className={auctionStatus === 'Live' ? "animate-pulse" : ""}>
-                                {auctionStatus === 'Live' ? `⏳ Closing in: ${formatTime(timer)}` : (auctionStatus === 'Closed' ? '✅ Auction Finished' : 'Pending Start')}
+                            <span className={isLive ? "animate-pulse" : ""}>
+                                {isLive ? `⏳ Closing in: ${formatTime(timer)}` : (isClosed ? '✅ Auction Finished' : 'Pending Start')}
                             </span>
                         </div>
 
-                        {(auctionStatus === 'Scheduled' || auctionStatus === 'Open') && (
+                        {isAwaitingCoordinator && (
                             <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px] z-20 flex flex-col justify-center items-center rounded-2xl">
                                 <Gavel size={80} className="text-slate-200 mb-4 animate-bounce" />
                                 <Title level={3} className="text-slate-400 !mb-1">Waiting for Coordinator</Title>
                                 <Text className="text-slate-400">Bidding will start shortly after attendance check-in.</Text>
+                                {isTenantTtsEnabled && !isVoiceEnabled && (
+                                    <Button
+                                        type="primary"
+                                        className="mt-4"
+                                        onClick={() => {
+                                            voiceQueueRef.current?.setUserInteracted?.();
+                                            setIsVoiceEnabled(true);
+                                        }}
+                                    >
+                                        Enable Voice
+                                    </Button>
+                                )}
                             </div>
                         )}
 
-                        {auctionStatus === 'Closed' && auctionData && (
+                        {isClosed && auctionData && (
                             <div className="mt-8 pt-8 border-t border-slate-100">
                                 <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner">
                                     <div className="flex flex-col items-center mb-6">
@@ -550,46 +729,50 @@ const LiveAuction = () => {
                     </Card>
 
                     {/* Bidding Controls */}
-                    {user?.role === 'Subscriber' && myTicket && !myTicket.isPrized && auctionStatus !== 'Closed' && (
-                        <div className="flex gap-4">
-                            <Input
-                                type="number"
-                                step="1"
-                                value={inputBid}
-                                onKeyDown={(e) => {
-                                    if (e.key === '.' || e.key === 'e' || e.key === '+' || e.key === '-') {
-                                        e.preventDefault();
-                                    }
-                                }}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === '' || /^\d+$/.test(val)) {
-                                        setInputBid(val);
-                                    }
-                                }}
-                                onPressEnter={handleBid}
-                                placeholder="Enter Bid Amount..."
-                                size="large"
-                                className="text-xl h-16 rounded-xl shadow-sm border-2 border-slate-200 focus:border-slate-800"
-                            />
-                            <Button
-                                type="primary"
-                                onClick={handleBid}
-                                className="h-16 px-10 text-xl font-bold border-none rounded-xl flex items-center shadow-lg bg-slate-900 hover:bg-slate-800"
-                                icon={<Gavel size={24} />}
-                                disabled={isConnecting || auctionStatus !== 'Live'}
-                                loading={isBidding}
-                            >
-                                PLACE BID
-                            </Button>
-                            {auctionStatus !== 'Live' && (
-                                <div className="absolute inset-x-0 -top-2 flex justify-center pointer-events-none">
-                                    <Tag color="default" className="bg-slate-100 border-none px-4 py-1 text-slate-400 font-semibold shadow-sm">
+                    {user?.role === 'Subscriber' && myTicket && !myTicket.isPrized && !isClosed && (
+                        <Card className="shadow-lg rounded-2xl border-0 relative" styles={{ body: { padding: '1.25rem' } }}>
+                            <div className="flex items-center justify-between mb-3">
+                                <Text className="text-slate-500 text-xs uppercase tracking-widest font-semibold">Bid Entry</Text>
+                                {!isLive && (
+                                    <Tag color="default" className="bg-slate-100 border-none px-3 py-0.5 text-slate-400 font-semibold shadow-sm m-0">
                                         Bidding Disabled
                                     </Tag>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                            <div className="flex gap-4">
+                                <Input
+                                    type="number"
+                                    step="1"
+                                    prefix={<span className="text-slate-500 font-semibold">₹</span>}
+                                    value={inputBid}
+                                    onKeyDown={(e) => {
+                                        if (e.key === '.' || e.key === 'e' || e.key === '+' || e.key === '-') {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || /^\d+$/.test(val)) {
+                                            setInputBid(val);
+                                        }
+                                    }}
+                                    onPressEnter={handleBid}
+                                    placeholder="Enter Bid Amount..."
+                                    style={{ height: 64 }}
+                                    className="text-xl rounded-xl shadow-sm border-2 border-slate-200 focus:border-slate-800 [&_.ant-input]:text-right"
+                                />
+                                <Button
+                                    type="primary"
+                                    onClick={handleBid}
+                                    className="h-16 min-h-16 px-10 text-xl font-bold border-none rounded-xl flex items-center shadow-lg bg-slate-900 hover:bg-slate-800"
+                                    icon={<Gavel size={24} />}
+                                    disabled={isConnecting || !isLive}
+                                    loading={isBidding}
+                                >
+                                    PLACE BID
+                                </Button>
+                            </div>
+                        </Card>
                     )}
                     {user?.role === 'Subscriber' && myTicket?.isPrized && (
                         <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-amber-700 text-center font-medium">
@@ -600,109 +783,161 @@ const LiveAuction = () => {
                 </div>
 
                 <Card
-                    className="shadow-lg rounded-2xl border-0 h-[650px] flex flex-col relative"
+                    className="shadow-lg rounded-2xl border-0 min-h-[520px] h-full flex flex-col relative overflow-hidden"
                     styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
                 >
-                    {/* Activity Section (Top 60%) */}
-                    <div className="flex-[3] flex flex-col min-h-0 border-b border-slate-100">
-                        <div className="p-4 bg-white flex justify-between items-center shrink-0">
-                            <div className="flex items-center gap-2">
-                                <Activity size={18} className="text-slate-400" />
-                                <span className="font-bold text-slate-700 uppercase tracking-wider text-xs">Live Activity</span>
-                            </div>
-                            <Tag color={auctionStatus === 'Closed' ? 'default' : (isConnecting ? 'warning' : 'success')} className="rounded-full px-2 text-[10px] m-0 border-0">
-                                {auctionStatus === 'Closed' ? 'AUCTION ARCHIVE' : (isConnecting ? '...' : `${participants} ONLINE`)}
-                            </Tag>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-                            {isConnecting ? (
-                                <div className="flex justify-center py-12"><Spin size="small" /></div>
-                            ) : bids.length === 0 ? (
-                                <div className="text-center py-12 text-slate-400 italic text-xs">Waiting for first bid...</div>
-                            ) : (
-                                bids.map((bid, i) => (
-                                    <div
-                                        key={i}
-                                        className={`flex items-center gap-3 p-3 rounded-xl shadow-sm transition-all ${i === 0 ? 'bg-green-50 border border-green-200' : 'bg-white border border-slate-100'}`}
-                                    >
-                                        <Avatar
-                                            src={bid.photoUrl}
-                                            size={40}
-                                            className={i === 0 ? 'border-2 border-green-500 bg-green-100' : 'border border-slate-200 bg-slate-100'}
-                                        >
-                                            {getInitials(bid.user)}
-                                        </Avatar>
-                                        <div className="flex-1 min-w-0">
+                    <Tabs
+                        activeKey={sidebarTab}
+                        onChange={setSidebarTab}
+                        className="h-full live-room-sidebar-tabs"
+                        tabBarGutter={8}
+                        tabBarStyle={{ padding: '0.75rem 0.75rem 0 0.75rem', marginBottom: 0 }}
+                        items={[
+                            {
+                                key: 'activity',
+                                label: (
+                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                        <Activity size={14} />
+                                        Live Activity
+                                    </div>
+                                ),
+                                children: (
+                                    <div className="live-room-scroll-panel bg-slate-50/50">
+                                        <div className="sticky top-0 z-10 p-4 bg-white/95 backdrop-blur-sm border-b border-slate-100 flex justify-between items-center">
                                             <div className="flex items-center gap-2">
-                                                <div className="font-bold text-slate-800 truncate text-xs">{bid.user}</div>
-                                                <SourceIcon source={bid.source} />
+                                                <Activity size={18} className="text-slate-400" />
+                                                <span className="font-bold text-slate-700 uppercase tracking-wider text-xs">Live Activity</span>
                                             </div>
-                                            <div className="text-[9px] text-slate-400 font-mono">{bid.time.toLocaleTimeString()}</div>
+                                            <Tag color={auctionStatus === 'Closed' ? 'default' : (isConnecting ? 'warning' : 'success')} className="rounded-full px-2 text-[10px] m-0 border-0">
+                                                {auctionStatus === 'Closed' ? 'AUCTION ARCHIVE' : (isConnecting ? '...' : `${participants} ONLINE`)}
+                                            </Tag>
                                         </div>
-                                        <div className="flex flex-col items-end shrink-0">
-                                            <div className={`font-bold text-sm ${i === 0 ? 'text-green-700' : 'text-slate-600'}`}>
-                                                ₹{bid.amount.toLocaleString()}
-                                            </div>
-                                            {bid.isLotteryWinner && (
-                                                <Tag color="gold" className="m-0 text-[7px] leading-[10px] h-3 uppercase px-1 font-bold border-amber-200">
-                                                    Lottery Winner
-                                                </Tag>
+                                        <div className="p-4 space-y-3">
+                                            {isConnecting ? (
+                                                <div className="flex justify-center py-12"><Spin size="small" /></div>
+                                            ) : bids.length === 0 ? (
+                                                <div className="text-center py-12 text-slate-400 italic text-xs">Waiting for first bid...</div>
+                                            ) : (
+                                                bids.map((bid, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl shadow-sm transition-all ${i === 0 ? 'bg-green-50 border border-green-200' : 'bg-white border border-slate-100'}`}
+                                                    >
+                                                        <Avatar
+                                                            src={bid.photoUrl}
+                                                            size={40}
+                                                            className={i === 0 ? 'border-2 border-green-500 bg-green-100' : 'border border-slate-200 bg-slate-100'}
+                                                        >
+                                                            {getInitials(bid.user)}
+                                                        </Avatar>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="font-bold text-slate-800 truncate text-xs">{bid.user}</div>
+                                                                <SourceIcon source={bid.source} />
+                                                            </div>
+                                                            <div className="text-[9px] text-slate-400 font-mono">{bid.time.toLocaleTimeString()}</div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end shrink-0">
+                                                            <div className={`font-bold text-sm ${i === 0 ? 'text-green-700' : 'text-slate-600'}`}>
+                                                                ₹{bid.amount.toLocaleString()}
+                                                            </div>
+                                                            {bid.isLotteryWinner && (
+                                                                <Tag color="gold" className="m-0 text-[7px] leading-[10px] h-3 uppercase px-1 font-bold border-amber-200">
+                                                                    Lottery Winner
+                                                                </Tag>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
                                             )}
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Members Section (Bottom 40%) */}
-                    <div className="flex-[2] flex flex-col min-h-0 bg-white rounded-b-2xl">
-                        <div className="p-4 bg-white flex items-center gap-2 shrink-0 border-b border-slate-50">
-                            <Users size={18} className="text-slate-400" />
-                            <span className="font-bold text-slate-700 uppercase tracking-wider text-xs">
-                                {auctionStatus === 'Closed' ? 'Attendees' : 'Group Members'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-normal">({attendance.filter(a => a.isPresent || onlineUsers.has(a.ticketId)).length})</span>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {attendance.filter(item => item.isPresent || onlineUsers.has(item.ticketId)).length === 0 ? (
-                                <div className="text-center py-12 text-slate-300 italic text-[11px]">
-                                    No members present yet.
-                                </div>
-                            ) : (
-                                attendance.filter(item => item.isPresent || onlineUsers.has(item.ticketId)).map((item) => (
-                                    <div key={item.ticketId} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
-                                        <div className="relative">
-                                            <Avatar src={item.photoUrl} size={32} className="bg-slate-100">
-                                                {getInitials(item.memberName)}
-                                            </Avatar>
-                                            {onlineUsers.has(item.ticketId) && (
-                                                <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
-                                            )}
+                                )
+                            },
+                            {
+                                key: 'members',
+                                label: (
+                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                        <Users size={14} />
+                                        Members ({visibleMembers.length})
+                                    </div>
+                                ),
+                                children: (
+                                    <div className="live-room-scroll-panel bg-white">
+                                        <div className="sticky top-0 z-10 p-4 bg-white/95 backdrop-blur-sm flex items-center gap-2 border-b border-slate-100">
+                                            <Users size={18} className="text-slate-400" />
+                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-xs">
+                                                {auctionStatus === 'Closed' ? 'Attendees' : 'Group Members'}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 font-normal">({visibleMembers.length})</span>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1.5 overflow-hidden">
-                                                <div className="font-semibold text-slate-800 truncate text-[11px] leading-tight">{item.memberName}</div>
-                                                {item.isForeman && <Tag color="gold" className="m-0 text-[7px] leading-[10px] h-3 uppercase px-1 shrink-0">Foreman</Tag>}
-                                            </div>
-                                            <div className="text-[9px] text-slate-400">Ticket #{item.ticketNumber}</div>
-                                        </div>
-                                        <div className="flex gap-1 shrink-0">
-                                            {item.isPresent && <Building2 size={12} className="text-blue-500" />}
-                                            {onlineUsers.has(item.ticketId) && (
-                                                onlineUsers.get(item.ticketId)?.toLowerCase() === 'mobile'
-                                                    ? <Smartphone size={12} className="text-purple-500" />
-                                                    : <Globe size={12} className="text-green-500" />
+                                        <div className="p-4 space-y-2">
+                                            {visibleMembers.length === 0 ? (
+                                                <div className="text-center py-12 text-slate-300 italic text-[11px]">
+                                                    No members present yet.
+                                                </div>
+                                            ) : (
+                                                visibleMembers.map((item) => (
+                                                    <div key={item.ticketId} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
+                                                        <div className="relative">
+                                                            <Avatar src={item.photoUrl} size={32} className="bg-slate-100">
+                                                                {getInitials(item.memberName)}
+                                                            </Avatar>
+                                                            {onlineUsers.has(item.ticketId) && (
+                                                                <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1.5 overflow-hidden">
+                                                                <div className="font-semibold text-slate-800 truncate text-[11px] leading-tight">{item.memberName}</div>
+                                                                {item.isForeman && <Tag color="gold" className="m-0 text-[7px] leading-[10px] h-3 uppercase px-1 shrink-0">Foreman</Tag>}
+                                                            </div>
+                                                            <div className="text-[9px] text-slate-400">Ticket #{item.ticketNumber}</div>
+                                                        </div>
+                                                        <div className="flex gap-1 shrink-0">
+                                                            {item.isPresent && <Building2 size={12} className="text-blue-500" />}
+                                                            {onlineUsers.has(item.ticketId) && (
+                                                                onlineUsers.get(item.ticketId)?.toLowerCase() === 'mobile'
+                                                                    ? <Smartphone size={12} className="text-purple-500" />
+                                                                    : <Globe size={12} className="text-green-500" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
                                             )}
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
+                                )
+                            }
+                        ]}
+                    />
                 </Card>
 
             </div>
+
+            <style>{`
+                .live-room-sidebar-tabs {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .live-room-sidebar-tabs > .ant-tabs-nav {
+                    margin-bottom: 0 !important;
+                }
+                .live-room-sidebar-tabs > .ant-tabs-content-holder {
+                    flex: 1;
+                    min-height: 0;
+                }
+                .live-room-sidebar-tabs .ant-tabs-content {
+                    height: 100%;
+                }
+                .live-room-sidebar-tabs .ant-tabs-tabpane {
+                    height: 100%;
+                }
+                .live-room-scroll-panel {
+                    height: 100%;
+                    overflow-y: auto;
+                }
+            `}</style>
 
             {/* Tie-Breaker Detection Countdown Overlay */}
             {tieBreakerTimer !== null && (

@@ -1372,6 +1372,9 @@ namespace ChitStack.Infrastructure.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("LiveRoomTtsEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("MaxBiddingDiscountPercent")
                         .HasColumnType("decimal(18,2)");
 
@@ -1400,6 +1403,10 @@ namespace ChitStack.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreferredAuctionVoiceLanguage")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

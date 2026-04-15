@@ -106,12 +106,16 @@ public class GetCustomerDashboardHandler : IRequestHandler<GetCustomerDashboardQ
         dashboard.TotalSavings = demands.Sum(d => d.DividendAmount);
 
         // 3. Upcoming Auctions
-        var now = DateTime.Now;
+        var today = DateTime.Today;
         var auctions = await _context.Auctions
             .Include(a => a.ChitGroup)
-            .Where(a => groupIds.Contains(a.ChitGroupId) && a.AuctionDate >= now)
+            // Compare by date (not current time) so same-day auctions are not hidden.
+            .Where(a =>
+                groupIds.Contains(a.ChitGroupId) &&
+                a.AuctionDate.Date >= today &&
+                a.AuctionStatus != "Closed" &&
+                a.AuctionStatus != "Completed")
             .OrderBy(a => a.AuctionDate)
-            .Take(5)
             .ToListAsync(cancellationToken);
 
         Console.WriteLine($"[DEBUG] Auctions found: {auctions.Count}");

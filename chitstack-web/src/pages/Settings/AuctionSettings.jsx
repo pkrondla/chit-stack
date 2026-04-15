@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Form, InputNumber, Button, Typography, Card, message, Alert } from 'antd';
+import { Form, InputNumber, Button, Typography, Card, message, Alert, Select, Switch } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save, Gavel, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
@@ -8,6 +8,14 @@ const { Title, Text } = Typography;
 
 const fetchSettings = () => api.get('/settings').then(r => r.data.data || r.data);
 const upsertSettings = (data) => api.put('/settings', data).then(r => r.data);
+const voiceLanguageOptions = [
+    { value: 'en', label: 'English (India)' },
+    { value: 'hi', label: 'Hindi' },
+    { value: 'ta', label: 'Tamil' },
+    { value: 'te', label: 'Telugu' },
+    { value: 'kn', label: 'Kannada' },
+    { value: 'ml', label: 'Malayalam' }
+];
 
 const AuctionSettings = () => {
     const [form] = Form.useForm();
@@ -20,7 +28,11 @@ const AuctionSettings = () => {
 
     useEffect(() => {
         if (settings) {
-            form.setFieldsValue(settings);
+            form.setFieldsValue({
+                ...settings,
+                liveRoomTtsEnabled: settings.liveRoomTtsEnabled ?? false,
+                preferredAuctionVoiceLanguage: settings.preferredAuctionVoiceLanguage || 'en'
+            });
         }
     }, [settings, form]);
 
@@ -121,6 +133,36 @@ const AuctionSettings = () => {
                             <li>For auctions where multiple people bid the maximum, the winner will be determined by lot.</li>
                             <li>Standard industry practice effectively starts bidding at the Foreman's Commission rate (usually 5%).</li>
                         </ul>
+                    </div>
+                </Card>
+
+                <Card className="mb-6 rounded-xl shadow-sm border-slate-100">
+                    <Title level={5} className="!mb-5 text-slate-700">Live Room Voice</Title>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
+                        <Form.Item
+                            name="liveRoomTtsEnabled"
+                            label="Enable Live Room voice announcements"
+                            valuePropName="checked"
+                        >
+                            <Switch />
+                        </Form.Item>
+                        <Form.Item
+                            noStyle
+                            shouldUpdate={(prev, cur) => prev.liveRoomTtsEnabled !== cur.liveRoomTtsEnabled}
+                        >
+                            {({ getFieldValue }) => (
+                                <Form.Item
+                                    name="preferredAuctionVoiceLanguage"
+                                    label="Preferred auction voice language"
+                                    rules={[{ required: true, message: 'Please select a language.' }]}
+                                >
+                                    <Select
+                                        options={voiceLanguageOptions}
+                                        disabled={!getFieldValue('liveRoomTtsEnabled')}
+                                    />
+                                </Form.Item>
+                            )}
+                        </Form.Item>
                     </div>
                 </Card>
 

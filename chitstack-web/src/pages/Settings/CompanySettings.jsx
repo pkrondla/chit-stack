@@ -35,7 +35,10 @@ const CompanySettings = () => {
         },
     });
 
-    const onFinish = (values) => mutation.mutate(values);
+    const onFinish = (values) => {
+        const fullData = { ...settings, ...values };
+        mutation.mutate(fullData);
+    };
 
     return (
         <div>

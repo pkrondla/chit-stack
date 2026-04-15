@@ -76,7 +76,15 @@ const MyAuctions = () => {
             key: 'action',
             render: (_, record) => (
                 <Space>
-                    {record.status === 'Open' ? (
+                    {record.status === 'Closed' || record.status === 'Completed' ? (
+                        <Button
+                            size="small"
+                            style={{ borderRadius: '8px', fontWeight: 'bold', borderColor: '#e2e8f0', color: '#64748b' }}
+                            onClick={() => navigate(`/portal/auctions/live/${record.auctionId}`)}
+                        >
+                            View Room
+                        </Button>
+                    ) : (
                         <Button
                             type="primary"
                             size="small"
@@ -85,15 +93,7 @@ const MyAuctions = () => {
                         >
                             Join Auction
                         </Button>
-                    ) : record.status === 'Closed' ? (
-                        <Button
-                            size="small"
-                            style={{ borderRadius: '8px', fontWeight: 'bold', borderColor: '#e2e8f0', color: '#64748b' }}
-                            onClick={() => navigate(`/portal/auctions/live/${record.auctionId}`)}
-                        >
-                            View Room
-                        </Button>
-                    ) : null}
+                    )}
                 </Space>
             )
         }

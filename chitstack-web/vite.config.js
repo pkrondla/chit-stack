@@ -12,7 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       devOptions: {
-        enabled: true
+        // Disable SW in dev to avoid navigation allowlist interference
+        // with deep SPA routes such as /portal/auctions/live/:auctionId.
+        enabled: false
       },
       manifest: {
         name: 'Chit Stack Member Portal',
@@ -29,12 +31,17 @@ export default defineConfig({
             type: 'image/png'
           },
           {
+            src: '/logo-180.png',
+            sizes: '180x180',
+            type: 'image/png'
+          },
+          {
             src: '/logo-512.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: '/logo-512.png',
+            src: '/logo-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
