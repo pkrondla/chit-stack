@@ -15,11 +15,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ChitStack.Database", "ChitS
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Global", "Global", "{134528EE-4F09-DC5A-32D0-556723BF6096}"
 EndProject
-Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "ChitStack.Database.Global", "ChitStack.Database\Global\ChitStack.Database.Global.sqlproj", "{A1B2C3D4-5678-9012-3456-789012345678}"
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "ChitStack.Database.Global", "ChitStack.Database.Global\ChitStack.Database.Global.sqlproj", "{A1B2C3D4-5678-9012-3456-789012345678}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tenant", "Tenant", "{5C0FC6DC-630B-E68D-13AE-A0D2DDFC4B13}"
 EndProject
-Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "ChitStack.Database.Tenant", "ChitStack.Database\Tenant\ChitStack.Database.Tenant.sqlproj", "{B2C3D4E5-6789-0123-4567-890123456789}"
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "ChitStack.Database.Tenant", "ChitStack.Database.Tenant\ChitStack.Database.Tenant.sqlproj", "{B2C3D4E5-6789-0123-4567-890123456789}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChitStack.Global.API", "ChitStack.Global.API\ChitStack.Global.API.csproj", "{F541F19D-0068-4FCC-8659-8DCC7F3316DD}"
 EndProject
