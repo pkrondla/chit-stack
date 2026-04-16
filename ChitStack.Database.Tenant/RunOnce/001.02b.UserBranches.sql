@@ -10,8 +10,14 @@ CREATE TABLE [dbo].[UserBranches]
     [CreatedBy] NVARCHAR(200) NULL,
     [LastModifiedAt] DATETIME2 NULL,
     [LastModifiedBy] NVARCHAR(200) NULL,
-    FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id]),
-    FOREIGN KEY ([UserId]) REFERENCES [dbo].[Users]([Id]),
-    FOREIGN KEY ([BranchId]) REFERENCES [dbo].[Branches]([Id])
+    CONSTRAINT [FK_UserBranches_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [dbo].[Tenants]([Id]),
+    CONSTRAINT [FK_UserBranches_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[Users]([Id]),
+    CONSTRAINT [FK_UserBranches_Branches_BranchId] FOREIGN KEY ([BranchId]) REFERENCES [dbo].[Branches]([Id])
 )
+GO
+
+CREATE INDEX [IX_UserBranches_UserId] ON [dbo].[UserBranches]([UserId]);
+GO
+
+CREATE INDEX [IX_UserBranches_BranchId] ON [dbo].[UserBranches]([BranchId]);
 GO

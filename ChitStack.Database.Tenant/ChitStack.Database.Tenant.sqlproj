@@ -46,10 +46,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="RunOnce\" />
+    <Folder Include="Seeds\" />
     <Folder Include="Versioned\" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="RunOnce\*.sql" />
-    <Build Include="Versioned\*.sql" />
+    <None Include="Versioned\*.sql" />
+    <PostDeploy Include="PostDeploy.sql" />
   </ItemGroup>
 </Project>
