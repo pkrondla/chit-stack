@@ -4,7 +4,6 @@ using ChitStack.API.Middleware;
 using ChitStack.API.Services;
 using Serilog;
 using Microsoft.OpenApi.Models;
-using Microsoft.EntityFrameworkCore;
 using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -154,14 +153,6 @@ app.MapHub<ChitStack.API.Hubs.NotificationHub>("/notificationHub");
 
 using (var scope = app.Services.CreateScope())
 {
-    var tenantDb = scope.ServiceProvider.GetRequiredService<ChitStack.Infrastructure.Data.TenantDbContext>();
-    
-    try {
-        await tenantDb.Database.MigrateAsync();
-    } catch (Exception ex) {
-        Log.Error(ex, "Database migration failed.");
-    }
-    
     var seeder = scope.ServiceProvider.GetRequiredService<ChitStack.Infrastructure.Data.Seeding.InitialDataSeeder>();
     await seeder.SeedAsync();
 

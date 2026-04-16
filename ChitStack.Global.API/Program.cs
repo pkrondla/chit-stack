@@ -94,10 +94,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ChitStack.Infrastructure.Data.GlobalDbContext>();
-    context.Database.EnsureCreated();
-}
 
 app.Run();
