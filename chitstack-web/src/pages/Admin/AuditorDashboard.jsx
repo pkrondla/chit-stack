@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, Typography, Row, Col, Statistic, Table, Button, Space, Tag } from 'antd';
 import { FileText, Download, TrendingUp, Users, Home } from 'lucide-react';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 
@@ -54,7 +55,7 @@ const AuditorDashboard = () => {
                 </Col>
                 <Col xs={24} sm={12} lg={6}>
                     <Card className="shadow-sm">
-                        <Statistic title="Foreman Profit (YTD)" value={stats.netProfit || 0} prefix="₹" styles={{ content: { color: '#3f8600' } }} />
+                        <Statistic title="Foreman Profit (YTD)" value={stats.netProfit || 0} prefix="₹" styles={{ content: { color: semanticColors.profitGreen } }} />
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={6}>

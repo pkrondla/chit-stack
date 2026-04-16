@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Typography, Space, Card, Alert } from 'antd';
 import { ChevronLeft, Info } from 'lucide-react';
 import Passbook from '../../components/Passbook';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 
@@ -10,8 +11,8 @@ const AgentPassbook = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex justify-between items-center mb-6">
+        <div className="max-w-4xl mx-auto space-y-5 pb-8">
+            <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center mb-2">
                 <Button 
                     icon={<ChevronLeft size={18} />} 
                     size="large" 
@@ -21,31 +22,35 @@ const AgentPassbook = () => {
                 >
                     Back to Field
                 </Button>
-                <div className="text-right">
+                <div className="text-left md:text-right">
                     <Title level={4} className="!mb-0">Member Passbook</Title>
                     <Text className="text-slate-500 font-medium">Full Transaction Audit</Text>
                 </div>
             </div>
 
-            <Passbook ticketId={ticketId} />
+            <div style={{ padding: '10px' }}>
+                <Passbook ticketId={ticketId} />
+            </div>
 
-            <div className="bg-slate-900 p-8 rounded-3xl text-white shadow-xl flex flex-col items-center text-center">
-                <div className="bg-white/10 p-4 rounded-full mb-6">
-                    <Info className="text-blue-400" size={32} />
+            <div style={{ padding: '10px' }}>
+                <div className="bg-slate-900 p-6 md:p-8 rounded-3xl text-white shadow-xl flex flex-col items-center text-center">
+                    <div className="bg-white/10 p-4 rounded-full mb-4">
+                        <Info className="text-blue-400" size={32} />
+                    </div>
+                    <Title level={3} className="!text-white !mb-2">Need a Physical Copy?</Title>
+                    <Text className="!text-white/60 max-w-md mx-auto mb-6 font-medium italic block">
+                        This digital passbook is real-time and legally compliant. You can share this screen with the member or print it from the office portal.
+                    </Text>
+                    <Button 
+                        ghost 
+                        size="large" 
+                        shape="round" 
+                        className="w-full sm:w-auto border-2 font-black px-8 sm:px-12 h-12 sm:h-14 border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white transition-all shadow-lg"
+                        onClick={() => window.print()}
+                    >
+                        Generate PDF / Print
+                    </Button>
                 </div>
-                <Title level={3} className="!text-white !mb-2">Need a Physical Copy?</Title>
-                <Text className="!text-white/60 max-w-md mx-auto mb-8 font-medium italic block">
-                    This digital passbook is real-time and legally compliant. You can share this screen with the member or print it from the office portal.
-                </Text>
-                <Button 
-                    ghost 
-                    size="large" 
-                    shape="round" 
-                    className="border-2 font-black px-12 h-14 border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white transition-all shadow-lg"
-                    onClick={() => window.print()}
-                >
-                    Generate PDF / Print
-                </Button>
             </div>
 
             <style>{`
@@ -59,7 +64,7 @@ const AgentPassbook = () => {
                     }
                     .ant-card {
                         box-shadow: none !important;
-                        border: 1px solid #eee !important;
+                        border: 1px solid ${semanticColors.border} !important;
                     }
                 }
             `}</style>

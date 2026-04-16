@@ -3,6 +3,7 @@ import { Card, Typography, Switch, Space, Divider, Spin, Avatar, Button, Tag, Ap
 import { User, Bell, MessageSquare, Smartphone, Mail, Shield } from 'lucide-react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/useAuthStore';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text, Paragraph } = Typography;
 const { Content } = Layout;
@@ -92,8 +93,8 @@ const ProfileSettings = () => {
                     style={{ borderRadius: '32px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)', marginBottom: '24px', overflow: 'hidden' }}
                     bodyStyle={{ padding: 0 }}
                 >
-                    <div style={{ padding: '32px', display: 'flex', alignItems: 'center', gap: '24px', background: 'linear-gradient(to right, #f8fafc, white)' }}>
-                        <Avatar size={80} icon={<User size={40} />} style={{ backgroundColor: '#e0e7ff', color: '#4f46e5', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }} />
+                    <div style={{ padding: '32px', display: 'flex', alignItems: 'center', gap: '24px', background: `linear-gradient(to right, ${semanticColors.appBg}, ${semanticColors.surface})` }}>
+                        <Avatar size={80} icon={<User size={40} />} style={{ backgroundColor: semanticColors.primaryLight, color: semanticColors.primary, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }} />
                         <div>
                             <Title level={3} style={{ margin: 0, fontWeight: 900 }}>{member?.fullName}</Title>
                             <Tag color="blue" style={{ borderRadius: '20px', border: 'none', fontWeight: 900, textTransform: 'uppercase', fontSize: '10px', marginTop: '8px' }}>
@@ -102,20 +103,20 @@ const ProfileSettings = () => {
                         </div>
                     </div>
                     
-                    <div style={{ padding: '32px', borderTop: '1px solid #f1f5f9' }}>
-                        <Space style={{ marginBottom: '24px', color: '#1e293b' }}>
-                            <User size={18} style={{ color: '#4f46e5' }} />
+                    <div style={{ padding: '32px', borderTop: `1px solid ${semanticColors.borderSoft}` }}>
+                        <Space style={{ marginBottom: '24px', color: semanticColors.textStrong }}>
+                            <User size={18} style={{ color: semanticColors.primary }} />
                             <Text strong style={{ fontSize: '16px' }}>Personal Identity</Text>
                         </Space>
 
                         <Row gutter={[16, 16]}>
                             {identityFields.map((field, idx) => (
                                 <Col xs={24} sm={field.span ? 24 : 12} key={idx}>
-                                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
-                                        <Text style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
+                                    <div style={{ background: semanticColors.appBg, padding: '16px', borderRadius: '20px', border: `1px solid ${semanticColors.borderSoft}` }}>
+                                        <Text style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em', color: semanticColors.textMuted, display: 'block', marginBottom: '8px' }}>
                                             {field.label}
                                         </Text>
-                                        <Text strong style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Text strong style={{ color: semanticColors.textTertiary, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             {field.icon} {field.value}
                                         </Text>
                                     </div>
@@ -123,8 +124,8 @@ const ProfileSettings = () => {
                             ))}
                         </Row>
 
-                        <div style={{ marginTop: '24px', padding: '16px', background: '#fffbeb', borderRadius: '20px', border: '1px solid #fef3c7', display: 'flex', gap: '12px' }}>
-                            <Text style={{ fontSize: '12px', color: '#92400e', fontWeight: 500 }}>
+                        <div style={{ marginTop: '24px', padding: '16px', background: semanticColors.warningSoftBg, borderRadius: '20px', border: `1px solid ${semanticColors.warningBorder}`, display: 'flex', gap: '12px' }}>
+                            <Text style={{ fontSize: '12px', color: semanticColors.warningStrong, fontWeight: 500 }}>
                                 ⓘ These details were verified by the branch during registration. Contact your administrator to update this information.
                             </Text>
                         </div>
@@ -133,8 +134,8 @@ const ProfileSettings = () => {
                     <Divider style={{ margin: 0 }} />
                     
                     <div style={{ padding: '32px' }}>
-                        <Space style={{ marginBottom: '24px', color: '#1e293b' }}>
-                            <Bell size={18} style={{ color: '#4f46e5' }} />
+                        <Space style={{ marginBottom: '24px', color: semanticColors.textStrong }}>
+                            <Bell size={18} style={{ color: semanticColors.primary }} />
                             <Text strong style={{ fontSize: '16px' }}>Notification Channels</Text>
                         </Space>
                         
@@ -142,11 +143,11 @@ const ProfileSettings = () => {
                             {notificationPrefs.map(pref => (
                                 <div key={pref.key} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                                     <Space size={16} align="start">
-                                        <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '12px', color: '#64748b' }}>
+                                        <div style={{ padding: '10px', background: semanticColors.appBg, borderRadius: '12px', color: semanticColors.textSecondary }}>
                                             {pref.icon}
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <Text strong style={{ color: '#1e293b', fontSize: '14px' }}>{pref.label}</Text>
+                                            <Text strong style={{ color: semanticColors.textStrong, fontSize: '14px' }}>{pref.label}</Text>
                                             <Text type="secondary" style={{ fontSize: '12px', maxWidth: '400px' }}>{pref.desc}</Text>
                                         </div>
                                     </Space>
@@ -163,7 +164,7 @@ const ProfileSettings = () => {
 
                 <Card 
                     bordered={false} 
-                    style={{ borderRadius: '32px', background: '#0f172a', marginBottom: '48px' }}
+                    style={{ borderRadius: '32px', background: semanticColors.navBg, marginBottom: '48px' }}
                     bodyStyle={{ padding: '32px' }}
                 >
                     <Space size={20} align="start">

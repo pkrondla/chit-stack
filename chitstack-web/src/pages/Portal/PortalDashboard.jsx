@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -109,7 +110,7 @@ const PortalDashboard = () => {
                                     block
                                     onClick={() => navigate('/portal/payments')}
                                     icon={<CreditCard size={18} />}
-                                    style={{ height: '56px', borderRadius: '12px', fontWeight: 900, fontSize: '16px', background: '#4f46e5' }}
+                                    style={{ height: '56px', borderRadius: '12px', fontWeight: 900, fontSize: '16px', background: semanticColors.primary }}
                                 >
                                     Pay Outstanding
                                 </Button>
@@ -127,7 +128,7 @@ const PortalDashboard = () => {
                         >
                             <Space direction="vertical" style={{ width: '100%' }} size={12}>
                                 {filteredAuctions.length === 0 ? (
-                                    <div style={{ padding: '32px 0', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>
+                                    <div style={{ padding: '32px 0', textAlign: 'center', background: semanticColors.appBg, borderRadius: '16px', border: `1px dashed ${semanticColors.border}`, color: semanticColors.textMuted, fontStyle: 'italic', fontSize: '12px' }}>
                                         No pending auctions
                                     </div>
                                 ) : (
@@ -135,13 +136,13 @@ const PortalDashboard = () => {
                                         <Card 
                                             key={auction.auctionId} 
                                             size="small" 
-                                            style={{ borderRadius: '16px', background: '#f8fafc', border: '1px solid #f1f5f9' }}
+                                            style={{ borderRadius: '16px', background: semanticColors.appBg, border: `1px solid ${semanticColors.borderSoft}` }}
                                             bodyStyle={{ padding: '12px' }}
                                         >
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                 <Space size={12}>
-                                                    <div style={{ width: '44px', height: '44px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900 }}>
-                                                        <span style={{ color: '#64748b' }}>{new Date(auction.date).toLocaleDateString(undefined, { month: 'short' })}</span>
+                                                    <div style={{ width: '44px', height: '44px', background: semanticColors.surface, border: `1px solid ${semanticColors.border}`, borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900 }}>
+                                                        <span style={{ color: semanticColors.textSecondary }}>{new Date(auction.date).toLocaleDateString(undefined, { month: 'short' })}</span>
                                                         <span style={{ fontSize: '14px' }}>{new Date(auction.date).getDate()}</span>
                                                     </div>
                                                     <div>
@@ -154,7 +155,7 @@ const PortalDashboard = () => {
                                                     size="small"
                                                     onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
                                                     icon={<PlayCircle size={14} />}
-                                                    style={{ borderRadius: '8px', fontSize: '10px', fontWeight: 900, background: '#4f46e5' }}
+                                                    style={{ borderRadius: '8px', fontSize: '10px', fontWeight: 900, background: semanticColors.primary }}
                                                 >
                                                     JOIN
                                                 </Button>
@@ -177,7 +178,7 @@ const PortalDashboard = () => {
                     <Row gutter={[20, 20]}>
                         {myTickets.length === 0 ? (
                             <Col span={24}>
-                                <div style={{ padding: '48px 0', textAlign: 'center', background: '#f8fafc', borderRadius: '24px', border: '1px dashed #e2e8f0', color: '#94a3b8', fontSize: '13px' }}>
+                                <div style={{ padding: '48px 0', textAlign: 'center', background: semanticColors.appBg, borderRadius: '24px', border: `1px dashed ${semanticColors.border}`, color: semanticColors.textMuted, fontSize: '13px' }}>
                                     No active chits found in your portfolio.
                                 </div>
                             </Col>
@@ -186,12 +187,12 @@ const PortalDashboard = () => {
                                 <Col xs={24} sm={12} md={8} lg={6} key={ticket.ticketId}>
                                     <Card
                                         hoverable
-                                        style={{ borderRadius: '20px', height: '100%', border: '1px solid #f1f5f9' }}
+                                        style={{ borderRadius: '20px', height: '100%', border: `1px solid ${semanticColors.borderSoft}` }}
                                         onClick={() => navigate('/portal/my-chits')}
                                         bodyStyle={{ padding: '20px' }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                            <div style={{ width: '36px', height: '36px', background: '#f8fafc', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px' }}>
+                                            <div style={{ width: '36px', height: '36px', background: semanticColors.appBg, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px' }}>
                                                 #{ticket.ticketNumber}
                                             </div>
                                             <Tag color={ticket.isPrized ? "gold" : "blue"} style={{ margin: 0, borderRadius: '20px', fontWeight: 'bold', fontSize: '10px' }}>
@@ -202,13 +203,13 @@ const PortalDashboard = () => {
                                         <div style={{ marginBottom: '20px' }}>
                                             <Title level={5} style={{ margin: 0, fontWeight: 800, fontSize: '15px' }}>{ticket.groupName}</Title>
                                             <Space style={{ marginTop: '8px' }}>
-                                                <Wallet size={14} style={{ color: '#94a3b8' }} />
+                                                <Wallet size={14} style={{ color: semanticColors.textMuted }} />
                                                 <Text strong style={{ fontSize: '16px' }}>₹{ticket.chitValue?.toLocaleString()}</Text>
                                             </Space>
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f8fafc', paddingTop: '12px' }}>
-                                            <ChevronRight size={18} style={{ color: '#cbd5e1' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${semanticColors.appBg}`, paddingTop: '12px' }}>
+                                            <ChevronRight size={18} style={{ color: semanticColors.textSubtle }} />
                                         </div>
                                     </Card>
                                 </Col>

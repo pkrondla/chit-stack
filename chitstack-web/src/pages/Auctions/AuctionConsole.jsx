@@ -7,6 +7,7 @@ import { Calculator, ArrowLeft, CheckCircle, FileText, UserCheck, Users, Gavel, 
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 
@@ -814,7 +815,7 @@ const AuctionConsole = () => {
                                             <Card
                                                 className="bg-slate-50 border-slate-200 mb-8 shadow-none overflow-hidden"
                                                 styles={{
-                                                    header: { borderBottom: isProxyFormVisible ? '1px solid #f1f5f9' : 'none', padding: '0.75rem 1.25rem', minHeight: 'auto' },
+                                                    header: { borderBottom: isProxyFormVisible ? `1px solid ${semanticColors.borderSoft}` : 'none', padding: '0.75rem 1.25rem', minHeight: 'auto' },
                                                     body: { padding: isProxyFormVisible ? '1.25rem' : '0', display: isProxyFormVisible ? 'block' : 'none' }
                                                 }}
                                                 title={

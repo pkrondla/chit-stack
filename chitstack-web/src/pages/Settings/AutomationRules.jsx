@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Switch, Typography, Button, Space, Form, InputNumber, message, Spin } from 'antd';
 import { Cog, Zap, Bell, Calendar, Clock, Smartphone, Send, Users } from 'lucide-react';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -71,7 +72,7 @@ const AutomationRules = () => {
                     {/* Reminders Card */}
                     <Card 
                         className="shadow-sm border-0 rounded-3xl overflow-hidden bg-white border border-slate-100"
-                        styles={{ body: { padding: '2rem', backgroundColor: '#f8fafc' } }}
+                        styles={{ body: { padding: '2rem', backgroundColor: semanticColors.appBg } }}
                     >
                         <div className="mb-8 flex items-center gap-3">
                             <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600">

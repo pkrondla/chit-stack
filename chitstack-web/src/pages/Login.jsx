@@ -76,7 +76,7 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc] overflow-hidden relative">
+        <div className="min-h-screen flex items-center justify-center p-6 overflow-hidden relative" style={{ backgroundColor: 'var(--bg-base)' }}>
             {/* Subtle Brand Accents */}
             <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-indigo-50 rounded-full blur-[120px] opacity-60"></div>
             <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-100 rounded-full blur-[120px] opacity-40"></div>

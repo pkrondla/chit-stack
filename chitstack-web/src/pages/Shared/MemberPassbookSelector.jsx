@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Typography, Input, List, Avatar, Button, Spin, Empty, Tag, Divider, Row, Col } from 'antd';
+import { Card, Typography, Input, List, Avatar, Button, Spin, Empty, Tag, Divider, Row, Col, Tooltip } from 'antd';
 import { Search, User, BookOpen, ChevronRight, History, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
@@ -72,7 +72,7 @@ const MemberPassbookSelector = ({ role = 'admin' }) => {
             </div>
 
             {!selectedMember ? (
-                <Card className="shadow-2xl border-0 rounded-[2.5rem] overflow-hidden p-4">
+                <Card className="shadow-xl border-0 rounded-3xl overflow-hidden p-4">
                     <div className="p-8 border-b border-slate-50">
                         <Input
                             size="large"
@@ -100,7 +100,11 @@ const MemberPassbookSelector = ({ role = 'admin' }) => {
                                             <div className="flex items-center gap-4">
                                                 <Avatar size={48} icon={<User size={20} />} className="bg-indigo-100 text-indigo-700" />
                                                 <div>
-                                                    <Title level={5} className="!m-0 group-hover:text-indigo-600 transition-colors">{member.fullName}</Title>
+                                                    <Tooltip title={member.fullName}>
+                                                        <Title level={5} className="!m-0 group-hover:text-indigo-600 transition-colors truncate max-w-[260px] md:max-w-[340px]">
+                                                            {member.fullName}
+                                                        </Title>
+                                                    </Tooltip>
                                                     <Text type="secondary" className="text-xs font-medium italic">{member.phoneNumber}</Text>
                                                 </div>
                                             </div>
@@ -117,7 +121,7 @@ const MemberPassbookSelector = ({ role = 'admin' }) => {
             ) : (
                 <Row gutter={[24, 24]}>
                     <Col xs={24} md={8}>
-                        <Card className="shadow-xl border-0 rounded-3xl bg-slate-900 border-b-[6px] border-indigo-500 overflow-hidden">
+                        <Card className="shadow-lg border-0 rounded-3xl bg-slate-900 border-b-[6px] border-indigo-500 overflow-hidden">
                             <div className="p-8 text-center text-white">
                                 <Avatar size={80} icon={<User size={36} />} className="bg-white/10 text-white border-2 border-white/20 mb-4" />
                                 <Title level={3} className="!text-white !mb-1 tracking-tight">{selectedMember.fullName}</Title>
@@ -161,14 +165,20 @@ const MemberPassbookSelector = ({ role = 'admin' }) => {
                                         >
                                             <div className="flex items-center justify-between w-full">
                                                 <div className="flex items-center gap-6">
-                                                    <div className="w-14 h-14 bg-white shadow-md border border-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-900 text-lg group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105 transition-all">
+                                                    <div className="w-14 h-14 bg-white shadow-sm border border-slate-100 rounded-xl flex items-center justify-center font-black text-slate-900 text-lg group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105 transition-all">
                                                         #{ticket.ticketNumber}
                                                     </div>
                                                     <div>
-                                                        <Title level={5} className="!mb-0 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{ticket.groupName}</Title>
+                                                        <Tooltip title={ticket.groupName}>
+                                                            <Title level={5} className="!mb-0 group-hover:text-indigo-600 transition-colors uppercase tracking-tight truncate max-w-[260px] md:max-w-[360px]">
+                                                                {ticket.groupName}
+                                                            </Title>
+                                                        </Tooltip>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <Text type="secondary" className="text-[11px] font-bold uppercase tracking-widest opacity-60">Total Outstanding:</Text>
-                                                            <Text className="text-rose-600 font-black text-xs">₹{ticket.totalDue.toLocaleString()}</Text>
+                                                            <Text className={`font-black text-xs ${ticket.totalDue > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                                ₹{ticket.totalDue.toLocaleString()}
+                                                            </Text>
                                                         </div>
                                                     </div>
                                                 </div>

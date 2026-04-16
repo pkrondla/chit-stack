@@ -17,8 +17,14 @@ import {
 } from "lucide-react";
 import api from "../api/axios";
 import dayjs from "dayjs";
+import { semanticColors } from "../theme/tokens";
 
 const { Title, Text } = Typography;
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value ?? 0));
 
 const Passbook = ({ ticketId }) => {
   const {
@@ -61,7 +67,7 @@ const Passbook = ({ ticketId }) => {
       key: "description",
       render: (text, record) => (
         <Space direction="vertical" size={0}>
-          <Text strong style={{ color: '#1e293b' }}>{text}</Text>
+          <Text strong style={{ color: semanticColors.textStrong }}>{text}</Text>
           {record.reference && (
             <Text type="secondary" style={{ fontSize: '11px' }}>{record.reference}</Text>
           )}
@@ -75,15 +81,13 @@ const Passbook = ({ ticketId }) => {
       render: (_, record) =>
         record.installmentAmount > 0 ? (
           <Space direction="vertical" size={0} align="end">
-            <Text strong style={{ color: '#e11d48' }}>
-              {(
-                record.installmentAmount -
-                record.dividend +
-                record.penalty
-              ).toLocaleString("en-IN")}
+            <Text strong style={{ color: semanticColors.danger }}>
+              {formatCurrency(
+                record.installmentAmount - record.dividend + record.penalty
+              )}
             </Text>
             <Text type="secondary" style={{ fontSize: '10px' }}>
-              {record.installmentAmount.toLocaleString()} - {record.dividend.toLocaleString()} + {record.penalty.toLocaleString()}
+              {formatCurrency(record.installmentAmount)} - {formatCurrency(record.dividend)} + {formatCurrency(record.penalty)}
             </Text>
           </Space>
         ) : (
@@ -98,8 +102,8 @@ const Passbook = ({ ticketId }) => {
       render: (val, record) =>
         val > 0 ? (
           <Space direction="vertical" size={0} align="end">
-            <Text strong style={{ color: '#059669' }}>
-              {val.toLocaleString("en-IN")}
+            <Text strong style={{ color: semanticColors.success }}>
+              {formatCurrency(val)}
             </Text>
             {record.status === "Pending" && (
               <Tag color="orange" style={{ margin: 0, marginTop: '4px', fontSize: '10px', borderRadius: '4px' }}>
@@ -117,8 +121,8 @@ const Passbook = ({ ticketId }) => {
       key: "balance",
       align: "right",
       render: (val) => (
-        <Text strong style={{ color: val > 0 ? '#e11d48' : '#059669' }}>
-          {val.toLocaleString("en-IN")}
+        <Text strong style={{ color: val > 0 ? semanticColors.warning : semanticColors.success }}>
+          {formatCurrency(val)}
         </Text>
       ),
     },
@@ -127,14 +131,14 @@ const Passbook = ({ ticketId }) => {
   return (
     <Card
       bordered={false}
-      style={{ borderRadius: '32px', boxShadow: '0 8px 32px rgba(0,0,0,0.06)', overflow: 'hidden' }}
+      style={{ borderRadius: '28px', boxShadow: '0 6px 24px rgba(0,0,0,0.05)', overflow: 'hidden' }}
       bodyStyle={{ padding: 0 }}
     >
-      <div style={{ background: '#0f172a', padding: '40px', color: 'white' }}>
+      <div style={{ background: semanticColors.navBg, padding: '36px', color: 'white' }}>
         <Row justify="space-between" align="top" style={{ marginBottom: '32px' }}>
           <Col>
             <Space size={16} align="center">
-              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '12px', borderRadius: '16px', color: '#60a5fa' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '12px', borderRadius: '14px', color: semanticColors.infoAccent }}>
                 <FileText size={24} />
               </div>
               <Space direction="vertical" size={0}>
@@ -148,17 +152,17 @@ const Passbook = ({ ticketId }) => {
               Total Outstanding
             </Text>
             <Title level={2} style={{ color: 'white', margin: 0, fontWeight: 900, fontSize: '36px' }}>
-              ₹{passbook.totalDue.toLocaleString()}
+              ₹{formatCurrency(passbook.totalDue)}
             </Title>
           </Col>
         </Row>
 
         <Row gutter={[24, 24]} style={{ paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           {[
-            { label: 'Chit Value', value: `₹${passbook.chitValue.toLocaleString()}`, color: 'white' },
+            { label: 'Chit Value', value: `₹${formatCurrency(passbook.chitValue)}`, color: 'white' },
             { label: 'Duration', value: `${passbook.duration} Months`, color: 'white' },
-            { label: 'Total Paid', value: `₹${passbook.totalPaid.toLocaleString()}`, color: '#4ade80' },
-            { label: 'Advance Balance', value: `₹${passbook.advanceBalance.toLocaleString()}`, color: '#60a5fa' },
+            { label: 'Total Paid', value: `₹${formatCurrency(passbook.totalPaid)}`, color: semanticColors.successAccent },
+            { label: 'Advance Balance', value: `₹${formatCurrency(passbook.advanceBalance)}`, color: semanticColors.infoAccent },
           ].map((item, idx) => (
             <Col xs={12} md={6} key={idx}>
               <Text style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>
@@ -176,21 +180,21 @@ const Passbook = ({ ticketId }) => {
         rowKey={(record, index) => `${record.date}-${index}`}
         pagination={false}
         scroll={{ x: 800 }}
-        style={{ borderTop: '1px solid #f1f5f9' }}
+        style={{ borderTop: `1px solid ${semanticColors.borderSoft}` }}
       />
 
-      <div style={{ padding: '24px 40px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+      <div style={{ padding: '22px 32px', background: semanticColors.appBg, borderTop: `1px solid ${semanticColors.borderSoft}`, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
         <Space size={24}>
           <Space size={8}>
-            <CheckCircle2 size={16} style={{ color: '#22c55e' }} />
-            <Text style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>CONFIRMED</Text>
+            <CheckCircle2 size={16} style={{ color: semanticColors.success }} />
+            <Text style={{ fontSize: '11px', color: semanticColors.textSecondary, fontWeight: 600 }}>CONFIRMED</Text>
           </Space>
-          <Space size={8} style={{ background: '#fffbeb', padding: '4px 12px', borderRadius: '8px', border: '1px solid #fef3c7' }}>
-            <Clock size={16} style={{ color: '#f59e0b' }} />
-            <Text style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>OFFICE VERIFICATION PENDING</Text>
+          <Space size={8} style={{ background: semanticColors.warningSoftBg, padding: '4px 12px', borderRadius: '8px', border: `1px solid ${semanticColors.warningBorder}` }}>
+            <Clock size={16} style={{ color: semanticColors.amber }} />
+            <Text style={{ fontSize: '11px', color: semanticColors.warningStrong, fontWeight: 600 }}>OFFICE VERIFICATION PENDING</Text>
           </Space>
         </Space>
-        <Text style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+        <Text style={{ fontSize: '11px', color: semanticColors.textMuted, fontStyle: 'italic' }}>
           Generated: {dayjs().format("DD MMM YYYY, HH:mm")}
         </Text>
       </div>

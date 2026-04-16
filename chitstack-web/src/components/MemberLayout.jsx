@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import NotificationBell from './NotificationBell';
+import { appTokens, semanticColors } from '../theme/tokens';
 
 const { Header, Content, Footer } = AntLayout;
 const { Text } = Typography;
@@ -35,28 +36,28 @@ const MemberLayout = () => {
         <ConfigProvider
             theme={{
                 token: {
-                    colorPrimary: '#4f46e5',
+                    colorPrimary: appTokens.colorPrimary,
                 },
                 components: {
                     Layout: {
-                        headerBg: '#ffffff',
+                        headerBg: semanticColors.surface,
                         headerHeight: 72,
                         headerPadding: '0 24px',
                     },
                     Menu: {
-                        itemBg: '#ffffff',
-                        itemColor: '#64748b',
-                        itemSelectedColor: '#4f46e5',
-                        itemHoverColor: '#4f46e5',
-                        itemHoverBg: '#f8fafc',
-                        itemActiveBg: '#f8fafc',
-                        horizontalItemSelectedColor: '#4f46e5',
+                        itemBg: semanticColors.surface,
+                        itemColor: semanticColors.textSecondary,
+                        itemSelectedColor: semanticColors.primary,
+                        itemHoverColor: semanticColors.primary,
+                        itemHoverBg: semanticColors.appBg,
+                        itemActiveBg: semanticColors.appBg,
+                        horizontalItemSelectedColor: semanticColors.primary,
                         itemBorderRadius: 12,
                     }
                 }
             }}
         >
-            <AntLayout style={{ minHeight: '100vh', background: '#f8fafc' }}>
+            <AntLayout style={{ minHeight: '100vh', background: semanticColors.appBg }}>
                 <Header
                     style={{
                         position: 'sticky',
@@ -66,9 +67,9 @@ const MemberLayout = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        background: '#ffffff',
+                        background: semanticColors.surface,
                         padding: '0 24px',
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: `1px solid ${semanticColors.borderSoft}`,
                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                     }}
                 >
@@ -78,22 +79,23 @@ const MemberLayout = () => {
                             style={{
                                 width: '40px',
                                 height: '40px',
-                                background: '#4f46e5',
                                 borderRadius: '12px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: 'white',
-                                fontWeight: 900,
-                                fontSize: '20px',
                                 cursor: 'pointer',
                                 boxShadow: '0 4px 10px rgba(79,70,229,0.2)',
                                 flexShrink: 0,
-                                marginRight: '16px'
+                                marginRight: '16px',
+                                overflow: 'hidden'
                             }}
                             onClick={() => navigate('/portal')}
                         >
-                            C
+                            <img
+                                src="/logo-192.png"
+                                alt="ChitStack logo"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
                         </div>
 
                         {/* Navigation Desktop */}
@@ -137,27 +139,27 @@ const MemberLayout = () => {
                                 cursor: 'pointer', 
                                 padding: '6px 16px', 
                                 borderRadius: '12px', 
-                                background: '#f8fafc',
-                                border: '1px solid #f1f5f9',
+                                background: semanticColors.appBg,
+                                border: `1px solid ${semanticColors.borderSoft}`,
                                 height: '44px'
                             }}>
                                 <div style={{ 
                                     width: '30px', 
                                     height: '30px', 
                                     borderRadius: '8px', 
-                                    background: 'white', 
+                                    background: semanticColors.surface, 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
-                                    color: '#4f46e5',
-                                    border: '1px solid #e2e8f0'
+                                    color: semanticColors.primary,
+                                    border: `1px solid ${semanticColors.border}`
                                 }}>
                                     <User size={18} />
                                 </div>
-                                <Text style={{ color: '#1e293b', fontSize: '13px', fontWeight: 600 }} className="desktop-user-name">
+                                <Text style={{ color: semanticColors.text, fontSize: '13px', fontWeight: 600 }} className="desktop-user-name">
                                     {user.fullName || user.username}
                                 </Text>
-                                <ChevronDown size={14} style={{ color: '#94a3b8' }} />
+                                <ChevronDown size={14} style={{ color: semanticColors.textMuted }} />
                             </div>
                         </Dropdown>
                     </Space>
@@ -172,14 +174,14 @@ const MemberLayout = () => {
 
                 {/* Footer */}
                 <Footer style={{ 
-                    background: 'white', 
-                    borderTop: '1px solid #f1f5f9', 
+                    background: semanticColors.surface, 
+                    borderTop: `1px solid ${semanticColors.borderSoft}`, 
                     padding: '40px 24px' 
                 }}>
                     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
                         <div>
-                            <Text strong style={{ fontSize: '18px', color: '#0f172a' }}>
-                                ChitStack <Text style={{ color: '#4f46e5' }}>Portal</Text>
+                            <Text strong style={{ fontSize: '18px', color: semanticColors.text }}>
+                                ChitStack <Text style={{ color: semanticColors.primary }}>Portal</Text>
                             </Text>
                             <br />
                             <Text type="secondary" style={{ fontSize: '12px' }}>
@@ -200,7 +202,7 @@ const MemberLayout = () => {
                     }
                     .ant-menu-item-selected::after {
                         border-bottom-width: 3px !important;
-                        border-bottom-color: #4f46e5 !important;
+                        border-bottom-color: ${semanticColors.primary} !important;
                     }
                     @media (max-width: 992px) {
                         .member-nav-desktop, .desktop-user-name { display: none !important; }
@@ -218,7 +220,7 @@ const MemberLayout = () => {
                     left: '24px', 
                     right: '24px', 
                     height: '72px', 
-                    background: '#0f172a', 
+                    background: semanticColors.navBg, 
                     borderRadius: '24px', 
                     boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
                     alignItems: 'center',
@@ -238,11 +240,11 @@ const MemberLayout = () => {
                                     alignItems: 'center', 
                                     gap: '4px',
                                     cursor: 'pointer',
-                                    color: isActive ? '#818cf8' : '#94a3b8'
+                                    color: isActive ? semanticColors.navActive : semanticColors.textMuted
                                 }}
                             >
                                 {item.icon}
-                                <Text style={{ color: isActive ? '#818cf8' : '#94a3b8', fontSize: '10px', fontWeight: 'bold' }}>
+                                <Text style={{ color: isActive ? semanticColors.navActive : semanticColors.textMuted, fontSize: '10px', fontWeight: 'bold' }}>
                                     {item.label}
                                 </Text>
                             </div>

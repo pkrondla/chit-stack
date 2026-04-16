@@ -6,6 +6,7 @@ import { Gavel, Globe, Smartphone, Building2, User as UserIcon, Users, Activity,
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
 import { LiveRoomVoiceQueue } from '../../utils/liveRoomVoiceQueue';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 
@@ -796,7 +797,7 @@ const LiveAuction = () => {
                             {
                                 key: 'activity',
                                 label: (
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                    <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider">
                                         <Activity size={14} />
                                         Live Activity
                                     </div>
@@ -806,9 +807,9 @@ const LiveAuction = () => {
                                         <div className="sticky top-0 z-10 p-4 bg-white/95 backdrop-blur-sm border-b border-slate-100 flex justify-between items-center">
                                             <div className="flex items-center gap-2">
                                                 <Activity size={18} className="text-slate-400" />
-                                                <span className="font-bold text-slate-700 uppercase tracking-wider text-xs">Live Activity</span>
+                                                <span className="font-bold text-slate-700 uppercase tracking-wider text-sm">Live Activity</span>
                                             </div>
-                                            <Tag color={auctionStatus === 'Closed' ? 'default' : (isConnecting ? 'warning' : 'success')} className="rounded-full px-2 text-[10px] m-0 border-0">
+                                            <Tag color={auctionStatus === 'Closed' ? 'default' : (isConnecting ? 'warning' : 'success')} className="rounded-full px-2 text-xs m-0 border-0">
                                                 {auctionStatus === 'Closed' ? 'AUCTION ARCHIVE' : (isConnecting ? '...' : `${participants} ONLINE`)}
                                             </Tag>
                                         </div>
@@ -816,7 +817,7 @@ const LiveAuction = () => {
                                             {isConnecting ? (
                                                 <div className="flex justify-center py-12"><Spin size="small" /></div>
                                             ) : bids.length === 0 ? (
-                                                <div className="text-center py-12 text-slate-400 italic text-xs">Waiting for first bid...</div>
+                                                <div className="text-center py-12 text-slate-400 italic text-sm">Waiting for first bid...</div>
                                             ) : (
                                                 bids.map((bid, i) => (
                                                     <div
@@ -832,17 +833,17 @@ const LiveAuction = () => {
                                                         </Avatar>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="font-bold text-slate-800 truncate text-xs">{bid.user}</div>
+                                                                <div className="font-bold text-slate-800 truncate text-sm">{bid.user}</div>
                                                                 <SourceIcon source={bid.source} />
                                                             </div>
-                                                            <div className="text-[9px] text-slate-400 font-mono">{bid.time.toLocaleTimeString()}</div>
+                                                            <div className="text-xs text-slate-400 font-mono">{bid.time.toLocaleTimeString()}</div>
                                                         </div>
                                                         <div className="flex flex-col items-end shrink-0">
                                                             <div className={`font-bold text-sm ${i === 0 ? 'text-green-700' : 'text-slate-600'}`}>
                                                                 ₹{bid.amount.toLocaleString()}
                                                             </div>
                                                             {bid.isLotteryWinner && (
-                                                                <Tag color="gold" className="m-0 text-[7px] leading-[10px] h-3 uppercase px-1 font-bold border-amber-200">
+                                                                <Tag color="gold" className="m-0 text-xs leading-4 h-4 uppercase px-1 font-bold border-amber-200">
                                                                     Lottery Winner
                                                                 </Tag>
                                                             )}
@@ -857,7 +858,7 @@ const LiveAuction = () => {
                             {
                                 key: 'members',
                                 label: (
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                    <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider">
                                         <Users size={14} />
                                         Members ({visibleMembers.length})
                                     </div>
@@ -866,14 +867,14 @@ const LiveAuction = () => {
                                     <div className="live-room-scroll-panel bg-white">
                                         <div className="sticky top-0 z-10 p-4 bg-white/95 backdrop-blur-sm flex items-center gap-2 border-b border-slate-100">
                                             <Users size={18} className="text-slate-400" />
-                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-xs">
+                                            <span className="font-bold text-slate-700 uppercase tracking-wider text-sm">
                                                 {auctionStatus === 'Closed' ? 'Attendees' : 'Group Members'}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 font-normal">({visibleMembers.length})</span>
+                                            <span className="text-xs text-slate-400 font-normal">({visibleMembers.length})</span>
                                         </div>
                                         <div className="p-4 space-y-2">
                                             {visibleMembers.length === 0 ? (
-                                                <div className="text-center py-12 text-slate-300 italic text-[11px]">
+                                                <div className="text-center py-12 text-slate-300 italic text-sm">
                                                     No members present yet.
                                                 </div>
                                             ) : (
@@ -889,10 +890,10 @@ const LiveAuction = () => {
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-1.5 overflow-hidden">
-                                                                <div className="font-semibold text-slate-800 truncate text-[11px] leading-tight">{item.memberName}</div>
-                                                                {item.isForeman && <Tag color="gold" className="m-0 text-[7px] leading-[10px] h-3 uppercase px-1 shrink-0">Foreman</Tag>}
+                                                                <div className="font-semibold text-slate-800 truncate text-sm leading-tight">{item.memberName}</div>
+                                                                {item.isForeman && <Tag color="gold" className="m-0 text-xs leading-4 h-4 uppercase px-1 shrink-0">Foreman</Tag>}
                                                             </div>
-                                                            <div className="text-[9px] text-slate-400">Ticket #{item.ticketNumber}</div>
+                                                            <div className="text-xs text-slate-400">Ticket #{item.ticketNumber}</div>
                                                         </div>
                                                         <div className="flex gap-1 shrink-0">
                                                             {item.isPresent && <Building2 size={12} className="text-blue-500" />}
@@ -1024,10 +1025,9 @@ const LiveAuction = () => {
                                         transform: `rotate(${wheelRotation}deg)`,
                                         transitionDuration: '6s',
                                         background: `conic-gradient(${lotteryData.participants.map((p, i) => {
-                                            const colors = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#ea580c'];
                                             const start = (i / lotteryData.participants.length) * 360;
                                             const end = ((i + 1) / lotteryData.participants.length) * 360;
-                                            return `${colors[i % colors.length]} ${start}deg ${end}deg`;
+                                            return `${semanticColors.lotteryPalette[i % semanticColors.lotteryPalette.length]} ${start}deg ${end}deg`;
                                         }).join(', ')
                                             })`
                                     }}

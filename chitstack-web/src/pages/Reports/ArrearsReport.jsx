@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Typography, Tag, Select, App, Row, Col, Statistic, Divider, Modal, Spin, List } from 'antd';
 import { FileText, Download, Users, AlertCircle, Phone, Info, Calendar, CircleDollarSign, MapPin } from 'lucide-react';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -228,7 +229,7 @@ const ArrearsReport = () => {
                             value={totalArrears} 
                             precision={2} 
                             prefix="₹" 
-                            styles={{ content: { color: '#cf1322', fontWeight: 'bold' } }} 
+                            styles={{ content: { color: semanticColors.errorStrong, fontWeight: 'bold' } }} 
                         />
                     </Card>
                 </Col>

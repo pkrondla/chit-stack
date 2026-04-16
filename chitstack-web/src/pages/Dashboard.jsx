@@ -1,6 +1,7 @@
 import { Row, Col, Card, Statistic, Table } from 'antd';
 import { UserOutlined, GroupOutlined, DollarOutlined, TransactionOutlined } from '@ant-design/icons';
 import React from 'react';
+import { semanticColors } from '../theme/tokens';
 
 const Dashboard = () => {
     return (
@@ -13,7 +14,7 @@ const Dashboard = () => {
                         <Statistic 
                             title="Total Members" 
                             value={1254} 
-                            prefix={<UserOutlined style={{ color: '#1890ff' }} />} 
+                            prefix={<UserOutlined style={{ color: semanticColors.infoBlue }} />} 
                         />
                     </Card>
                 </Col>
@@ -22,7 +23,7 @@ const Dashboard = () => {
                         <Statistic 
                             title="Active Groups" 
                             value={45} 
-                            prefix={<GroupOutlined style={{ color: '#52c41a' }} />} 
+                            prefix={<GroupOutlined style={{ color: semanticColors.successBright }} />} 
                         />
                     </Card>
                 </Col>
@@ -31,7 +32,7 @@ const Dashboard = () => {
                         <Statistic 
                             title="Total Collections" 
                             value={1250000} 
-                            prefix={<DollarOutlined style={{ color: '#faad14' }} />} 
+                            prefix={<DollarOutlined style={{ color: semanticColors.warningBright }} />} 
                             precision={2}
                         />
                     </Card>
@@ -41,7 +42,7 @@ const Dashboard = () => {
                         <Statistic 
                             title="Pending Auctions" 
                             value={5} 
-                            prefix={<TransactionOutlined style={{ color: '#f5222d' }} />} 
+                            prefix={<TransactionOutlined style={{ color: semanticColors.errorBright }} />} 
                         />
                     </Card>
                 </Col>

@@ -12,6 +12,7 @@ import { Activity, Archive, Map as MapIcon, List as ListIcon, Navigation } from 
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { semanticColors } from '../../theme/tokens';
 
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -334,7 +335,7 @@ const SubmissionReconciliation = () => {
 
                                                 return (
                                                     <div key={agentName}>
-                                                        <Polyline positions={path} color="#2563eb" weight={3} opacity={0.6} dashArray="5, 10" />
+                                                        <Polyline positions={path} color={semanticColors.infoBlue} weight={3} opacity={0.6} dashArray="5, 10" />
                                                         {agentsOnMap[agentName].map(entry => {
                                                              const dist = calculateDistance(entry.latitude, entry.longitude, entry.memberLatitude, entry.memberLongitude);
                                                              const isFar = dist > 300;
@@ -366,7 +367,7 @@ const SubmissionReconciliation = () => {
                                                                     </Marker>
                                                                     {/* Member Home Reference if far */}
                                                                     {isFar && entry.memberLatitude && (
-                                                                        <Circle center={[entry.memberLatitude, entry.memberLongitude]} radius={300} pathOptions={{ color: '#f43f5e', fillColor: '#f43f5e', fillOpacity: 0.1 }}>
+                                                                        <Circle center={[entry.memberLatitude, entry.memberLongitude]} radius={300} pathOptions={{ color: semanticColors.danger, fillColor: semanticColors.danger, fillOpacity: 0.1 }}>
                                                                             <Popup>
                                                                                 <div className="p-2">
                                                                                     <Tag color="error" className="mb-2 uppercase font-black text-[9px]">Geofence Zone</Tag>
@@ -550,11 +551,11 @@ const SubmissionReconciliation = () => {
             <style>{`
                 .details-table .ant-table-thead > tr > th {
                     background: transparent;
-                    border-bottom: 2px solid #f1f5f9;
+                    border-bottom: 2px solid ${semanticColors.borderSoft};
                     font-size: 10px;
                     text-transform: uppercase;
                     letter-spacing: 0.1em;
-                    color: #94a3b8;
+                    color: ${semanticColors.textMuted};
                 }
                 .details-table .ant-table-tbody > tr > td {
                     padding: 16px 8px;

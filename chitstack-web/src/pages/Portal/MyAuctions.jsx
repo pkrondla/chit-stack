@@ -4,6 +4,7 @@ import { Gavel, Calendar, Clock, Trophy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -30,7 +31,7 @@ const MyAuctions = () => {
             title: 'Group',
             dataIndex: 'groupName',
             key: 'groupName',
-            render: (text) => <Text strong style={{ color: '#334155' }}>{text}</Text>
+            render: (text) => <Text strong style={{ color: semanticColors.textTertiary }}>{text}</Text>
         },
         {
             title: 'Installment',
@@ -46,8 +47,8 @@ const MyAuctions = () => {
             defaultSortOrder: 'ascend',
             render: (date) => (
                 <Space size={8}>
-                    <Calendar size={14} style={{ color: '#64748b' }} />
-                    <Text style={{ color: '#475569' }}>{new Date(date).toLocaleDateString()}</Text>
+                    <Calendar size={14} style={{ color: semanticColors.textSecondary }} />
+                    <Text style={{ color: semanticColors.textTertiary }}>{new Date(date).toLocaleDateString()}</Text>
                 </Space>
             )
         },
@@ -69,7 +70,7 @@ const MyAuctions = () => {
             title: 'Winning Bid',
             dataIndex: 'winningBidAmount',
             key: 'winningBidAmount',
-            render: (val) => val ? <Text strong style={{ color: '#334155' }}>₹{val.toLocaleString()}</Text> : '-'
+            render: (val) => val ? <Text strong style={{ color: semanticColors.textTertiary }}>₹{val.toLocaleString()}</Text> : '-'
         },
         {
             title: 'Action',
@@ -79,7 +80,7 @@ const MyAuctions = () => {
                     {record.status === 'Closed' || record.status === 'Completed' ? (
                         <Button
                             size="small"
-                            style={{ borderRadius: '8px', fontWeight: 'bold', borderColor: '#e2e8f0', color: '#64748b' }}
+                            style={{ borderRadius: '8px', fontWeight: 'bold', borderColor: semanticColors.border, color: semanticColors.textSecondary }}
                             onClick={() => navigate(`/portal/auctions/live/${record.auctionId}`)}
                         >
                             View Room
@@ -88,7 +89,7 @@ const MyAuctions = () => {
                         <Button
                             type="primary"
                             size="small"
-                            style={{ background: '#4f46e5', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}
+                            style={{ background: semanticColors.primary, border: 'none', borderRadius: '8px', fontWeight: 'bold' }}
                             onClick={() => navigate(`/portal/auctions/live/${record.auctionId}`)}
                         >
                             Join Auction
@@ -107,7 +108,7 @@ const MyAuctions = () => {
             <Content style={{ padding: '0 4px' }}>
                 <div style={{ marginBottom: '32px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div style={{ padding: '16px', background: '#f59e0b', color: 'white', borderRadius: '16px', boxShadow: '0 8px 16px rgba(245,158,11,0.1)' }}>
+                        <div style={{ padding: '16px', background: semanticColors.amber, color: 'white', borderRadius: '16px', boxShadow: '0 8px 16px rgba(245,158,11,0.1)' }}>
                             <Gavel size={24} />
                         </div>
                         <div>
@@ -117,7 +118,7 @@ const MyAuctions = () => {
                     </div>
 
                     <Space direction="horizontal" align="center" size={12}>
-                        <Text strong style={{ color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>Group:</Text>
+                        <Text strong style={{ color: semanticColors.textSecondary, fontSize: '12px', textTransform: 'uppercase' }}>Group:</Text>
                         <Select
                             style={{ width: '240px' }}
                             value={selectedGroup}
@@ -136,7 +137,7 @@ const MyAuctions = () => {
                             <Card 
                                 bordered={false} 
                                 style={{ 
-                                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+                                    background: `linear-gradient(135deg, ${semanticColors.textStrong} 0%, ${semanticColors.navBg} 100%)`, 
                                     borderRadius: '24px', 
                                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
                                     height: '100%'
@@ -150,14 +151,14 @@ const MyAuctions = () => {
                                     <Row gutter={24} style={{ marginBottom: '24px' }}>
                                         <Col>
                                             <Space size={8}>
-                                                <Clock size={16} style={{ color: '#94a3b8' }} />
-                                                <Text style={{ color: '#cbd5e1', fontWeight: 500 }}>Bidding in Progress</Text>
+                                                <Clock size={16} style={{ color: semanticColors.textMuted }} />
+                                                <Text style={{ color: semanticColors.textSubtle, fontWeight: 500 }}>Bidding in Progress</Text>
                                             </Space>
                                         </Col>
                                         <Col>
                                             <Space size={8}>
-                                                <Trophy size={16} style={{ color: '#f59e0b' }} />
-                                                <Text style={{ color: '#cbd5e1', fontWeight: 500 }}>Ticket #{auction.installmentNumber}</Text>
+                                                <Trophy size={16} style={{ color: semanticColors.amber }} />
+                                                <Text style={{ color: semanticColors.textSubtle, fontWeight: 500 }}>Ticket #{auction.installmentNumber}</Text>
                                             </Space>
                                         </Col>
                                     </Row>
@@ -166,7 +167,7 @@ const MyAuctions = () => {
                                         type="primary"
                                         size="large"
                                         onClick={() => navigate(`/portal/auctions/live/${auction.auctionId}`)}
-                                        style={{ background: 'white', color: '#0f172a', border: 'none', borderRadius: '12px', fontWeight: 900, height: '48px', padding: '0 32px' }}
+                                        style={{ background: semanticColors.surface, color: semanticColors.text, border: 'none', borderRadius: '12px', fontWeight: 900, height: '48px', padding: '0 32px' }}
                                     >
                                         Join Live Room
                                     </Button>
@@ -179,7 +180,7 @@ const MyAuctions = () => {
 
                 <Card 
                     title={<Text strong>Participation History</Text>}
-                    style={{ borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9', overflow: 'hidden' }}
+                    style={{ borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: `1px solid ${semanticColors.borderSoft}`, overflow: 'hidden' }}
                     bodyStyle={{ padding: '8px' }}
                 >
                     <Table

@@ -5,6 +5,7 @@ import { MapPin, Users, IndianRupee, ChevronRight, UserPlus, CheckCircle2, Histo
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/useAuthStore';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 
@@ -67,14 +68,14 @@ const AgentDashboard = () => {
                 style={{ paddingTop: '35px', paddingBottom: '35px', paddingLeft: '30px', paddingRight: '30px' }}
             >
                 <div className="relative z-10 w-full md:w-auto mb-4 md:mb-0">
-                    <div className="uppercase tracking-[0.2em] text-[10px] mb-2 font-bold" style={{ color: '#94a3b8' }}>Assigned Route</div>
+                    <div className="uppercase tracking-[0.2em] text-[10px] mb-2 font-bold" style={{ color: semanticColors.textMuted }}>Assigned Route</div>
                     <Title level={2} className="!text-white !mb-1 text-2xl md:text-3xl tracking-tight">Active Collection Route</Title>
-                    <div className="flex items-center gap-2 font-bold" style={{ color: '#818cf8' }}>
+                    <div className="flex items-center gap-2 font-bold" style={{ color: semanticColors.navActive }}>
                         <MapPin size={16} /> <span className="text-sm">{pendingMembers} Stops Remaining</span>
                     </div>
                 </div>
                 <div className="text-left md:text-right relative z-10 w-full md:w-auto">
-                    <div className="uppercase font-bold tracking-[0.2em] mb-2 text-[10px]" style={{ color: '#94a3b8' }}>Expected Collection</div>
+                    <div className="uppercase font-bold tracking-[0.2em] mb-2 text-[10px]" style={{ color: semanticColors.textMuted }}>Expected Collection</div>
                     <Title level={1} className="!text-white !mb-4 font-black text-3xl md:text-4xl tracking-tighter">
                         ₹{totalOutstanding.toLocaleString()}
                     </Title>
@@ -176,7 +177,7 @@ const AgentDashboard = () => {
 
             <Card 
                 className="border-0 rounded-3xl shadow-lg shadow-blue-200"
-                style={{ background: '#2563eb' }}
+                style={{ background: semanticColors.infoBlue }}
                 styles={{ body: { padding: '1.5rem 2rem', background: 'transparent' } }}
             >
                 <div className="flex flex-col sm:flex-row items-center justify-between text-white gap-6">

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "eslint . && npm run lint:theme",
+    "lint:theme": "node ./scripts/enforce-theme-colors.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

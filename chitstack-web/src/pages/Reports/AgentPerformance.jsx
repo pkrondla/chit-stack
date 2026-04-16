@@ -3,6 +3,7 @@ import { Card, Table, Button, Space, Typography, Tag, DatePicker, App, Row, Col,
 import { Award, Download, Users, TrendingUp, CircleDollarSign } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -143,7 +144,7 @@ const AgentPerformance = () => {
                             value={data.grandTotal} 
                             precision={2} 
                             prefix="₹" 
-                            styles={{ content: { color: '#1e293b', fontWeight: 'bold' } }} 
+                            styles={{ content: { color: semanticColors.textStrong, fontWeight: 'bold' } }} 
                         />
                     </Card>
                 </Col>
@@ -154,7 +155,7 @@ const AgentPerformance = () => {
                             value={data.agentPerformance.reduce((s, a) => s + a.verifiedCollected, 0)} 
                             precision={2} 
                             prefix={<CircleDollarSign size={20} className="mr-1 text-indigo-600" />}
-                            styles={{ content: { color: '#4f46e5', fontWeight: 'bold' } }} 
+                            styles={{ content: { color: semanticColors.primary, fontWeight: 'bold' } }} 
                         />
                     </Card>
                 </Col>

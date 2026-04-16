@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import useAuthStore from '../store/useAuthStore';
+import { semanticColors } from '../theme/tokens';
 
 const { Header, Sider, Content } = AntLayout;
 
@@ -113,12 +114,8 @@ const Layout = () => {
             ]
         },
         { type: 'divider' },
-        {
-            key: 'setupGrp', label: 'Setup', type: 'group', children: [
-                { key: '/settings', icon: <Settings size={18} />, label: 'Settings' },
-                { key: '/admin/users', icon: <Users size={18} />, label: 'Users' },
-            ]
-        },
+        { key: '/settings', icon: <Settings size={18} />, label: 'Settings' },
+        { key: '/admin/users', icon: <Users size={18} />, label: 'Users' },
     ];
 
     const portalItems = [
@@ -162,9 +159,18 @@ const Layout = () => {
                 onCollapse={(value) => setCollapsed(value)}
                 theme="dark"
                 className="overflow-y-auto"
+                style={{ background: semanticColors.navBg }}
             >
-                <div className="flex items-center justify-center h-16 text-white text-xl font-bold bg-slate-900 shadow-md">
-                    {collapsed ? 'CL' : 'ChitStack'}
+                <div
+                    className="flex items-center justify-center h-16 text-xl font-bold shadow-md gap-2 px-3"
+                    style={{ background: semanticColors.navBg, color: semanticColors.surface }}
+                >
+                    <img
+                        src="/logo-192.png"
+                        alt="ChitStack logo"
+                        className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                    />
+                    {!collapsed && <span>ChitStack</span>}
                 </div>
                 <Menu
                     theme="dark"
@@ -173,20 +179,28 @@ const Layout = () => {
                     onClick={({ key }) => navigate(key)}
                     items={menuItems}
                     className="mt-4"
+                    style={{ background: semanticColors.navBg }}
                 />
             </Sider>
             <AntLayout>
                 <Header
                     className="px-6 py-0 shadow-sm flex items-center justify-between z-10"
-                    style={{ backgroundColor: '#ffffff', lineHeight: 'inherit' }}
+                    style={{ backgroundColor: semanticColors.surface, lineHeight: 'inherit' }}
                 >
-                    <h1 className="text-xl font-bold text-gray-900 capitalize m-0">
+                    <h1 className="text-xl font-bold capitalize m-0" style={{ color: semanticColors.text }}>
                         {currentTitle}
                     </h1>
                     <div className="flex items-center gap-6">
                         {authorizedBranches && authorizedBranches.length > 0 && (
-                            <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-1 rounded-md border border-slate-200">
-                                <Building2 size={16} className="text-blue-600" />
+                            <div
+                                className="flex items-center gap-2 px-3 py-1 rounded-md border"
+                                style={{
+                                    color: semanticColors.textSecondary,
+                                    background: semanticColors.appBg,
+                                    borderColor: semanticColors.border
+                                }}
+                            >
+                                <Building2 size={16} style={{ color: semanticColors.primary }} />
                                 <Select
                                     value={activeBranch?.id}
                                     style={{ width: 180 }}
@@ -211,19 +225,29 @@ const Layout = () => {
                             ]
                         }} trigger={['click']} placement="bottomRight">
                             <span className="cursor-pointer flex items-center gap-2 pl-4">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
+                                <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center font-bold border"
+                                    style={{ background: semanticColors.primaryLight, color: semanticColors.infoBlue, borderColor: semanticColors.primaryBorder }}
+                                >
                                     {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <div className="hidden md:block text-sm">
-                                    <div className="font-semibold text-slate-900 leading-tight">{user.fullName || user.username}</div>
-                                    <div className="text-xs text-slate-600 font-medium">{user.role}</div>
+                                    <div className="font-semibold leading-tight" style={{ color: semanticColors.text }}>
+                                        {user.fullName || user.username}
+                                    </div>
+                                    <div className="text-xs font-medium" style={{ color: semanticColors.textSecondary }}>
+                                        {user.role}
+                                    </div>
                                 </div>
-                                <ChevronDown size={14} className="text-slate-500" />
+                                <ChevronDown size={14} style={{ color: semanticColors.textMuted }} />
                             </span>
                         </Dropdown>
                     </div>
                 </Header>
-                <Content className="m-4 md:m-6 p-4 md:p-6 bg-white min-h-[calc(100vh-120px)] rounded-2xl shadow-sm overflow-x-hidden">
+                <Content
+                    className="m-4 md:m-6 p-4 md:p-6 min-h-[calc(100vh-120px)] rounded-2xl shadow-sm overflow-x-hidden"
+                    style={{ background: semanticColors.surface }}
+                >
                     <div className="max-w-full overflow-x-hidden">
                         <Outlet />
                     </div>

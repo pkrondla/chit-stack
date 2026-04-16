@@ -3,6 +3,7 @@ import { Typography, Button, Space, message, Spin, Select, Badge, Input, Form, S
 import { MessageSquare, Smartphone, Mail, Zap, LayoutList, Save, ArrowLeft, Settings2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
+import { semanticColors } from '../../theme/tokens';
 
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
@@ -205,7 +206,7 @@ const MessageTemplates = () => {
                                 </Text>
                             </div>
                         </div>
-                        <Badge count="LIVE EDITOR" style={{ backgroundColor: '#f59e0b', borderRadius: '8px', fontWeight: '900', padding: '0 12px' }} />
+                        <Badge count="LIVE EDITOR" style={{ backgroundColor: semanticColors.amber, borderRadius: '8px', fontWeight: '900', padding: '0 12px' }} />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -258,7 +259,7 @@ const MessageTemplates = () => {
                         <div className="lg:col-span-6">
                             <Card 
                                 className="shadow-sm border-0 rounded-3xl overflow-hidden bg-white border border-slate-100 h-full"
-                                styles={{ body: { padding: '2rem', backgroundColor: '#f0fdf4' } }}
+                                styles={{ body: { padding: '2rem', backgroundColor: semanticColors.mintBg } }}
                             >
                                 <div className="flex items-center gap-3 text-green-700 mb-6 font-black uppercase tracking-widest text-xs">
                                     <div className="p-2 bg-white rounded-lg shadow-sm"><MessageSquare size={16} /></div>
@@ -284,7 +285,7 @@ const MessageTemplates = () => {
                         <div className="lg:col-span-6">
                             <Card 
                                 className="shadow-sm border-0 rounded-3xl overflow-hidden bg-white border border-slate-100 h-full"
-                                styles={{ body: { padding: '2rem', backgroundColor: '#f5f3ff' } }}
+                                styles={{ body: { padding: '2rem', backgroundColor: semanticColors.lilacBg } }}
                             >
                                 <div className="flex items-center gap-3 text-purple-700 mb-6 font-black uppercase tracking-widest text-xs">
                                     <div className="p-2 bg-white rounded-lg shadow-sm"><Smartphone size={16} /></div>
@@ -307,7 +308,7 @@ const MessageTemplates = () => {
                                     <Text className="text-[10px] text-purple-500 font-black uppercase tracking-wider">SMS Payload Size</Text>
                                     <Badge 
                                         count={`${160 - (currentTemplate.smsTemplate?.length || 0)} CHARS`} 
-                                        style={{ backgroundColor: '#a855f7', borderRadius: '4px', fontSize: '9px', fontWeight: '900' }} 
+                                        style={{ backgroundColor: semanticColors.violet, borderRadius: '4px', fontSize: '9px', fontWeight: '900' }} 
                                     />
                                 </div>
                             </Card>
@@ -317,7 +318,7 @@ const MessageTemplates = () => {
                         <div className="lg:col-span-12">
                             <Card 
                                 className="shadow-sm border-0 rounded-3xl overflow-hidden bg-white border border-slate-100"
-                                styles={{ body: { padding: '2.5rem', backgroundColor: '#fff7ed' } }}
+                                styles={{ body: { padding: '2.5rem', backgroundColor: semanticColors.peachBg } }}
                             >
                                 <div className="flex items-center gap-3 text-orange-700 mb-6 font-black uppercase tracking-widest text-xs">
                                     <div className="p-2 bg-white rounded-lg shadow-sm"><Mail size={20} /></div>
@@ -347,7 +348,7 @@ const MessageTemplates = () => {
                                     </div>
                                     <Badge 
                                         status="processing" 
-                                        color="#f97316" 
+                                        color={semanticColors.warning} 
                                         text={<span className="text-[10px] font-black text-orange-900 uppercase">Visual Editor Live</span>} 
                                     />
                                 </div>

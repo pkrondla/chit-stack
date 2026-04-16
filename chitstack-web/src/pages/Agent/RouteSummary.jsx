@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/useAuthStore';
 import dayjs from 'dayjs';
+import { semanticColors } from '../../theme/tokens';
 
 const { Title, Text } = Typography;
 
@@ -66,7 +67,7 @@ const RouteSummary = () => {
                 <Col xs={24} md={12}>
                     <Card 
                         className="shadow-xl border-0 rounded-3xl h-full border-b-8 border-blue-600" 
-                        style={{ background: '#0f172a' }}
+                        style={{ background: semanticColors.navBg }}
                         styles={{ body: { padding: '2.5rem 2rem', background: 'transparent' } }}
                     >
                         <Text className="!text-white/50 font-black uppercase text-[10px] tracking-[0.2em] block mb-2">Field Wallet Total</Text>
