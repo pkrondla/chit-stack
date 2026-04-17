@@ -52,7 +52,7 @@ jobs:
         id: resolve
         shell: pwsh
         run: |
-          $config = Get-Content -Raw deployment/tenants.json | ConvertFrom-Json
+          $config = Get-Content -Raw chitstack.azure.deployment/tenants.json | ConvertFrom-Json
           $profileName = "${{ inputs.profile }}"
           $profile = $config.profiles.PSObject.Properties[$profileName].Value
           if (-not $profile) { throw "Profile '$profileName' not found." }

@@ -97,7 +97,7 @@ jobs:
         id: resolve
         shell: pwsh
         run: |
-          $config = Get-Content -Raw deployment/tenants.json | ConvertFrom-Json
+          $config = Get-Content -Raw chitstack.azure.deployment/tenants.json | ConvertFrom-Json
           $profileName = "${{ inputs.profile }}"
           $profile = $config.profiles.PSObject.Properties[$profileName].Value
           if (-not $profile) { throw "Profile '$profileName' not found." }
@@ -141,7 +141,7 @@ jobs:
       - name: Register tenant in Global database
         shell: pwsh
         run: |
-          ./deployment/scripts/register-global-tenant.ps1 `
+          ./chitstack.azure.deployment/scripts/register-global-tenant.ps1 `
             -Environment "${{ inputs.environment }}" `
             -TenantKey "${{ inputs.tenantKey }}" `
             -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `

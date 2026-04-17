@@ -2,8 +2,8 @@
 
 This repository now treats the SQL database projects as the source of truth for database shape and baseline seed state:
 
-- `ChitStack.Database.Global`
-- `ChitStack.Database.Tenant`
+- `chitstack.global.database`
+- `chitstack.tenant.database`
 
 ## Folder conventions
 
@@ -57,14 +57,14 @@ Recommended `SqlPackage` usage in deployment jobs:
 
 Do not remove EF migration ownership until all of the following are true:
 
-1. A brand-new Global database can be created from `ChitStack.Database.Global` alone.
-2. A brand-new Tenant database can be created from `ChitStack.Database.Tenant` alone.
+1. A brand-new Global database can be created from `chitstack.global.database` alone.
+2. A brand-new Tenant database can be created from `chitstack.tenant.database` alone.
 3. Required baseline/reference data exists after SQL project publish plus `PostDeploy.sql`.
 4. Existing databases can be upgraded safely using database-project publish/versioned scripts.
 5. No required schema creation is left in:
-   - `ChitStack.Global.API/Program.cs`
-   - `ChitStack.API/Program.cs`
-   - `ChitStack.Infrastructure/Data/Seeding/InitialDataSeeder.cs`
+   - `chitstack.global.api/Program.cs`
+   - `chitstack.tenant.api/Program.cs`
+   - `chitstack.infrastructure/Data/Seeding/InitialDataSeeder.cs`
 
 Only after those checks pass should the team remove:
 

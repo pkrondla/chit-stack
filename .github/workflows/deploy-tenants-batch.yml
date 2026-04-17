@@ -55,7 +55,7 @@ jobs:
         run: |
           $max = "${{ inputs.maxParallel }}"
           if ([string]::IsNullOrWhiteSpace($max)) {
-            $policy = Get-Content -Raw deployment/policies/rollout-policy.json | ConvertFrom-Json
+            $policy = Get-Content -Raw chitstack.azure.deployment/policies/rollout-policy.json | ConvertFrom-Json
             $max = $policy.environments."${{ inputs.environment }}".maxParallel
             if (-not $max) { throw "maxParallel not set in rollout-policy.json for environment '${{ inputs.environment }}'." }
           }
@@ -67,7 +67,7 @@ jobs:
         id: matrix
         shell: pwsh
         run: |
-          $matrix = ./deployment/scripts/generate-matrix.ps1 -Scope tenant -Environment "${{ inputs.environment }}" -TenantKeysFilter "${{ inputs.tenantKeys }}"
+          $matrix = ./chitstack.azure.deployment/scripts/generate-matrix.ps1 -Scope tenant -Environment "${{ inputs.environment }}" -TenantKeysFilter "${{ inputs.tenantKeys }}"
           "matrix=$matrix" >> $env:GITHUB_OUTPUT
 
   deploy:

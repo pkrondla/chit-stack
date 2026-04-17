@@ -9,7 +9,7 @@ Upgrade Global or tenant stamp profile/SKU with minimal interruption.
 
 ## Steps
 1. Change profile or overrides in source-of-truth config.
-2. Validate config with `deployment/scripts/validate-config.ps1`.
+2. Validate config with `chitstack.azure.deployment/scripts/validate-config.ps1`.
 3. Schedule a low-traffic maintenance window.
 4. Run:
    - `upgrade-global.yml` for global

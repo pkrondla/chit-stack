@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate deployment configuration
         shell: pwsh
-        run: ./deployment/scripts/validate-config.ps1
+        run: ./chitstack.azure.deployment/scripts/validate-config.ps1
 
   build-dotnet:
     runs-on: ubuntu-latest
@@ -31,9 +31,9 @@ jobs:
       - name: Test
         run: dotnet test ChitStack.sln -c Release --no-build --logger trx
       - name: Publish Global API
-        run: dotnet publish ChitStack.Global.API/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
+        run: dotnet publish chitstack.global.api/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
       - name: Publish Tenant API
-        run: dotnet publish ChitStack.API/ChitStack.API.csproj -c Release -o artifacts/tenant-api
+        run: dotnet publish chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
       - name: Upload Global API artifact
         uses: actions/upload-artifact@v4
         with:
@@ -55,15 +55,15 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm ci
-        working-directory: chitstack-global-web
+        working-directory: chitstack.global.web
       - name: Build
         run: npm run build
-        working-directory: chitstack-global-web
+        working-directory: chitstack.global.web
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: global-web-dist
-          path: chitstack-global-web/dist
+          path: chitstack.global.web/dist
 
   build-tenant-web:
     runs-on: ubuntu-latest
@@ -75,15 +75,15 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm ci
-        working-directory: chitstack-web
+        working-directory: chitstack.tenant.web
       - name: Build
         run: npm run build
-        working-directory: chitstack-web
+        working-directory: chitstack.tenant.web
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: tenant-web-dist
-          path: chitstack-web/dist
+          path: chitstack.tenant.web/dist
 
   build-dacpac:
     runs-on: windows-latest
@@ -94,17 +94,17 @@ jobs:
         uses: microsoft/setup-msbuild@v2
       - name: Build Global DACPAC
         shell: pwsh
-        run: msbuild ChitStack.Database.Global/ChitStack.Database.Global.sqlproj /p:Configuration=Release
+        run: msbuild chitstack.global.database/ChitStack.Database.Global.sqlproj /p:Configuration=Release
       - name: Build Tenant DACPAC
         shell: pwsh
-        run: msbuild ChitStack.Database.Tenant/ChitStack.Database.Tenant.sqlproj /p:Configuration=Release
+        run: msbuild chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj /p:Configuration=Release
       - name: Upload Global DACPAC artifact
         uses: actions/upload-artifact@v4
         with:
           name: global-dacpac
-          path: ChitStack.Database.Global/bin/Release/*.dacpac
+          path: chitstack.global.database/bin/Release/*.dacpac
       - name: Upload Tenant DACPAC artifact
         uses: actions/upload-artifact@v4
         with:
           name: tenant-dacpac
-          path: ChitStack.Database.Tenant/bin/Release/*.dacpac
+          path: chitstack.tenant.database/bin/Release/*.dacpac

@@ -13,12 +13,12 @@ Each stamp has:
 - `nonprod-ultra-low`: bootstrap default for global and tenant.
 - `prod-min-safe`: promoted profile for higher reliability.
 
-Profile values are defined in `deployment/tenants.json` and enforced by `deployment/policies/sku-policy.json`.
+Profile values are defined in `chitstack.azure.deployment/tenants.json` and enforced by `chitstack.azure.deployment/policies/sku-policy.json`.
 
 ## Source of truth
-- Initial source of truth: `deployment/tenants.json`.
+- Initial source of truth: `chitstack.azure.deployment/tenants.json`.
 - Future source of truth: Global control-plane API.
-- Optional drift gate: if `deployment/tenants.control-plane.json` exists, CI validates that enabled tenant keys match the manifest exactly (`validate-deployment-sources.ps1`).
+- Optional drift gate: if `chitstack.azure.deployment/tenants.control-plane.json` exists, CI validates that enabled tenant keys match the manifest exactly (`validate-deployment-sources.ps1`).
 
 ## Resource groups (plan naming)
 - Global stamp: `rg-chit-{environment}-global-global`
@@ -31,7 +31,7 @@ Compute and database names inside a stamp remain `api-chit-{environment}-global`
 - App Service application settings (connection strings, stamp mode, optional App Insights) are applied from deployment scripts after the API package is deployed.
 
 ## Rollout policy
-- `deployment/policies/rollout-policy.json` supplies default `maxParallel` per environment when `deploy-tenants-batch.yml` is run with an empty `maxParallel` input.
+- `chitstack.azure.deployment/policies/rollout-policy.json` supplies default `maxParallel` per environment when `deploy-tenants-batch.yml` is run with an empty `maxParallel` input.
 
 ## Pipeline map
 - `ci.yml`: validates config and builds all artifacts.

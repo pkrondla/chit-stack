@@ -7,7 +7,7 @@ param(
     [string]$SqlLogin,
     [Parameter(Mandatory = $true)]
     [string]$SqlPassword,
-    [string]$ConfigPath = "deployment/tenants.json",
+    [string]$ConfigPath = "chitstack.azure.deployment/tenants.json",
     [string]$DisplayName = "",
     [string]$Subdomain = "",
     [string]$State = "Karnataka"

@@ -1,6 +1,6 @@
 param(
-    [string]$ConfigPath = "deployment/tenants.json",
-    [string]$PolicyPath = "deployment/policies/sku-policy.json"
+    [string]$ConfigPath = "chitstack.azure.deployment/tenants.json",
+    [string]$PolicyPath = "chitstack.azure.deployment/policies/sku-policy.json"
 )
 
 $ErrorActionPreference = "Stop"

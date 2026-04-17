@@ -42,15 +42,15 @@ jobs:
       - name: Restore and publish Global API
         shell: pwsh
         run: |
-          dotnet restore ChitStack.Global.API/ChitStack.Global.API.csproj
-          dotnet publish ChitStack.Global.API/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
+          dotnet restore chitstack.global.api/ChitStack.Global.API.csproj
+          dotnet publish chitstack.global.api/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
       - name: Build Global DACPAC
         shell: pwsh
-        run: msbuild ChitStack.Database.Global/ChitStack.Database.Global.sqlproj /p:Configuration=Release
+        run: msbuild chitstack.global.database/ChitStack.Database.Global.sqlproj /p:Configuration=Release
       - name: Build Global web
         shell: pwsh
         run: |
-          Push-Location chitstack-global-web
+          Push-Location chitstack.global.web
           npm ci
           npm run build
           Pop-Location
@@ -63,12 +63,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: global-web-dist
-          path: chitstack-global-web/dist
+          path: chitstack.global.web/dist
       - name: Upload Global DACPAC artifact
         uses: actions/upload-artifact@v4
         with:
           name: global-dacpac
-          path: ChitStack.Database.Global/bin/Release/*.dacpac
+          path: chitstack.global.database/bin/Release/*.dacpac
 
   deploy-infra:
     uses: ./.github/workflows/deploy-infra.yml
@@ -161,7 +161,7 @@ jobs:
           RG: rg-chit-${{ inputs.environment }}-global-global
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
-          ./deployment/scripts/configure-stamp-app.ps1 `
+          ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
             -Scope global `
             -Environment "${{ inputs.environment }}" `
             -TenantKey global `

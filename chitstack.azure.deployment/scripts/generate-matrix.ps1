@@ -2,7 +2,7 @@ param(
     [ValidateSet("tenant", "global")]
     [string]$Scope = "tenant",
     [string]$Environment = "prod",
-    [string]$ConfigPath = "deployment/tenants.json",
+    [string]$ConfigPath = "chitstack.azure.deployment/tenants.json",
     [string]$TenantKeysFilter = ""
 )
 

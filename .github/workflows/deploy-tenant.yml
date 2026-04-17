@@ -77,15 +77,15 @@ jobs:
       - name: Restore and publish Tenant API
         shell: pwsh
         run: |
-          dotnet restore ChitStack.API/ChitStack.API.csproj
-          dotnet publish ChitStack.API/ChitStack.API.csproj -c Release -o artifacts/tenant-api
+          dotnet restore chitstack.tenant.api/ChitStack.API.csproj
+          dotnet publish chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
       - name: Build Tenant DACPAC
         shell: pwsh
-        run: msbuild ChitStack.Database.Tenant/ChitStack.Database.Tenant.sqlproj /p:Configuration=Release
+        run: msbuild chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj /p:Configuration=Release
       - name: Build Tenant web
         shell: pwsh
         run: |
-          Push-Location chitstack-web
+          Push-Location chitstack.tenant.web
           npm ci
           npm run build
           Pop-Location
@@ -98,12 +98,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tenant-web-dist
-          path: chitstack-web/dist
+          path: chitstack.tenant.web/dist
       - name: Upload Tenant DACPAC artifact
         uses: actions/upload-artifact@v4
         with:
           name: tenant-dacpac
-          path: ChitStack.Database.Tenant/bin/Release/*.dacpac
+          path: chitstack.tenant.database/bin/Release/*.dacpac
 
   deploy-infra:
     uses: ./.github/workflows/deploy-infra.yml
@@ -197,7 +197,7 @@ jobs:
           RG: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
-          ./deployment/scripts/configure-stamp-app.ps1 `
+          ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
             -Scope tenant `
             -Environment "${{ inputs.environment }}" `
             -TenantKey "${{ inputs.tenantKey }}" `

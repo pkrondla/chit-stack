@@ -1,6 +1,6 @@
 param(
-    [string]$ManifestPath = "deployment/tenants.json",
-    [string]$ControlPlanePath = "deployment/tenants.control-plane.json"
+    [string]$ManifestPath = "chitstack.azure.deployment/tenants.json",
+    [string]$ControlPlanePath = "chitstack.azure.deployment/tenants.control-plane.json"
 )
 
 $ErrorActionPreference = "Stop"

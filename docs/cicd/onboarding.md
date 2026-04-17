@@ -4,7 +4,7 @@
 Provision a new tenant with isolated web, API, and Azure SQL resources in `prod` by default.
 
 ## Prerequisites
-- Tenant entry exists in `deployment/tenants.json` (or control plane after migration).
+- Tenant entry exists in `chitstack.azure.deployment/tenants.json` (or control plane after migration).
 - GitHub environment secrets are configured for Azure OIDC and SQL admin credentials.
 - SKU policy validation passes in CI.
 
@@ -25,7 +25,7 @@ Provision a new tenant with isolated web, API, and Azure SQL resources in `prod`
 5. Record onboarding result in deployment history.
 
 ## Optional control-plane drift file
-If you maintain a snapshot at `deployment/tenants.control-plane.json`, CI enforces that enabled tenant keys match `deployment/tenants.json` exactly.
+If you maintain a snapshot at `chitstack.azure.deployment/tenants.control-plane.json`, CI enforces that enabled tenant keys match `chitstack.azure.deployment/tenants.json` exactly.
 
 ## Optional non-prod environments
 Use `provision-environment.yml` to add `dev`, `uat`, or `qa` for selected tenants on demand.

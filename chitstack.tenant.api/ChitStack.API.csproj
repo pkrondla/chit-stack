@@ -20,8 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ChitStack.Application\ChitStack.Application.csproj" />
-    <ProjectReference Include="..\ChitStack.Infrastructure\ChitStack.Infrastructure.csproj" />
+    <ProjectReference Include="..\chitstack.application\ChitStack.Application.csproj" />
+    <ProjectReference Include="..\chitstack.infrastructure\ChitStack.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

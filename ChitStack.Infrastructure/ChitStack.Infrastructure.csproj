@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\ChitStack.Application\ChitStack.Application.csproj" />
-    <ProjectReference Include="..\ChitStack.Domain\ChitStack.Domain.csproj" />
+    <ProjectReference Include="..\chitstack.application\ChitStack.Application.csproj" />
+    <ProjectReference Include="..\chitstack.domain\ChitStack.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
