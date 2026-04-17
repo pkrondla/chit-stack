@@ -1,0 +1,24 @@
+{
+  "environments": {
+    "prod": {
+      "maxParallel": 2,
+      "requiresApproval": true,
+      "stopOnFailure": true
+    },
+    "uat": {
+      "maxParallel": 4,
+      "requiresApproval": true,
+      "stopOnFailure": true
+    },
+    "dev": {
+      "maxParallel": 8,
+      "requiresApproval": false,
+      "stopOnFailure": false
+    },
+    "qa": {
+      "maxParallel": 6,
+      "requiresApproval": false,
+      "stopOnFailure": true
+    }
+  }
+}

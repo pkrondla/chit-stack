@@ -38,6 +38,21 @@ Until a deployment runner is added:
 - baseline seed scripts stay idempotent by checking live data
 - versioned scripts should be named and executed explicitly
 
+## CI/CD execution model
+
+GitHub Actions deployments should follow this order:
+
+1. Build Global and Tenant DACPAC artifacts once in CI.
+2. Deploy Global DACPAC once per target environment.
+3. Deploy Tenant DACPAC once per tenant stamp per environment.
+4. Capture `SqlPackage` publish output as build artifacts for audit.
+
+Recommended `SqlPackage` usage in deployment jobs:
+
+- Generate deploy report first (`/Action:DeployReport`) for review.
+- Run publish with explicit `TargetServerName` and `TargetDatabaseName`.
+- Block destructive changes by default unless approved change window exists.
+
 ## EF migration decommission checklist
 
 Do not remove EF migration ownership until all of the following are true:

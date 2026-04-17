@@ -1,0 +1,71 @@
+name: Provision Global Stamp
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - uat
+          - dev
+          - qa
+      profile:
+        required: true
+        default: nonprod-ultra-low
+        type: choice
+        options:
+          - nonprod-ultra-low
+          - prod-min-safe
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      SQL_ADMIN_LOGIN:
+        required: true
+      SQL_ADMIN_PASSWORD:
+        required: true
+
+jobs:
+  resolve-profile:
+    runs-on: ubuntu-latest
+    outputs:
+      staticWebSku: ${{ steps.resolve.outputs.staticWebSku }}
+      apiPlanSku: ${{ steps.resolve.outputs.apiPlanSku }}
+      sqlSku: ${{ steps.resolve.outputs.sqlSku }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve profile values
+        id: resolve
+        shell: pwsh
+        run: |
+          $config = Get-Content -Raw deployment/tenants.json | ConvertFrom-Json
+          $profileName = "${{ inputs.profile }}"
+          $profile = $config.profiles.PSObject.Properties[$profileName].Value
+          if (-not $profile) { throw "Profile '$profileName' not found." }
+          "staticWebSku=$($profile.staticWebSku)" >> $env:GITHUB_OUTPUT
+          "apiPlanSku=$($profile.apiPlanSku)" >> $env:GITHUB_OUTPUT
+          "sqlSku=$($profile.sqlSku)" >> $env:GITHUB_OUTPUT
+
+  deploy:
+    needs: resolve-profile
+    uses: ./.github/workflows/deploy-global.yml
+    with:
+      environment: ${{ inputs.environment }}
+      staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
+      apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
+      sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
+    secrets: inherit

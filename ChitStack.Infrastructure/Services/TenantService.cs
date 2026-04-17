@@ -1,5 +1,7 @@
 using ChitStack.Application.Common.Interfaces;
+using ChitStack.Infrastructure.Configuration;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace ChitStack.Infrastructure.Services;
@@ -7,16 +9,23 @@ namespace ChitStack.Infrastructure.Services;
 public class TenantService : ITenantService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly TenantStampOptions _tenantStampOptions;
 
-    public TenantService(IHttpContextAccessor httpContextAccessor)
+    public TenantService(IHttpContextAccessor httpContextAccessor, IOptions<TenantStampOptions> tenantStampOptions)
     {
         _httpContextAccessor = httpContextAccessor;
+        _tenantStampOptions = tenantStampOptions.Value;
     }
 
     public int TenantId
     {
         get
         {
+            if (_tenantStampOptions.EnableFixedTenant)
+            {
+                return _tenantStampOptions.FixedTenantId;
+            }
+
             var context = _httpContextAccessor.HttpContext;
             if (context == null) return 1; // Default to 1 for local testing
 
@@ -39,7 +48,7 @@ public class TenantService : ITenantService
         }
     }
 
-    public string? ConnectionString => string.Empty; // TODO: Lookup from Global DB based on TenantId
+    public string? ConnectionString => _tenantStampOptions.FixedTenantConnectionString ?? string.Empty; // TODO: Lookup from Global DB based on TenantId
 
     public Task<int> GetTenantIdAsync()
     {

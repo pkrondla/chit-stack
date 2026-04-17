@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "centralindia"
+    },
+    "environment": {
+      "value": "uat"
+    },
+    "resourcePrefix": {
+      "value": "chit"
+    },
+    "staticWebSku": {
+      "value": "Free"
+    },
+    "apiPlanSku": {
+      "value": "F1"
+    },
+    "sqlSku": {
+      "value": "Basic"
+    },
+    "sqlAdminLogin": {
+      "value": "__SET_IN_PIPELINE__"
+    },
+    "sqlAdminPassword": {
+      "value": "__SET_IN_PIPELINE__"
+    }
+  }
+}

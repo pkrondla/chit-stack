@@ -1,0 +1,222 @@
+name: Deploy Tenant Stamp
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      tenantKey:
+        required: true
+        type: string
+      staticWebSku:
+        required: true
+        type: string
+      apiPlanSku:
+        required: true
+        type: string
+      sqlSku:
+        required: true
+        type: string
+      fixedTenantId:
+        required: false
+        type: string
+        default: "1"
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      SQL_ADMIN_LOGIN:
+        required: true
+      SQL_ADMIN_PASSWORD:
+        required: true
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - uat
+          - dev
+          - qa
+      tenantKey:
+        required: true
+        type: string
+      staticWebSku:
+        required: true
+        default: Free
+      apiPlanSku:
+        required: true
+        default: F1
+      sqlSku:
+        required: true
+        default: Basic
+      fixedTenantId:
+        required: false
+        default: "1"
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Restore and publish Tenant API
+        shell: pwsh
+        run: |
+          dotnet restore ChitStack.API/ChitStack.API.csproj
+          dotnet publish ChitStack.API/ChitStack.API.csproj -c Release -o artifacts/tenant-api
+      - name: Build Tenant DACPAC
+        shell: pwsh
+        run: msbuild ChitStack.Database.Tenant/ChitStack.Database.Tenant.sqlproj /p:Configuration=Release
+      - name: Build Tenant web
+        shell: pwsh
+        run: |
+          Push-Location chitstack-web
+          npm ci
+          npm run build
+          Pop-Location
+      - name: Upload Tenant API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-api-package
+          path: artifacts/tenant-api
+      - name: Upload Tenant web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-web-dist
+          path: chitstack-web/dist
+      - name: Upload Tenant DACPAC artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-dacpac
+          path: ChitStack.Database.Tenant/bin/Release/*.dacpac
+
+  deploy-infra:
+    uses: ./.github/workflows/deploy-infra.yml
+    with:
+      scope: tenant
+      environment: ${{ inputs.environment }}
+      tenantKey: ${{ inputs.tenantKey }}
+      staticWebSku: ${{ inputs.staticWebSku }}
+      apiPlanSku: ${{ inputs.apiPlanSku }}
+      sqlSku: ${{ inputs.sqlSku }}
+      resourceGroup: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
+    secrets: inherit
+
+  deploy-db-api-web:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - deploy-infra
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Tenant API artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tenant-api-package
+          path: artifacts/tenant-api
+      - name: Download Tenant web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tenant-web-dist
+          path: artifacts/tenant-web
+      - name: Download Tenant DACPAC artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tenant-dacpac
+          path: artifacts/tenant-dacpac
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Install SqlPackage
+        shell: bash
+        run: dotnet tool update --global microsoft.sqlpackage
+      - name: Generate Tenant DB deploy report
+        shell: bash
+        run: |
+          ~/.dotnet/tools/sqlpackage \
+            /Action:DeployReport \
+            /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
+            /TargetServerName:sql-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
+            /TargetDatabaseName:sqldb-chit-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
+            /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /OutputPath:tenant-${{ inputs.tenantKey }}-deploy-report.xml
+      - name: Publish Tenant DACPAC
+        shell: bash
+        run: |
+          ~/.dotnet/tools/sqlpackage \
+            /Action:Publish \
+            /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
+            /TargetServerName:sql-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
+            /TargetDatabaseName:sqldb-chit-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
+            /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /p:BlockOnPossibleDataLoss=true
+      - name: Deploy Tenant API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: api-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          package: artifacts/tenant-api
+      - name: Resolve App Insights connection string
+        id: ai
+        shell: bash
+        env:
+          RG: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
+          ENV_NAME: ${{ inputs.environment }}
+          TK: ${{ inputs.tenantKey }}
+        run: |
+          set +e
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chit-${ENV_NAME}-${TK}" --query connectionString -o tsv)
+          {
+            echo "connection<<AIEOF"
+            echo "$AI"
+            echo "AIEOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Configure Tenant API app settings
+        shell: pwsh
+        env:
+          RG: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
+        run: |
+          $ai = "${{ steps.ai.outputs.connection }}"
+          ./deployment/scripts/configure-stamp-app.ps1 `
+            -Scope tenant `
+            -Environment "${{ inputs.environment }}" `
+            -TenantKey "${{ inputs.tenantKey }}" `
+            -ResourceGroup $env:RG `
+            -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `
+            -SqlPassword "${{ secrets.SQL_ADMIN_PASSWORD }}" `
+            -AppInsightsConnectionString $ai `
+            -FixedTenantId ${{ inputs.fixedTenantId }}
+      - name: Deploy Tenant Web
+        shell: bash
+        run: |
+          az extension add --name staticwebapp --upgrade
+          az staticwebapp deploy \
+            --name "web-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
+            --resource-group "rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}" \
+            --source "artifacts/tenant-web" \
+            --env "production"
+      - name: Upload DB deploy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-${{ inputs.tenantKey }}-db-deploy-report
+          path: tenant-${{ inputs.tenantKey }}-deploy-report.xml

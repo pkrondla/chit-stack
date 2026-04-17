@@ -1,0 +1,29 @@
+name: Upgrade Global Profile
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - uat
+          - dev
+          - qa
+      targetProfile:
+        required: true
+        default: prod-min-safe
+        type: choice
+        options:
+          - nonprod-ultra-low
+          - prod-min-safe
+
+jobs:
+  upgrade:
+    uses: ./.github/workflows/provision-global.yml
+    with:
+      environment: ${{ inputs.environment }}
+      profile: ${{ inputs.targetProfile }}
+    secrets: inherit

@@ -1,0 +1,63 @@
+{
+  "defaults": {
+    "environment": "prod",
+    "profile": "nonprod-ultra-low",
+    "region": "centralindia"
+  },
+  "profiles": {
+    "nonprod-ultra-low": {
+      "staticWebSku": "Free",
+      "apiPlanSku": "F1",
+      "sqlSku": "Basic"
+    },
+    "prod-min-safe": {
+      "staticWebSku": "Free",
+      "apiPlanSku": "B1",
+      "sqlSku": "Basic"
+    }
+  },
+  "global": {
+    "enabled": true,
+    "profile": "nonprod-ultra-low",
+    "resourcePrefix": "global",
+    "environments": {
+      "prod": {
+        "enabled": true
+      },
+      "dev": {
+        "enabled": false
+      },
+      "uat": {
+        "enabled": false
+      },
+      "qa": {
+        "enabled": false
+      }
+    },
+    "overrides": {}
+  },
+  "tenants": [
+    {
+      "tenantKey": "tenant1",
+      "displayName": "Tenant One",
+      "subdomain": "tenant1",
+      "enabled": true,
+      "profile": "nonprod-ultra-low",
+      "environments": {
+        "prod": {
+          "enabled": true
+        },
+        "dev": {
+          "enabled": false
+        },
+        "uat": {
+          "enabled": false
+        },
+        "qa": {
+          "enabled": false
+        }
+      },
+      "overrides": {}
+    }
+  ]
+}

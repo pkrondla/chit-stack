@@ -1,0 +1,87 @@
+name: Deploy Tenants Batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - uat
+          - dev
+          - qa
+      maxParallel:
+        description: Max parallel tenant deployments (leave empty to use rollout-policy.json)
+        required: false
+        default: ""
+        type: string
+      tenantKeys:
+        description: Comma-separated tenant keys to deploy (leave empty for all enabled tenants)
+        required: false
+        default: ""
+        type: string
+      fixedTenantId:
+        description: Fixed TenantId for stamp mode (must match row in tenant DB)
+        required: false
+        default: "1"
+        type: string
+      staticWebSku:
+        description: Static web SKU to enforce for this rollout
+        required: true
+        default: Free
+      apiPlanSku:
+        description: API SKU to enforce for this rollout
+        required: true
+        default: F1
+      sqlSku:
+        description: SQL SKU to enforce for this rollout
+        required: true
+        default: Basic
+
+jobs:
+  build-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      parallelJson: ${{ steps.parallel.outputs.parallelJson }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve max parallel
+        id: parallel
+        shell: pwsh
+        run: |
+          $max = "${{ inputs.maxParallel }}"
+          if ([string]::IsNullOrWhiteSpace($max)) {
+            $policy = Get-Content -Raw deployment/policies/rollout-policy.json | ConvertFrom-Json
+            $max = $policy.environments."${{ inputs.environment }}".maxParallel
+            if (-not $max) { throw "maxParallel not set in rollout-policy.json for environment '${{ inputs.environment }}'." }
+          }
+          $json = @{ maxParallel = [int]$max } | ConvertTo-Json -Compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "parallelJson<<DELIM"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $json
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "DELIM"
+      - name: Generate tenant matrix
+        id: matrix
+        shell: pwsh
+        run: |
+          $matrix = ./deployment/scripts/generate-matrix.ps1 -Scope tenant -Environment "${{ inputs.environment }}" -TenantKeysFilter "${{ inputs.tenantKeys }}"
+          "matrix=$matrix" >> $env:GITHUB_OUTPUT
+
+  deploy:
+    needs: build-matrix
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJson(needs.build-matrix.outputs.parallelJson).maxParallel }}
+      matrix: ${{ fromJson(needs.build-matrix.outputs.matrix) }}
+    uses: ./.github/workflows/deploy-tenant.yml
+    with:
+      environment: ${{ matrix.environment }}
+      tenantKey: ${{ matrix.key }}
+      staticWebSku: ${{ inputs.staticWebSku }}
+      apiPlanSku: ${{ inputs.apiPlanSku }}
+      sqlSku: ${{ inputs.sqlSku }}
+      fixedTenantId: ${{ inputs.fixedTenantId }}
+    secrets: inherit

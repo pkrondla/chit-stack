@@ -1,5 +1,6 @@
 using ChitStack.Application;
 using ChitStack.Infrastructure;
+using ChitStack.Infrastructure.Configuration;
 using ChitStack.API.Middleware;
 using ChitStack.API.Services;
 using Serilog;
@@ -7,6 +8,11 @@ using Microsoft.OpenApi.Models;
 using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
+var tenantStampOptions = builder.Configuration.GetSection(TenantStampOptions.SectionName).Get<TenantStampOptions>() ?? new TenantStampOptions();
+var tenantDbConnection = string.IsNullOrWhiteSpace(tenantStampOptions.FixedTenantConnectionString)
+    ? builder.Configuration.GetConnectionString("TenantDBConnection")
+    : tenantStampOptions.FixedTenantConnectionString;
+var seedOnStartup = builder.Configuration.GetValue("SeedOnStartup", true);
 
 // Serilog Setup
 Log.Logger = new LoggerConfiguration()
@@ -24,7 +30,7 @@ builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UseSqlServerStorage(builder.Configuration.GetConnectionString("TenantDBConnection")));
+    .UseSqlServerStorage(tenantDbConnection));
 builder.Services.AddHangfireServer(options =>
 {
     options.Queues = new[] { "default", "notifications" };
@@ -153,8 +159,11 @@ app.MapHub<ChitStack.API.Hubs.NotificationHub>("/notificationHub");
 
 using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<ChitStack.Infrastructure.Data.Seeding.InitialDataSeeder>();
-    await seeder.SeedAsync();
+    if (seedOnStartup)
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<ChitStack.Infrastructure.Data.Seeding.InitialDataSeeder>();
+        await seeder.SeedAsync();
+    }
 
     // Setup Recurring Jobs
     RecurringJob.AddOrUpdate<ChitStack.Infrastructure.Services.IDailyNotificationProcessor>("daily-automated-notifications", 

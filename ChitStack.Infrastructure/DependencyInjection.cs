@@ -1,4 +1,5 @@
 using ChitStack.Application.Common.Interfaces;
+using ChitStack.Infrastructure.Configuration;
 using ChitStack.Infrastructure.Data;
 using ChitStack.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,13 +14,21 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<TenantStampOptions>(configuration.GetSection(TenantStampOptions.SectionName));
+
         var globalConnectionString = configuration.GetConnectionString("GlobalDBConnection");
 
         services.AddDbContext<GlobalDbContext>(options =>
             options.UseSqlServer(globalConnectionString));
 
+        var tenantConnectionString = configuration.GetConnectionString("TenantDBConnection");
+        var fixedTenantConnectionString = configuration.GetSection(TenantStampOptions.SectionName).GetValue<string>("FixedTenantConnectionString");
+        var effectiveTenantConnectionString = string.IsNullOrWhiteSpace(fixedTenantConnectionString)
+            ? tenantConnectionString
+            : fixedTenantConnectionString;
+
         services.AddDbContext<TenantDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("TenantDBConnection"))
+            options.UseSqlServer(effectiveTenantConnectionString)
                    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
         services.AddScoped<ITenantService, TenantService>();
