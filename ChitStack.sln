@@ -5,11 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.tenant.api", "chitstack.tenant.api\ChitStack.API.csproj", "{7B513A47-0FC8-4B14-BB01-02084219BD04}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.application", "chitstack.application\ChitStack.Application.csproj", "{8314234C-5264-4452-A08A-013549A540CB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.application", "ChitStack.Application\ChitStack.Application.csproj", "{8314234C-5264-4452-A08A-013549A540CB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.domain", "chitstack.domain\ChitStack.Domain.csproj", "{AD34FEA7-6912-449B-8874-752B7E9D1E35}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.domain", "ChitStack.Domain\ChitStack.Domain.csproj", "{AD34FEA7-6912-449B-8874-752B7E9D1E35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.infrastructure", "chitstack.infrastructure\ChitStack.Infrastructure.csproj", "{6D423D65-47B7-466A-B360-FD6AF4682B83}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.infrastructure", "ChitStack.Infrastructure\ChitStack.Infrastructure.csproj", "{6D423D65-47B7-466A-B360-FD6AF4682B83}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ChitStack.Database", "ChitStack.Database", "{FD8B43FB-DE8C-CFFA-8D22-22935EDFD976}"
 EndProject
@@ -21,7 +21,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tenant", "Tenant", "{5C0FC6
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "chitstack.tenant.database", "chitstack.tenant.database\ChitStack.Database.Tenant.sqlproj", "{B2C3D4E5-6789-0123-4567-890123456789}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.global.api", "chitstack.global.api\ChitStack.Global.API.csproj", "{F541F19D-0068-4FCC-8659-8DCC7F3316DD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "chitstack.global.api", "ChitStack.Global.API\ChitStack.Global.API.csproj", "{F541F19D-0068-4FCC-8659-8DCC7F3316DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
