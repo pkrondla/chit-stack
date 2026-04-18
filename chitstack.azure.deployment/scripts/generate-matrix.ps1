@@ -2,6 +2,7 @@ param(
     [ValidateSet("tenant", "global")]
     [string]$Scope = "tenant",
     [string]$Environment = "prod",
+    [string]$GlobalManifestPath = "chitstack.azure.deployment/global.json",
     [string]$ConfigPath = "chitstack.azure.deployment/tenants.json",
     [string]$TenantKeysFilter = ""
 )
@@ -12,12 +13,16 @@ $config = Get-Content -Raw -Path $ConfigPath | ConvertFrom-Json -Depth 32
 $items = @()
 
 if ($Scope -eq "global") {
-    if ($config.global.enabled -eq $true -and $config.global.environments.$Environment.enabled -eq $true) {
+    if (-not (Test-Path $GlobalManifestPath)) {
+        throw "Global manifest not found: $GlobalManifestPath"
+    }
+    $globalManifest = Get-Content -Raw -Path $GlobalManifestPath | ConvertFrom-Json -Depth 32
+    if ($globalManifest.enabled -eq $true -and $globalManifest.environments.$Environment.enabled -eq $true) {
         $items += @{
             scope = "global"
             key = "global"
             environment = $Environment
-            profile = $config.global.profile
+            profile = $globalManifest.profile
         }
     }
 } else {

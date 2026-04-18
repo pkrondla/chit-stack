@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tenantKey:
+        description: Tenant key from chitstack.azure.deployment/tenants.json
         required: true
         type: string
       environment:
@@ -15,32 +16,6 @@ on:
           - uat
           - dev
           - qa
-      profile:
-        required: true
-        default: nonprod-ultra-low
-        type: choice
-        options:
-          - nonprod-ultra-low
-          - prod-min-safe
-      staticWebSkuOverride:
-        required: false
-        default: ""
-      apiPlanSkuOverride:
-        required: false
-        default: ""
-      sqlSkuOverride:
-        required: false
-        default: ""
-      fixedTenantId:
-        description: TenantId used by the tenant API in stamp mode (must match dbo.Tenants row)
-        required: false
-        default: "1"
-        type: string
-      registerInGlobal:
-        description: Upsert tenant row in Global dbo.Tenants after deploy
-        required: false
-        default: true
-        type: boolean
       confirm:
         description: Type DEPLOY to create/update Azure infrastructure
         required: true
@@ -53,29 +28,6 @@ on:
       environment:
         required: true
         type: string
-      profile:
-        required: true
-        type: string
-      staticWebSkuOverride:
-        required: false
-        type: string
-        default: ""
-      apiPlanSkuOverride:
-        required: false
-        type: string
-        default: ""
-      sqlSkuOverride:
-        required: false
-        type: string
-        default: ""
-      fixedTenantId:
-        required: false
-        type: string
-        default: "1"
-      registerInGlobal:
-        required: false
-        type: boolean
-        default: true
       confirm:
         required: true
         type: string
@@ -98,39 +50,199 @@ jobs:
       staticWebSku: ${{ steps.resolve.outputs.staticWebSku }}
       apiPlanSku: ${{ steps.resolve.outputs.apiPlanSku }}
       sqlSku: ${{ steps.resolve.outputs.sqlSku }}
+      fixedTenantId: ${{ steps.resolve.outputs.fixedTenantId }}
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve profile and overrides
+      - name: Resolve tenant settings from tenants.json
         id: resolve
         shell: pwsh
         run: |
           $config = Get-Content -Raw chitstack.azure.deployment/tenants.json | ConvertFrom-Json
-          $profileName = "${{ inputs.profile }}"
+          $tenant = $config.tenants | Where-Object { $_.tenantKey -eq "${{ inputs.tenantKey }}" } | Select-Object -First 1
+          if (-not $tenant) { throw "Tenant '${{ inputs.tenantKey }}' not found in chitstack.azure.deployment/tenants.json." }
+          if ($tenant.enabled -ne $true) { throw "Tenant '${{ inputs.tenantKey }}' is disabled in tenants.json." }
+          $tenantEnv = $tenant.environments.PSObject.Properties["${{ inputs.environment }}"].Value
+          if (-not $tenantEnv -or $tenantEnv.enabled -ne $true) { throw "Tenant '${{ inputs.tenantKey }}' is not enabled for environment '${{ inputs.environment }}'." }
+          if (-not ($tenant.PSObject.Properties.Name -contains 'tenantId') -or -not ($tenant.tenantId -as [int]) -or [int]$tenant.tenantId -le 0) {
+            throw "Tenant '${{ inputs.tenantKey }}' must define a positive integer tenantId in tenants.json."
+          }
+          $profileName = [string]$tenant.profile
           $profile = $config.profiles.PSObject.Properties[$profileName].Value
           if (-not $profile) { throw "Profile '$profileName' not found." }
-          $staticWebSku = if ("${{ inputs.staticWebSkuOverride }}") { "${{ inputs.staticWebSkuOverride }}" } else { $profile.staticWebSku }
-          $apiPlanSku = if ("${{ inputs.apiPlanSkuOverride }}") { "${{ inputs.apiPlanSkuOverride }}" } else { $profile.apiPlanSku }
-          $sqlSku = if ("${{ inputs.sqlSkuOverride }}") { "${{ inputs.sqlSkuOverride }}" } else { $profile.sqlSku }
+          $tenantOverrides = if (($tenant.PSObject.Properties.Name -contains 'overrides') -and $tenant.overrides) { $tenant.overrides } else { $null }
+          $staticWebSku = if ($tenantOverrides -and $tenantOverrides.staticWebSku) { [string]$tenantOverrides.staticWebSku } else { [string]$profile.staticWebSku }
+          $apiPlanSku = if ($tenantOverrides -and $tenantOverrides.apiPlanSku) { [string]$tenantOverrides.apiPlanSku } else { [string]$profile.apiPlanSku }
+          $sqlSku = if ($tenantOverrides -and $tenantOverrides.sqlSku) { [string]$tenantOverrides.sqlSku } else { [string]$profile.sqlSku }
+          $fixedTenantId = [int]$tenant.tenantId
           "staticWebSku=$staticWebSku" >> $env:GITHUB_OUTPUT
           "apiPlanSku=$apiPlanSku" >> $env:GITHUB_OUTPUT
           "sqlSku=$sqlSku" >> $env:GITHUB_OUTPUT
+          "fixedTenantId=$fixedTenantId" >> $env:GITHUB_OUTPUT
 
-  deploy:
+  build:
     needs: resolve-profile
-    uses: ./.github/workflows/deploy-tenant.yml
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Restore and publish Tenant API
+        shell: pwsh
+        run: |
+          dotnet restore chitstack.tenant.api/ChitStack.API.csproj
+          dotnet publish chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
+      - name: Build Tenant DACPAC
+        shell: pwsh
+        run: dotnet build chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj -c Release
+      - name: Build Tenant web
+        shell: pwsh
+        run: |
+          Push-Location chitstack.tenant.web
+          npm ci
+          npm run build
+          Pop-Location
+      - name: Upload Tenant API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-api-package
+          path: artifacts/tenant-api
+      - name: Upload Tenant web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-web-dist
+          path: chitstack.tenant.web/dist
+      - name: Upload Tenant DACPAC artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-dacpac
+          path: chitstack.tenant.database/bin/Release/*.dacpac
+
+  deploy-infra:
+    needs: resolve-profile
+    uses: ./.github/workflows/deploy-infra.yml
     with:
+      confirm: ${{ inputs.confirm }}
+      scope: tenant
       environment: ${{ inputs.environment }}
       tenantKey: ${{ inputs.tenantKey }}
       staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
       apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
       sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
-      fixedTenantId: ${{ inputs.fixedTenantId }}
-      confirm: ${{ inputs.confirm }}
+      resourceGroup: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
     secrets: inherit
 
+  deploy-db-api-web:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - deploy-infra
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Tenant API artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tenant-api-package
+          path: artifacts/tenant-api
+      - name: Download Tenant web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tenant-web-dist
+          path: artifacts/tenant-web
+      - name: Download Tenant DACPAC artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tenant-dacpac
+          path: artifacts/tenant-dacpac
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Install SqlPackage
+        shell: bash
+        run: dotnet tool update --global microsoft.sqlpackage
+      - name: Generate Tenant DB deploy report
+        shell: bash
+        run: |
+          ~/.dotnet/tools/sqlpackage \
+            /Action:DeployReport \
+            /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
+            /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /OutputPath:tenant-${{ inputs.tenantKey }}-deploy-report.xml
+      - name: Publish Tenant DACPAC
+        shell: bash
+        run: |
+          ~/.dotnet/tools/sqlpackage \
+            /Action:Publish \
+            /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
+            /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /p:BlockOnPossibleDataLoss=true
+      - name: Deploy Tenant API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: api-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          package: artifacts/tenant-api
+      - name: Resolve App Insights connection string
+        id: ai
+        shell: bash
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          ENV_NAME: ${{ inputs.environment }}
+          TK: ${{ inputs.tenantKey }}
+        run: |
+          set +e
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chitstack-${ENV_NAME}-${TK}" --query connectionString -o tsv)
+          {
+            echo "connection<<AIEOF"
+            echo "$AI"
+            echo "AIEOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Configure Tenant API app settings
+        shell: pwsh
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+        run: |
+          $ai = "${{ steps.ai.outputs.connection }}"
+          ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
+            -Scope tenant `
+            -Environment "${{ inputs.environment }}" `
+            -TenantKey "${{ inputs.tenantKey }}" `
+            -ResourceGroup $env:RG `
+            -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `
+            -SqlPassword "${{ secrets.SQL_ADMIN_PASSWORD }}" `
+            -AppInsightsConnectionString $ai `
+            -FixedTenantId ${{ needs.resolve-profile.outputs.fixedTenantId }}
+      - name: Deploy Tenant Web
+        shell: bash
+        run: |
+          az extension add --name staticwebapp --upgrade
+          az staticwebapp deploy \
+            --name "web-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
+            --resource-group "rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
+            --source "artifacts/tenant-web" \
+            --env "production"
+      - name: Upload DB deploy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenant-${{ inputs.tenantKey }}-db-deploy-report
+          path: tenant-${{ inputs.tenantKey }}-deploy-report.xml
+
   register-global-tenant:
-    needs: deploy
-    if: ${{ inputs.registerInGlobal }}
+    needs: deploy-db-api-web
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:

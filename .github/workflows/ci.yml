@@ -1,4 +1,4 @@
-name: CI
+name: CI - Build & Validate
 
 on:
   pull_request:

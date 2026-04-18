@@ -28,10 +28,10 @@ if ([string]::IsNullOrWhiteSpace($Subdomain)) {
     $Subdomain = if ($tenant.subdomain) { [string]$tenant.subdomain } else { $TenantKey }
 }
 
-$globalServer = "sql-chit-$Environment-global.database.windows.net"
-$globalDatabase = "sqldb-chit-$Environment-global"
-$tenantServer = "sql-chit-$Environment-$TenantKey.database.windows.net"
-$tenantDatabase = "sqldb-chit-$Environment-$TenantKey"
+$globalServer = "sql-chitstack-$Environment-global.database.windows.net"
+$globalDatabase = "sqldb-chitstack-$Environment-global"
+$tenantServer = "sql-chitstack-$Environment-$TenantKey.database.windows.net"
+$tenantDatabase = "sqldb-chitstack-$Environment-$TenantKey"
 
 $tenantConn = "Server=tcp:$tenantServer,1433;Database=$tenantDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
 

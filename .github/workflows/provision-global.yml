@@ -12,13 +12,6 @@ on:
           - uat
           - dev
           - qa
-      profile:
-        required: true
-        default: nonprod-ultra-low
-        type: choice
-        options:
-          - nonprod-ultra-low
-          - prod-min-safe
       confirm:
         description: Type DEPLOY to create/update Azure infrastructure
         required: true
@@ -26,9 +19,6 @@ on:
   workflow_call:
     inputs:
       environment:
-        required: true
-        type: string
-      profile:
         required: true
         type: string
       confirm:
@@ -55,25 +45,183 @@ jobs:
       sqlSku: ${{ steps.resolve.outputs.sqlSku }}
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve profile values
+      - name: Resolve global stamp settings from manifests
         id: resolve
         shell: pwsh
         run: |
+          $global = Get-Content -Raw chitstack.azure.deployment/global.json | ConvertFrom-Json
           $config = Get-Content -Raw chitstack.azure.deployment/tenants.json | ConvertFrom-Json
-          $profileName = "${{ inputs.profile }}"
+          if ($global.enabled -ne $true) { throw "Global stamp is disabled in chitstack.azure.deployment/global.json." }
+          $envKey = "${{ inputs.environment }}"
+          $ge = $global.environments.PSObject.Properties[$envKey].Value
+          if (-not $ge -or $ge.enabled -ne $true) { throw "Environment '$envKey' is not enabled for global in global.json." }
+          $profileName = [string]$global.profile
           $profile = $config.profiles.PSObject.Properties[$profileName].Value
-          if (-not $profile) { throw "Profile '$profileName' not found." }
-          "staticWebSku=$($profile.staticWebSku)" >> $env:GITHUB_OUTPUT
-          "apiPlanSku=$($profile.apiPlanSku)" >> $env:GITHUB_OUTPUT
-          "sqlSku=$($profile.sqlSku)" >> $env:GITHUB_OUTPUT
+          if (-not $profile) { throw "Profile '$profileName' not found in tenants.json." }
+          $overrides = if (($global.PSObject.Properties.Name -contains 'overrides') -and $global.overrides) { $global.overrides } else { $null }
+          $staticWebSku = if ($overrides -and $overrides.staticWebSku) { [string]$overrides.staticWebSku } else { [string]$profile.staticWebSku }
+          $apiPlanSku = if ($overrides -and $overrides.apiPlanSku) { [string]$overrides.apiPlanSku } else { [string]$profile.apiPlanSku }
+          $sqlSku = if ($overrides -and $overrides.sqlSku) { [string]$overrides.sqlSku } else { [string]$profile.sqlSku }
+          "staticWebSku=$staticWebSku" >> $env:GITHUB_OUTPUT
+          "apiPlanSku=$apiPlanSku" >> $env:GITHUB_OUTPUT
+          "sqlSku=$sqlSku" >> $env:GITHUB_OUTPUT
 
-  deploy:
+  build:
     needs: resolve-profile
-    uses: ./.github/workflows/deploy-global.yml
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Restore and publish Global API
+        shell: pwsh
+        run: |
+          dotnet restore ChitStack.Global.API/ChitStack.Global.API.csproj
+          dotnet publish ChitStack.Global.API/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
+      - name: Build Global DACPAC
+        shell: pwsh
+        run: dotnet build chitstack.global.database/ChitStack.Database.Global.sqlproj -c Release
+      - name: Build Global web
+        shell: pwsh
+        run: |
+          Push-Location chitstack.global.web
+          npm ci
+          npm run build
+          Pop-Location
+      - name: Upload Global API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-api-package
+          path: artifacts/global-api
+      - name: Upload Global web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-web-dist
+          path: chitstack.global.web/dist
+      - name: Upload Global DACPAC artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-dacpac
+          path: chitstack.global.database/bin/Release/*.dacpac
+
+  deploy-infra:
+    needs: resolve-profile
+    uses: ./.github/workflows/deploy-infra.yml
     with:
+      confirm: ${{ inputs.confirm }}
+      scope: global
       environment: ${{ inputs.environment }}
+      tenantKey: global
       staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
       apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
       sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
-      confirm: ${{ inputs.confirm }}
+      resourceGroup: rg-chitstack-${{ inputs.environment }}-global
     secrets: inherit
+
+  deploy-db-api-web:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - deploy-infra
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Global API artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: global-api-package
+          path: artifacts/global-api
+      - name: Download Global web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: global-web-dist
+          path: artifacts/global-web
+      - name: Download Global DACPAC artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: global-dacpac
+          path: artifacts/global-dacpac
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Install SqlPackage
+        shell: bash
+        run: dotnet tool update --global microsoft.sqlpackage
+      - name: Generate Global DB deploy report
+        shell: bash
+        run: |
+          ~/.dotnet/tools/sqlpackage \
+            /Action:DeployReport \
+            /SourceFile:artifacts/global-dacpac/ChitStack.Database.Global.dacpac \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-global.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-global \
+            /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
+            /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /OutputPath:global-deploy-report.xml
+      - name: Publish Global DACPAC
+        shell: bash
+        run: |
+          ~/.dotnet/tools/sqlpackage \
+            /Action:Publish \
+            /SourceFile:artifacts/global-dacpac/ChitStack.Database.Global.dacpac \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-global.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-global \
+            /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
+            /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /p:BlockOnPossibleDataLoss=true
+      - name: Deploy Global API
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: api-chitstack-${{ inputs.environment }}-global
+          package: artifacts/global-api
+      - name: Resolve App Insights connection string
+        id: ai
+        shell: bash
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-global
+          ENV_NAME: ${{ inputs.environment }}
+        run: |
+          set +e
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chitstack-${ENV_NAME}-global" --query connectionString -o tsv)
+          {
+            echo "connection<<AIEOF"
+            echo "$AI"
+            echo "AIEOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Configure Global API app settings
+        shell: pwsh
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-global
+        run: |
+          $ai = "${{ steps.ai.outputs.connection }}"
+          ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
+            -Scope global `
+            -Environment "${{ inputs.environment }}" `
+            -TenantKey global `
+            -ResourceGroup $env:RG `
+            -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `
+            -SqlPassword "${{ secrets.SQL_ADMIN_PASSWORD }}" `
+            -AppInsightsConnectionString $ai
+      - name: Deploy Global Web
+        shell: bash
+        run: |
+          az extension add --name staticwebapp --upgrade
+          az staticwebapp deploy \
+            --name "web-chitstack-${{ inputs.environment }}-global" \
+            --resource-group "rg-chitstack-${{ inputs.environment }}-global" \
+            --source "artifacts/global-web" \
+            --env "production"
+      - name: Upload DB deploy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-db-deploy-report
+          path: global-deploy-report.xml

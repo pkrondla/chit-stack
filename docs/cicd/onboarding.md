@@ -4,7 +4,7 @@
 Provision a new tenant with isolated web, API, and Azure SQL resources in `prod` by default.
 
 ## Prerequisites
-- Tenant entry exists in `chitstack.azure.deployment/tenants.json` (or control plane after migration).
+- Global stamp entry exists in `chitstack.azure.deployment/global.json` and tenant rows exist in `chitstack.azure.deployment/tenants.json` (or control plane after migration).
 - GitHub environment secrets are configured for Azure OIDC and SQL admin credentials.
 - SKU policy validation passes in CI.
 
@@ -13,14 +13,13 @@ Provision a new tenant with isolated web, API, and Azure SQL resources in `prod`
 2. Run `provision-tenant.yml` with:
    - `tenantKey`
    - `environment=prod`
-   - `profile=nonprod-ultra-low` (or override)
-   - `fixedTenantId` aligned with the tenant database row (defaults to `1` when a single tenant row exists)
-   - `registerInGlobal` left enabled to upsert `dbo.Tenants` in the Global database
+   - `confirm=DEPLOY`
+   SKUs, `tenantId`, and profile come from `tenants.json`; the workflow always registers the tenant in the Global database after deploy.
 3. Verify resources:
    - `rg-chitstack-prod-{tenantKey}`
-   - `api-chit-prod-{tenantKey}`
-   - `web-chit-prod-{tenantKey}`
-   - `sqldb-chit-prod-{tenantKey}`
+   - `api-chitstack-prod-{tenantKey}`
+   - `web-chitstack-prod-{tenantKey}`
+   - `sqldb-chitstack-prod-{tenantKey}`
 4. Confirm API health endpoint and baseline DB connectivity.
 5. Record onboarding result in deployment history.
 

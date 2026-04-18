@@ -21,13 +21,6 @@ on:
       tenantKey:
         required: false
         default: ""
-      profile:
-        required: true
-        default: nonprod-ultra-low
-        type: choice
-        options:
-          - nonprod-ultra-low
-          - prod-min-safe
       confirm:
         description: Type DEPLOY to create/update Azure infrastructure
         required: true
@@ -51,7 +44,6 @@ jobs:
     uses: ./.github/workflows/provision-global.yml
     with:
       environment: ${{ inputs.environment }}
-      profile: ${{ inputs.profile }}
       confirm: ${{ inputs.confirm }}
     secrets: inherit
 
@@ -62,6 +54,5 @@ jobs:
     with:
       tenantKey: ${{ inputs.tenantKey }}
       environment: ${{ inputs.environment }}
-      profile: ${{ inputs.profile }}
       confirm: ${{ inputs.confirm }}
     secrets: inherit

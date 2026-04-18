@@ -16,29 +16,10 @@
       "sqlSku": "Basic"
     }
   },
-  "global": {
-    "enabled": true,
-    "profile": "nonprod-ultra-low",
-    "resourcePrefix": "global",
-    "environments": {
-      "prod": {
-        "enabled": true
-      },
-      "dev": {
-        "enabled": false
-      },
-      "uat": {
-        "enabled": false
-      },
-      "qa": {
-        "enabled": false
-      }
-    },
-    "overrides": {}
-  },
   "tenants": [
     {
       "tenantKey": "tenant1",
+      "tenantId": 1,
       "displayName": "Tenant One",
       "subdomain": "tenant1",
       "enabled": true,

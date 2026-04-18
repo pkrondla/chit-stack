@@ -12,8 +12,8 @@
 - [ ] No spike in error rates
 - [ ] Deployment logs archived
 
-## Tenant batch rollout checklist
+## Multi-tenant rollout checklist (manual)
 - [ ] Global deployed first
-- [ ] Batch size matches environment policy
+- [ ] Each tenant deployed via **Provision Tenant** with the correct `tenantKey`
 - [ ] Failed tenants captured for rerun
 - [ ] No blocked tenant left unreported
