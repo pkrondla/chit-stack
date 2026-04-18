@@ -24,7 +24,7 @@ const { Title, Text } = Typography;
 const AgentRoute = () => {
     const navigate = useNavigate();
 
-    const { data: routeMembers = [], isLoading, error } = useQuery({
+    const { data: routeMembers = [], isLoading } = useQuery({
         queryKey: ['agent-route-map'],
         queryFn: async () => {
             const res = await api.get('/Collections/route-members');

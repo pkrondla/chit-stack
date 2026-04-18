@@ -25,7 +25,7 @@ const LiveAuction = () => {
     const user = useAuthStore(state => state.user);
     const { message } = App.useApp();
 
-    const [connection, setConnection] = useState(null);
+    const [, setConnection] = useState(null);
     const [bids, setBids] = useState([]);
     const [currentBid, setCurrentBid] = useState(0);
     const [inputBid, setInputBid] = useState('');
@@ -189,7 +189,6 @@ const LiveAuction = () => {
                 }
                 setIsTenantTtsEnabled(settings?.liveRoomTtsEnabled ?? false);
                 setPreferredVoiceLanguage(settings?.preferredAuctionVoiceLanguage || 'en');
-                const tenantEnabled = settings?.liveRoomTtsEnabled ?? false;
                 // Start OFF; user must click icon to enable/unlock.
                 setIsVoiceEnabled(false);
             }
@@ -332,7 +331,7 @@ const LiveAuction = () => {
                     setParticipants(p => p + 1);
                 });
 
-                newConnection.on("UserLeft", (ticketId, memberName) => {
+                newConnection.on("UserLeft", (ticketId, _memberName) => {
                     if (ticketId) {
                         setOnlineUsers(prev => {
                             const next = new Map(prev);

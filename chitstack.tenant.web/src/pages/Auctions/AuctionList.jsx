@@ -57,7 +57,7 @@ const Auctions = () => {
         }
     });
 
-    const { data: auctions = [], isLoading, isError, refetch } = useQuery({
+    const { data: auctions = [], isLoading, isError } = useQuery({
         queryKey: ['auctions', searchParams],
         queryFn: async () => {
             const params = {

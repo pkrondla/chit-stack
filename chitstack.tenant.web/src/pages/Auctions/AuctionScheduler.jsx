@@ -111,7 +111,7 @@ const AuctionScheduler = () => {
     });
 
     // Auto-generate preview
-    const getClashInfo = (date, time, groupTitle) => {
+    const getClashInfo = (date, time, _groupTitle) => {
         if (!date || !time) return null;
         const targetDateTime = dayjs(`${date} ${time}`, 'YYYY-MM-DD HH:mm');
 

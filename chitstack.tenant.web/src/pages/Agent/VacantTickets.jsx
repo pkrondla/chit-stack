@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Typography, List, Button, Tag, Spin, Modal, Form, Select, App, Input, Space } from 'antd';
 import { Users, UserPlus, Info, CheckCircle, Search, IndianRupee, Gavel } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 
 const { Title, Text } = Typography;
 
 const VacantTickets = () => {
-    const navigate = useNavigate();
-    const { message, modal } = App.useApp();
+    const { message } = App.useApp();
     const queryClient = useQueryClient();
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [form] = Form.useForm();

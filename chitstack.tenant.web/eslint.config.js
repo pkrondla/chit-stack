@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'dev-dist']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -23,7 +23,18 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern: '^[A-Z_]',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'none',
+        },
+      ],
+      // New in eslint-plugin-react-hooks 7.1; flags routine fetch-on-mount patterns.
+      'react-hooks/set-state-in-effect': 'off',
+      // Flags valid patterns where callbacks close over later `const` declarations.
+      'react-hooks/immutability': 'off',
     },
   },
 ])

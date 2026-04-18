@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Typography, Button, Tag, Space, Spin, message, Modal, Table, Dropdown } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Typography, Button, Tag, Space, Spin, Modal, Table, Dropdown } from 'antd';
 import { Plus, Users, Play, FileText, Gavel, Edit, MoreVertical, CalendarClock } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
@@ -11,7 +11,6 @@ const { Title, Text } = Typography;
 
 const Groups = () => {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const [launchingGroup, setLaunchingGroup] = useState(null);
 
     const { data: groups = [], isLoading } = useQuery({

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Typography, Row, Col, Button, List, Tag, Spin, App } from 'antd';
+import { Card, Typography, Row, Col, Button, List, Tag, Spin } from 'antd';
 import { MapPin, Users, IndianRupee, ChevronRight, UserPlus, CheckCircle2, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
@@ -12,7 +12,6 @@ const { Title, Text } = Typography;
 const AgentDashboard = () => {
     const navigate = useNavigate();
     const user = useAuthStore(state => state.user);
-    const { message } = App.useApp();
 
     // Heartbeat: Send location every 1 minute
     useEffect(() => {

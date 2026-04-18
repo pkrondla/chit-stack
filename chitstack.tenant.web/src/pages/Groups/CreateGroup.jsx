@@ -40,7 +40,7 @@ const CreateGroup = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [form] = Form.useForm();
-    const [scheduleMode, setScheduleMode] = useState('FixedDay');
+    const [, setScheduleMode] = useState('FixedDay');
 
     const createMutation = useMutation({
         mutationFn: async (payload) => {

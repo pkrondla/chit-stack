@@ -7,8 +7,7 @@ import api from '../../api/axios';
 const { Title, Text, Paragraph } = Typography;
 
 const NotificationSettings = () => {
-    const [userSettings, setUserSettings] = useState(null);
-    const [adminConfig, setAdminConfig] = useState(null);
+    const [, setUserSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const user = useAuthStore(state => state.user);
@@ -23,7 +22,6 @@ const NotificationSettings = () => {
 
             if (isAdmin) {
                 const adminRes = await api.get('/adminnotification/config');
-                setAdminConfig(adminRes.data);
                 adminForm.setFieldsValue(adminRes.data);
             }
         } catch (err) {
@@ -37,17 +35,6 @@ const NotificationSettings = () => {
         fetchData();
     }, []);
 
-    const handleUserToggle = async (field, value) => {
-        try {
-            const updated = { ...userSettings, [field]: value };
-            await api.put('/notification/settings', updated);
-            setUserSettings(updated);
-            message.success('Preferences updated');
-        } catch (err) {
-            message.error('Failed to update preferences');
-        }
-    };
-
     const onAdminSubmit = async (values) => {
         try {
             setSaving(true);
@@ -57,15 +44,6 @@ const NotificationSettings = () => {
             message.error('Failed to save configuration');
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleSaveTemplate = async (template) => {
-        try {
-            await api.put(`/adminnotification/templates/${template.id}`, template);
-            message.success(`${template.name} template updated!`);
-        } catch (err) {
-            message.error('Failed to update template');
         }
     };
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import dayjs from 'dayjs';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Card, Typography, Button, Form, Input, Select, InputNumber, App, Divider, Space, Tabs, Table, Tag, Alert } from 'antd';
 import { Printer, CheckCircle, Calculator, Users, LayoutList, Info, Clock, Timer } from 'lucide-react';
 import api from '../../api/axios';
@@ -11,7 +11,6 @@ const { Title, Text } = Typography;
 const CollectionEntry = () => {
     const { message } = App.useApp();
     const [form] = Form.useForm();
-    const queryClient = useQueryClient();
 
     // UI State
     const [duesInfo, setDuesInfo] = useState(null);
@@ -46,12 +45,6 @@ const CollectionEntry = () => {
             return res.data?.data || res.data;
         },
         enabled: !!selectedGroup
-    });
-
-    const calcMutation = useMutation({
-        mutationFn: async () => await api.post('/Finance/calc-penalties'),
-        onSuccess: () => message.success('Penalties Updated Successfully'),
-        onError: () => message.error('Failed to calculate penalties')
     });
 
     const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery({
@@ -276,7 +269,7 @@ const CollectionEntry = () => {
                                 size="large"
                                 placeholder="0.00"
                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                parser={value => value?.replace(/₹\s?|(,*)/g, '')}
                             />
                         </Form.Item>
 

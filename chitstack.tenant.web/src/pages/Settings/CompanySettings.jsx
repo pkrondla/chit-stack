@@ -13,7 +13,7 @@ const CompanySettings = () => {
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
 
-    const { data: settings, isLoading } = useQuery({
+    const { data: settings } = useQuery({
         queryKey: ['tenant-settings'],
         queryFn: fetchSettings,
     });

@@ -42,7 +42,7 @@ const EditGroup = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [form] = Form.useForm();
-    const [scheduleMode, setScheduleMode] = useState('FixedDay');
+    const [, setScheduleMode] = useState('FixedDay');
 
     const { data: group, isLoading } = useQuery({
         queryKey: ['group', id],

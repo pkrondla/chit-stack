@@ -11,7 +11,7 @@ const { Title, Text } = Typography;
 
 const RouteSummary = () => {
     const navigate = useNavigate();
-    const { message, modal } = App.useApp();
+    const { message } = App.useApp();
     const queryClient = useQueryClient();
     const user = useAuthStore(state => state.user);
 

@@ -138,7 +138,7 @@ const FinancialReports = () => {
         enabled: activeTab === 'ProfitLoss'
     });
 
-    const { data: trialBalance, isFetching: isLoadingTB } = useQuery({
+    const { data: trialBalance } = useQuery({
         queryKey: ['trial-balance', dayBookDates?.[1]?.format('YYYY-MM-DD'), selectedBranch],
         queryFn: async () => {
             if (!dayBookDates?.[1]) return null;

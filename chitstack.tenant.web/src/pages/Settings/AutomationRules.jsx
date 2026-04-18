@@ -7,7 +7,7 @@ import { semanticColors } from '../../theme/tokens';
 const { Title, Text, Paragraph } = Typography;
 
 const AutomationRules = () => {
-    const [config, setConfig] = useState(null);
+    const [, setConfig] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [form] = Form.useForm();

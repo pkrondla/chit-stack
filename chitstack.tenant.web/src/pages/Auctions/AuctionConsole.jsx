@@ -796,7 +796,7 @@ const AuctionConsole = () => {
                                                                         onChange={(val) => setQuickBids(prev => ({ ...prev, [person.ticketId]: val }))}
                                                                         onPressEnter={() => handleQuickBid(person.ticketId, quickBids[person.ticketId])}
                                                                         formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                        parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                                                        parser={value => value?.replace(/₹\s?|(,*)/g, '')}
                                                                     />
                                                                     <Button
                                                                         type="primary"
@@ -921,7 +921,7 @@ const AuctionConsole = () => {
                                                                     }
                                                                 }}
                                                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={value => value?.replace(/\₹\s?|(,*)/g, '')}
+                                                                parser={value => value?.replace(/₹\s?|(,*)/g, '')}
                                                             />
                                                         </Form.Item>
                                                     </div>

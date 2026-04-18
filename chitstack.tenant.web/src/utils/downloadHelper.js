@@ -1,5 +1,3 @@
-import api from '../api/axios';
-
 export const downloadFile = (url) => {
     const token = localStorage.getItem('token');
     if (!token) {
