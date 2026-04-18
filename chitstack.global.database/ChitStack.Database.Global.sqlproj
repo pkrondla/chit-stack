@@ -54,4 +54,11 @@
     <None Include="Versioned\*.sql" />
     <PostDeploy Include="PostDeploy.sql" />
   </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">17.0</VisualStudioVersion>
+    <SSDTPath Condition="'$(SSDTPath)' == ''">$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT</SSDTPath>
+  </PropertyGroup>
+  <Import Condition="'$(SQLDBExtensionsRefPath)' != ''" Project="$(SQLDBExtensionsRefPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="Exists('$(SSDTPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets')" Project="$(SSDTPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
+  <Import Condition="!Exists('$(SSDTPath)\Microsoft.Data.Tools.Schema.SqlTasks.targets') and Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v11.0\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v11.0\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
 </Project>
