@@ -10,10 +10,10 @@ $ErrorActionPreference = "Stop"
 
 if ($Scope -eq "global") {
     $TenantKey = "global"
-    $resourceGroup = "rg-$Prefix-$Environment-global-global"
+    $resourceGroup = "rg-$Prefix-$Environment-global"
 }
 else {
-    $resourceGroup = "rg-$Prefix-$Environment-tenant-$TenantKey"
+    $resourceGroup = "rg-$Prefix-$Environment-$TenantKey"
 }
 
 $suffix = "$Environment-$TenantKey"

@@ -112,7 +112,7 @@ jobs:
       staticWebSku: ${{ inputs.staticWebSku }}
       apiPlanSku: ${{ inputs.apiPlanSku }}
       sqlSku: ${{ inputs.sqlSku }}
-      resourceGroup: rg-chit-${{ inputs.environment }}-global-global
+      resourceGroup: rg-chitstack-${{ inputs.environment }}-global
     secrets: inherit
 
   deploy-db-api-web:
@@ -153,8 +153,8 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:DeployReport \
             /SourceFile:artifacts/global-dacpac/ChitStack.Database.Global.dacpac \
-            /TargetServerName:sql-chit-${{ inputs.environment }}-global.database.windows.net \
-            /TargetDatabaseName:sqldb-chit-${{ inputs.environment }}-global \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-global.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-global \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /OutputPath:global-deploy-report.xml
@@ -164,25 +164,25 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:Publish \
             /SourceFile:artifacts/global-dacpac/ChitStack.Database.Global.dacpac \
-            /TargetServerName:sql-chit-${{ inputs.environment }}-global.database.windows.net \
-            /TargetDatabaseName:sqldb-chit-${{ inputs.environment }}-global \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-global.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-global \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /p:BlockOnPossibleDataLoss=true
       - name: Deploy Global API
         uses: azure/webapps-deploy@v3
         with:
-          app-name: api-chit-${{ inputs.environment }}-global
+          app-name: api-chitstack-${{ inputs.environment }}-global
           package: artifacts/global-api
       - name: Resolve App Insights connection string
         id: ai
         shell: bash
         env:
-          RG: rg-chit-${{ inputs.environment }}-global-global
+          RG: rg-chitstack-${{ inputs.environment }}-global
           ENV_NAME: ${{ inputs.environment }}
         run: |
           set +e
-          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chit-${ENV_NAME}-global" --query connectionString -o tsv)
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chitstack-${ENV_NAME}-global" --query connectionString -o tsv)
           {
             echo "connection<<AIEOF"
             echo "$AI"
@@ -191,7 +191,7 @@ jobs:
       - name: Configure Global API app settings
         shell: pwsh
         env:
-          RG: rg-chit-${{ inputs.environment }}-global-global
+          RG: rg-chitstack-${{ inputs.environment }}-global
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
           ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
@@ -207,8 +207,8 @@ jobs:
         run: |
           az extension add --name staticwebapp --upgrade
           az staticwebapp deploy \
-            --name "web-chit-${{ inputs.environment }}-global" \
-            --resource-group "rg-chit-${{ inputs.environment }}-global-global" \
+            --name "web-chitstack-${{ inputs.environment }}-global" \
+            --resource-group "rg-chitstack-${{ inputs.environment }}-global" \
             --source "artifacts/global-web" \
             --env "production"
       - name: Upload DB deploy report
@@ -216,3 +216,4 @@ jobs:
         with:
           name: global-db-deploy-report
           path: global-deploy-report.xml
+

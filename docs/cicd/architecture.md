@@ -21,8 +21,8 @@ Profile values are defined in `chitstack.azure.deployment/tenants.json` and enfo
 - Optional drift gate: if `chitstack.azure.deployment/tenants.control-plane.json` exists, CI validates that enabled tenant keys match the manifest exactly (`validate-deployment-sources.ps1`).
 
 ## Resource groups (plan naming)
-- Global stamp: `rg-chit-{environment}-global-global`
-- Tenant stamp: `rg-chit-{environment}-tenant-{tenantKey}`
+- Global stamp: `rg-chitstack-{environment}-global`
+- Tenant stamp: `rg-chitstack-{environment}-{tenantKey}`
 
 Compute and database names inside a stamp remain `api-chit-{environment}-global`, `sql-chit-{environment}-{tenantKey}`, etc.
 

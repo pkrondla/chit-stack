@@ -17,7 +17,7 @@ Provision a new tenant with isolated web, API, and Azure SQL resources in `prod`
    - `fixedTenantId` aligned with the tenant database row (defaults to `1` when a single tenant row exists)
    - `registerInGlobal` left enabled to upsert `dbo.Tenants` in the Global database
 3. Verify resources:
-   - `rg-chit-prod-tenant-{tenantKey}`
+   - `rg-chitstack-prod-{tenantKey}`
    - `api-chit-prod-{tenantKey}`
    - `web-chit-prod-{tenantKey}`
    - `sqldb-chit-prod-{tenantKey}`

@@ -122,7 +122,7 @@ jobs:
       staticWebSku: ${{ inputs.staticWebSku }}
       apiPlanSku: ${{ inputs.apiPlanSku }}
       sqlSku: ${{ inputs.sqlSku }}
-      resourceGroup: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
+      resourceGroup: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
     secrets: inherit
 
   deploy-db-api-web:
@@ -163,8 +163,8 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:DeployReport \
             /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
-            /TargetServerName:sql-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
-            /TargetDatabaseName:sqldb-chit-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }} \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /OutputPath:tenant-${{ inputs.tenantKey }}-deploy-report.xml
@@ -174,26 +174,26 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:Publish \
             /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
-            /TargetServerName:sql-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
-            /TargetDatabaseName:sqldb-chit-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetServerName:sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
+            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }} \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /p:BlockOnPossibleDataLoss=true
       - name: Deploy Tenant API
         uses: azure/webapps-deploy@v3
         with:
-          app-name: api-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          app-name: api-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
           package: artifacts/tenant-api
       - name: Resolve App Insights connection string
         id: ai
         shell: bash
         env:
-          RG: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
+          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
           ENV_NAME: ${{ inputs.environment }}
           TK: ${{ inputs.tenantKey }}
         run: |
           set +e
-          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chit-${ENV_NAME}-${TK}" --query connectionString -o tsv)
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chitstack-${ENV_NAME}-${TK}" --query connectionString -o tsv)
           {
             echo "connection<<AIEOF"
             echo "$AI"
@@ -202,7 +202,7 @@ jobs:
       - name: Configure Tenant API app settings
         shell: pwsh
         env:
-          RG: rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}
+          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
           ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
@@ -219,8 +219,8 @@ jobs:
         run: |
           az extension add --name staticwebapp --upgrade
           az staticwebapp deploy \
-            --name "web-chit-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
-            --resource-group "rg-chit-${{ inputs.environment }}-tenant-${{ inputs.tenantKey }}" \
+            --name "web-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
+            --resource-group "rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
             --source "artifacts/tenant-web" \
             --env "production"
       - name: Upload DB deploy report
@@ -228,3 +228,4 @@ jobs:
         with:
           name: tenant-${{ inputs.tenantKey }}-db-deploy-report
           path: tenant-${{ inputs.tenantKey }}-deploy-report.xml
+
