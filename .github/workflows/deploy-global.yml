@@ -78,7 +78,7 @@ jobs:
           dotnet publish ChitStack.Global.API/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
       - name: Build Global DACPAC
         shell: pwsh
-        run: msbuild chitstack.global.database/ChitStack.Database.Global.sqlproj /p:Configuration=Release
+        run: dotnet build chitstack.global.database/ChitStack.Database.Global.sqlproj -c Release
       - name: Build Global web
         shell: pwsh
         run: |

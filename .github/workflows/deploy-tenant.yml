@@ -88,7 +88,7 @@ jobs:
           dotnet publish chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
       - name: Build Tenant DACPAC
         shell: pwsh
-        run: msbuild chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj /p:Configuration=Release
+        run: dotnet build chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj -c Release
       - name: Build Tenant web
         shell: pwsh
         run: |
