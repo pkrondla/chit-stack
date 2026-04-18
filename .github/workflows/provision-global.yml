@@ -1,4 +1,4 @@
-name: Provision Global Stamp
+name: CD - Provision Global
 
 on:
   workflow_dispatch:

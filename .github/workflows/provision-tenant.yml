@@ -1,4 +1,4 @@
-name: Provision Tenant
+name: CD - Provision Tenant
 
 on:
   workflow_dispatch:

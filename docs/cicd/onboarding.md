@@ -27,4 +27,4 @@ Provision a new tenant with isolated web, API, and Azure SQL resources in `prod`
 If you maintain a snapshot at `chitstack.azure.deployment/tenants.control-plane.json`, CI enforces that enabled tenant keys match `chitstack.azure.deployment/tenants.json` exactly.
 
 ## Optional non-prod environments
-Use `provision-environment.yml` to add `dev`, `uat`, or `qa` for selected tenants on demand.
+Use `provision-tenant.yml` with `environment=dev|uat|qa` to add non-prod environments for selected tenants on demand.
