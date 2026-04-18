@@ -41,6 +41,10 @@ on:
         required: false
         default: true
         type: boolean
+      confirm:
+        description: Type DEPLOY to create/update Azure infrastructure
+        required: true
+        type: string
   workflow_call:
     inputs:
       tenantKey:
@@ -72,6 +76,9 @@ on:
         required: false
         type: boolean
         default: true
+      confirm:
+        required: true
+        type: string
     secrets:
       AZURE_CLIENT_ID:
         required: true
@@ -118,6 +125,7 @@ jobs:
       apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
       sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
       fixedTenantId: ${{ inputs.fixedTenantId }}
+      confirm: ${{ inputs.confirm }}
     secrets: inherit
 
   register-global-tenant:

@@ -3,6 +3,10 @@ name: Deploy Infrastructure
 on:
   workflow_call:
     inputs:
+      confirm:
+        description: Must be exactly DEPLOY to create/update Azure resources
+        required: true
+        type: string
       scope:
         required: true
         type: string
@@ -46,6 +50,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
+      - name: Confirm infrastructure deployment
+        shell: bash
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "DEPLOY" ]; then
+            echo "Refusing infra deploy: set confirm to exactly DEPLOY (got: '$CONFIRM')."
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - name: Azure Login (OIDC)
         uses: azure/login@v2

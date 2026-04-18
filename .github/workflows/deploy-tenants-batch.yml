@@ -40,6 +40,10 @@ on:
         description: SQL SKU to enforce for this rollout
         required: true
         default: Basic
+      confirm:
+        description: Type DEPLOY to create/update Azure infrastructure for each tenant
+        required: true
+        type: string
 
 jobs:
   build-matrix:
@@ -84,4 +88,5 @@ jobs:
       apiPlanSku: ${{ inputs.apiPlanSku }}
       sqlSku: ${{ inputs.sqlSku }}
       fixedTenantId: ${{ inputs.fixedTenantId }}
+      confirm: ${{ inputs.confirm }}
     secrets: inherit

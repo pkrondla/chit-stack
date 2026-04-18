@@ -22,6 +22,10 @@ on:
         options:
           - nonprod-ultra-low
           - prod-min-safe
+      confirm:
+        description: Type DEPLOY to create/update Azure infrastructure
+        required: true
+        type: string
 
 jobs:
   upgrade:
@@ -30,4 +34,5 @@ jobs:
       tenantKey: ${{ inputs.tenantKey }}
       environment: ${{ inputs.environment }}
       profile: ${{ inputs.targetProfile }}
+      confirm: ${{ inputs.confirm }}
     secrets: inherit

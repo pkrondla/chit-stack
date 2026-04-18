@@ -19,12 +19,19 @@ on:
         options:
           - nonprod-ultra-low
           - prod-min-safe
+      confirm:
+        description: Type DEPLOY to create/update Azure infrastructure
+        required: true
+        type: string
   workflow_call:
     inputs:
       environment:
         required: true
         type: string
       profile:
+        required: true
+        type: string
+      confirm:
         required: true
         type: string
     secrets:
@@ -68,4 +75,5 @@ jobs:
       staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
       apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
       sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
+      confirm: ${{ inputs.confirm }}
     secrets: inherit

@@ -25,6 +25,38 @@ on:
         description: SQL SKU
         required: true
         default: Basic
+      confirm:
+        description: Type DEPLOY to create/update Azure infrastructure
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      staticWebSku:
+        required: true
+        type: string
+      apiPlanSku:
+        required: true
+        type: string
+      sqlSku:
+        required: true
+        type: string
+      confirm:
+        required: true
+        type: string
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      SQL_ADMIN_LOGIN:
+        required: true
+      SQL_ADMIN_PASSWORD:
+        required: true
 
 jobs:
   build:
@@ -42,8 +74,8 @@ jobs:
       - name: Restore and publish Global API
         shell: pwsh
         run: |
-          dotnet restore chitstack.global.api/ChitStack.Global.API.csproj
-          dotnet publish chitstack.global.api/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
+          dotnet restore ChitStack.Global.API/ChitStack.Global.API.csproj
+          dotnet publish ChitStack.Global.API/ChitStack.Global.API.csproj -c Release -o artifacts/global-api
       - name: Build Global DACPAC
         shell: pwsh
         run: msbuild chitstack.global.database/ChitStack.Database.Global.sqlproj /p:Configuration=Release
@@ -73,6 +105,7 @@ jobs:
   deploy-infra:
     uses: ./.github/workflows/deploy-infra.yml
     with:
+      confirm: ${{ inputs.confirm }}
       scope: global
       environment: ${{ inputs.environment }}
       tenantKey: global
