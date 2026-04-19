@@ -3,7 +3,7 @@ param(
     [string]$Scope,
     [string]$Environment = "prod",
     [string]$TenantKey = "global",
-    [string]$Prefix = "chit"
+    [string]$Prefix = "chitstack"
 )
 
 $ErrorActionPreference = "Stop"

@@ -14,7 +14,8 @@ param(
     [string]$SqlPassword,
     [string]$AppInsightsConnectionString = "",
     [int]$FixedTenantId = 1,
-    [bool]$EnableFixedTenant = $true
+    [bool]$EnableFixedTenant = $true,
+    [string]$ResourcePrefix = "chitstack"
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,8 +38,8 @@ if ($Scope -eq "global") {
     $settings["SeedOnStartup"] = "false"
 }
 else {
-    $tenantServer = "sql-chit-$Environment-$TenantKey.database.windows.net"
-    $tenantDatabase = "sqldb-chit-$Environment-$TenantKey"
+    $tenantServer = "$($names.sqlServerName).database.windows.net"
+    $tenantDatabase = $names.sqlDatabaseName
     $tenantConn = "Server=tcp:$tenantServer,1433;Database=$tenantDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
     $settings["ConnectionStrings__GlobalDBConnection"] = $globalConn
     $settings["ConnectionStrings__TenantDBConnection"] = $tenantConn

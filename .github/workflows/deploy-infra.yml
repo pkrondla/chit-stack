@@ -29,6 +29,11 @@ on:
       resourceGroup:
         required: true
         type: string
+      resourcePrefix:
+        description: Name prefix for Azure resources (must match CD workflow hostnames, e.g. sql-{prefix}-...)
+        required: false
+        type: string
+        default: chitstack
       location:
         required: false
         type: string
@@ -86,6 +91,7 @@ jobs:
               scope="${{ inputs.scope }}" \
               environment="${{ inputs.environment }}" \
               tenantKey="${{ inputs.tenantKey }}" \
+              resourcePrefix="${{ inputs.resourcePrefix }}" \
               location="${{ inputs.location }}" \
               staticWebAppLocation="${{ inputs.staticWebAppLocation }}" \
               staticWebSku="${{ inputs.staticWebSku }}" \

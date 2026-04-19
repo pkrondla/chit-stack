@@ -11,7 +11,7 @@ param location string = resourceGroup().location
 param staticWebAppLocation string = 'eastasia'
 param environment string = 'prod'
 param tenantKey string = 'global'
-param resourcePrefix string = 'chit'
+param resourcePrefix string = 'chitstack'
 param staticWebSku string
 param apiPlanSku string
 param sqlSku string
