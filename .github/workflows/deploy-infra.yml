@@ -63,7 +63,7 @@ jobs:
             echo "Refusing infra deploy: set confirm to exactly DEPLOY (got: '$CONFIRM')."
             exit 1
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:

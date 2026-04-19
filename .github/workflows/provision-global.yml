@@ -48,7 +48,7 @@ jobs:
       apiPlanSku: ${{ steps.resolve.outputs.apiPlanSku }}
       sqlSku: ${{ steps.resolve.outputs.sqlSku }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Resolve global stamp settings from manifests
         id: resolve
         shell: pwsh
@@ -74,13 +74,13 @@ jobs:
     needs: resolve-profile
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Restore and publish Global API
@@ -99,17 +99,17 @@ jobs:
           npm run build
           Pop-Location
       - name: Upload Global API artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-api-package
           path: artifacts/global-api
       - name: Upload Global web artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-web-dist
           path: chitstack.global.web/dist
       - name: Upload Global DACPAC artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-dacpac
           path: chitstack.global.database/bin/Release/*.dacpac
@@ -135,19 +135,19 @@ jobs:
       - deploy-infra
     environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Download Global API artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: global-api-package
           path: artifacts/global-api
       - name: Download Global web artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: global-web-dist
           path: artifacts/global-web
       - name: Download Global DACPAC artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: global-dacpac
           path: artifacts/global-dacpac
@@ -225,7 +225,7 @@ jobs:
             --source "artifacts/global-web" \
             --env "production"
       - name: Upload DB deploy report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-db-deploy-report
           path: global-deploy-report.xml

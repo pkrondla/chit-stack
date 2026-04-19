@@ -56,7 +56,7 @@ jobs:
       sqlSku: ${{ steps.resolve.outputs.sqlSku }}
       fixedTenantId: ${{ steps.resolve.outputs.fixedTenantId }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Resolve tenant settings from tenants.json
         id: resolve
         shell: pwsh
@@ -87,13 +87,13 @@ jobs:
     needs: resolve-profile
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Restore and publish Tenant API
@@ -112,17 +112,17 @@ jobs:
           npm run build
           Pop-Location
       - name: Upload Tenant API artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-api-package
           path: artifacts/tenant-api
       - name: Upload Tenant web artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-web-dist
           path: chitstack.tenant.web/dist
       - name: Upload Tenant DACPAC artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-dacpac
           path: chitstack.tenant.database/bin/Release/*.dacpac
@@ -148,19 +148,19 @@ jobs:
       - deploy-infra
     environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Download Tenant API artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tenant-api-package
           path: artifacts/tenant-api
       - name: Download Tenant web artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tenant-web-dist
           path: artifacts/tenant-web
       - name: Download Tenant DACPAC artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tenant-dacpac
           path: artifacts/tenant-dacpac
@@ -240,7 +240,7 @@ jobs:
             --source "artifacts/tenant-web" \
             --env "production"
       - name: Upload DB deploy report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-${{ inputs.tenantKey }}-db-deploy-report
           path: tenant-${{ inputs.tenantKey }}-deploy-report.xml
@@ -250,7 +250,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install sqlcmd
         shell: bash
         run: |

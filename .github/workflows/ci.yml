@@ -10,7 +10,7 @@ jobs:
   validate-config:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate deployment configuration
         shell: pwsh
         run: ./chitstack.azure.deployment/scripts/validate-config.ps1
@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate-config
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
       - name: Restore
@@ -35,12 +35,12 @@ jobs:
       - name: Publish Tenant API
         run: dotnet publish chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
       - name: Upload Global API artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-api-package
           path: artifacts/global-api
       - name: Upload Tenant API artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-api-package
           path: artifacts/tenant-api
@@ -49,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate-config
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Install dependencies
@@ -60,7 +60,7 @@ jobs:
         run: npm run build
         working-directory: chitstack.global.web
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-web-dist
           path: chitstack.global.web/dist
@@ -69,8 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate-config
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - name: Install dependencies
@@ -80,7 +80,7 @@ jobs:
         run: npm run build
         working-directory: chitstack.tenant.web
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-web-dist
           path: chitstack.tenant.web/dist
@@ -89,9 +89,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate-config
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
       - name: Build Global DACPAC
@@ -99,12 +99,12 @@ jobs:
       - name: Build Tenant DACPAC
         run: dotnet build chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj -c Release
       - name: Upload Global DACPAC artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: global-dacpac
           path: chitstack.global.database/bin/Release/*.dacpac
       - name: Upload Tenant DACPAC artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tenant-dacpac
           path: chitstack.tenant.database/bin/Release/*.dacpac
