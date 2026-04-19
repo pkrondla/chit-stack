@@ -52,7 +52,8 @@ module sql '../sql/main.bicep' = {
   }
 }
 
-var keyVaultName = take('kv${uniqueString(resourceGroup().id, suffix, 'kv')}', 24)
+// Key Vault names: max 24 chars, alphanumeric + hyphen (same family as api-/sql-/web-).
+var keyVaultName = take('kv-${resourcePrefix}-${suffix}', 24)
 
 module keyVault '../key-vault/main.bicep' = {
   name: 'tenant-kv-${suffix}'
