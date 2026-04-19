@@ -19,7 +19,6 @@ public class Notification : TenantEntity
     public string Message { get; set; } = string.Empty;
     public NotificationType Type { get; set; } = NotificationType.Info;
     
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsRead { get; set; } = false;
     
     public string? ActionUrl { get; set; } // e.g. /auctions/123

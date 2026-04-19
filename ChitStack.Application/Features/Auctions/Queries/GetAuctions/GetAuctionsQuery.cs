@@ -60,7 +60,7 @@ public class GetAuctionsHandler : IRequestHandler<GetAuctionsQuery, Result<List<
     {
         var query = _context.Auctions
             .Include(x => x.ChitGroup)
-            .Include(x => x.WinningTicket)
+            .Include(x => x.WinningTicket!)
                 .ThenInclude(t => t.Member)
             .AsNoTracking();
 
@@ -71,7 +71,7 @@ public class GetAuctionsHandler : IRequestHandler<GetAuctionsQuery, Result<List<
 
         if (request.MemberId.HasValue)
         {
-            query = query.Where(x => x.WinningTicket.MemberId == request.MemberId.Value);
+            query = query.Where(x => x.WinningTicket != null && x.WinningTicket.MemberId == request.MemberId.Value);
         }
 
         if (request.IsPaid.HasValue)

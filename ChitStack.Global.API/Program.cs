@@ -35,15 +35,34 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
+// CORS — browser origin is the Static Web App host (*.azurestaticapps.net) in Azure; Vite dev servers locally.
 builder.Services.AddCors(options =>
 {
+    var extraOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
     options.AddPolicy("AllowClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+                if (extraOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return true;
+                if (origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase) ||
+                    origin.StartsWith("http://127.0.0.1:", StringComparison.OrdinalIgnoreCase))
+                    return true;
+                try
+                {
+                    var uri = new Uri(origin);
+                    if (uri.Scheme == "https" && uri.Host.EndsWith(".azurestaticapps.net", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+                catch (UriFormatException)
+                {
+                    return false;
+                }
+                return false;
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 

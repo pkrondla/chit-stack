@@ -70,7 +70,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         var transactionDate = request.PaymentDate;
         decimal amountRemaining = request.Amount;
         
-        Ticket targetTicket = null;
+        Ticket? targetTicket = null;
         int? branchId = null;
         
         if (!pendingDemands.Any()) 
@@ -94,10 +94,13 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             branchId = targetTicket.BranchId;
         }
 
+        if (targetTicket is null)
+            return Result<int>.Failure("Unable to resolve target ticket for payment.");
+
         // Live Accrual of Penalties before processing payment
         foreach (var demand in pendingDemands)
         {
-            var group = demand.Ticket.ChitGroup;
+            var group = demand.Ticket!.ChitGroup!;
             int daysPastDue = (request.PaymentDate.Date - demand.DueDate.Date).Days;
             
             // Calculate penalty ONLY on unpaid principal
@@ -123,13 +126,13 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
                     {
                          var lines = new List<JournalLinePostingDto>
                          {
-                             new JournalLinePostingDto { AccountCode = recAcc.Data, Debit = delta, MemberId = demand.Ticket?.MemberId, ChitGroupId = group?.Id, TicketId = demand.TicketId },
-                             new JournalLinePostingDto { AccountCode = incAcc.Data, Credit = delta, MemberId = demand.Ticket?.MemberId, ChitGroupId = group?.Id, TicketId = demand.TicketId }
+                             new JournalLinePostingDto { AccountCode = recAcc.Data!, Debit = delta, MemberId = demand.Ticket.MemberId, ChitGroupId = group.Id, TicketId = demand.TicketId },
+                             new JournalLinePostingDto { AccountCode = incAcc.Data!, Credit = delta, MemberId = demand.Ticket.MemberId, ChitGroupId = group.Id, TicketId = demand.TicketId }
                          };
                          await _journalService.CreateEntryAsync(
                              "Penalty", 
                              transactionDate, 
-                             $"Auto-Accrual (Principal-Base Pro-Rata): Ticket #{demand.Ticket.TicketNumber} (Inst {demand.InstallmentNumber}) - {daysPastDue} days", 
+                             $"Auto-Accrual (Principal-Base Pro-Rata): Ticket #{demand.Ticket!.TicketNumber} (Inst {demand.InstallmentNumber}) - {daysPastDue} days", 
                              demand.Id, 
                              "Demand", 
                              group.BranchId,
@@ -158,7 +161,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
         }
         
         // Log excess to Advance Balance
-        if (amountRemaining > 0 && targetTicket != null)
+        if (amountRemaining > 0)
         {
             targetTicket.AdvanceBalance += amountRemaining;
         }
@@ -221,7 +224,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             string role = request.PaymentMode == "Cash" ? AccountRoles.Cash : AccountRoles.Bank;
             var resolveResult = await _accountService.GetAccountCodeByRoleAsync(role, cancellationToken);
             if (!resolveResult.Succeeded) return Result<int>.Failure(resolveResult.Errors.First());
-            debitAccountCode = resolveResult.Data;
+            debitAccountCode = resolveResult.Data!;
         }
 
         var receivableAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.MemberReceivable, cancellationToken);
@@ -233,17 +236,17 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             { 
                 AccountCode = debitAccountCode, 
                 Debit = request.Amount, 
-                MemberId = targetTicket?.MemberId, 
-                ChitGroupId = targetTicket?.ChitGroupId, 
-                TicketId = targetTicket?.Id 
+                MemberId = targetTicket.MemberId, 
+                ChitGroupId = targetTicket.ChitGroupId, 
+                TicketId = targetTicket.Id 
             },
             new JournalLinePostingDto 
             { 
-                AccountCode = receivableAccount.Data, 
+                AccountCode = receivableAccount.Data!, 
                 Credit = request.Amount, 
-                MemberId = targetTicket?.MemberId, 
-                ChitGroupId = targetTicket?.ChitGroupId, 
-                TicketId = targetTicket?.Id 
+                MemberId = targetTicket.MemberId, 
+                ChitGroupId = targetTicket.ChitGroupId, 
+                TicketId = targetTicket.Id 
             }
         };
         
@@ -258,7 +261,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
             cancellationToken);
 
         // 5. Send Automated Notification
-        if (targetTicket?.MemberId != null)
+        if (targetTicket.MemberId != null)
         {
             var placeholders = new Dictionary<string, string>
             {
@@ -274,7 +277,7 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
 
         _staffNotification.Broadcast(
             "Payment Recorded",
-            $"Receipt #{receipt.Id}: ₹{request.Amount:N2} received from {targetTicket?.Member?.FullName ?? $"Ticket #{targetTicket?.TicketNumber}"} ({request.PaymentMode}).");
+            $"Receipt #{receipt.Id}: ₹{request.Amount:N2} received from {targetTicket.Member?.FullName ?? $"Ticket #{targetTicket.TicketNumber}"} ({request.PaymentMode}).");
 
         return Result<int>.Success(receipt.Id);
     }

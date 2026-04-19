@@ -54,6 +54,8 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
             .FirstOrDefaultAsync(t => t.Id == request.TicketId, cancellationToken);
 
         if (ticket == null) return Result<TicketDuesDto>.Failure("Ticket not found.");
+        var chitGroup = ticket.ChitGroup;
+        if (chitGroup == null) return Result<TicketDuesDto>.Failure("Chit group not found for ticket.");
 
         var demands = await _context.Demands
             .Where(d => d.TicketId == request.TicketId && d.Status != "Paid")
@@ -62,8 +64,8 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
         var dto = new TicketDuesDto
         {
             TicketId = ticket.Id,
-            MemberName = ticket.Member.FullName,
-            GroupName = ticket.ChitGroup.GroupName,
+            MemberName = ticket.Member?.FullName ?? string.Empty,
+            GroupName = chitGroup.GroupName,
             AdvanceBalance = ticket.AdvanceBalance
         };
 
@@ -81,9 +83,9 @@ public class GetTicketDuesHandler : IRequestHandler<GetTicketDuesQuery, Result<T
             int daysPastDue = (today - d.DueDate).Days;
             decimal livePenalty = 0;
             int overdueDays = 0;
-            if (daysPastDue > ticket.ChitGroup.GracePeriodDays && livePenaltyBase > 0)
+            if (daysPastDue > chitGroup.GracePeriodDays && livePenaltyBase > 0)
             {
-                decimal monthlyRate = ticket.ChitGroup.LateFeePercent;
+                decimal monthlyRate = chitGroup.LateFeePercent;
                 decimal dailyRate = (monthlyRate / 100m) / 30m;
                 livePenalty = Math.Round(livePenaltyBase * dailyRate * daysPastDue, 2);
                 overdueDays = daysPastDue;

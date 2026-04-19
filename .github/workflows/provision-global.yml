@@ -93,6 +93,8 @@ jobs:
         run: dotnet build chitstack.global.database/ChitStack.Database.Global.sqlproj -c Release
       - name: Build Global web
         shell: pwsh
+        env:
+          VITE_API_BASE_URL: https://api-chitstack-${{ inputs.environment }}-global.azurewebsites.net/api
         run: |
           Push-Location chitstack.global.web
           npm ci

@@ -33,6 +33,8 @@ public class AllocateTicketHandler : IRequestHandler<AllocateTicketCommand, Resu
             .Include(g => g.Tickets)
             .FirstOrDefaultAsync(g => g.Id == request.ChitGroupId, cancellationToken);
         if (group == null) return Result<List<int>>.Failure("Chit Group not found.");
+
+        group.Tickets ??= new List<Ticket>();
         
         if (request.MemberIds == null || !request.MemberIds.Any())
             return Result<List<int>>.Failure("No members selected.");
@@ -59,7 +61,7 @@ public class AllocateTicketHandler : IRequestHandler<AllocateTicketCommand, Resu
                 TenantId = group.TenantId
             };
             _context.Tickets.Add(ticket1);
-            if (group.Tickets != null) group.Tickets.Add(ticket1);
+            group.Tickets.Add(ticket1);
         }
         else 
         {

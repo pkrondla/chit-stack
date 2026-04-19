@@ -108,7 +108,7 @@ public class GetMyPaymentsHandler : IRequestHandler<GetMyPaymentsQuery, Result<M
                 PaidAmount = d.CollectedAmount,
                 BalanceAmount = calc.TotalOutstanding,
                 PenaltyAmount = calc.EffectivePenalty,
-                DueDate = d.Auction?.AuctionDate.AddDays(d.Ticket.ChitGroup.GracePeriodDays) ?? DateTime.Now.AddDays(5)
+                DueDate = d.Auction?.AuctionDate.AddDays(d.Ticket!.ChitGroup!.GracePeriodDays) ?? DateTime.Now.AddDays(5)
             };
         }).ToList();
 

@@ -55,7 +55,7 @@ public class GetAuctionAttendanceHandler : IRequestHandler<GetAuctionAttendanceQ
                 .Where(a => a.AuctionId == request.AuctionId)
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log error if logger was available, but don't fail the request
             // This handles cases where migrations haven't been run yet
