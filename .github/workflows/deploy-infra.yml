@@ -45,6 +45,10 @@ on:
       SQL_ADMIN_PASSWORD:
         required: true
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

@@ -43,6 +43,10 @@ on:
       SQL_ADMIN_PASSWORD:
         required: true
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   resolve-profile:
     runs-on: ubuntu-latest
