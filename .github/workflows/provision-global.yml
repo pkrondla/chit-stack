@@ -157,6 +157,24 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Open temporary SQL firewall for GitHub runner
+        id: sqlfw
+        shell: bash
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-global
+          SQL_SERVER: sql-chitstack-${{ inputs.environment }}-global
+        run: |
+          set -e
+          RUNNER_IP=$(curl -4sSf https://ipv4.icanhazip.com)
+          echo "Runner egress IPv4: $RUNNER_IP"
+          RULE="gh-${{ github.run_id }}-${{ github.run_attempt }}"
+          az sql server firewall-rule create \
+            --resource-group "$RG" \
+            --server "$SQL_SERVER" \
+            --name "$RULE" \
+            --start-ip-address "$RUNNER_IP" \
+            --end-ip-address "$RUNNER_IP"
+          echo "rule=$RULE" >> "$GITHUB_OUTPUT"
       - name: Install SqlPackage
         shell: bash
         run: dotnet tool update --global microsoft.sqlpackage
@@ -229,3 +247,17 @@ jobs:
         with:
           name: global-db-deploy-report
           path: global-deploy-report.xml
+      - name: Remove temporary SQL firewall for GitHub runner
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-global
+          SQL_SERVER: sql-chitstack-${{ inputs.environment }}-global
+        run: |
+          RULE="${{ steps.sqlfw.outputs.rule }}"
+          if [ -z "$RULE" ]; then exit 0; fi
+          az sql server firewall-rule delete \
+            --resource-group "$RG" \
+            --server "$SQL_SERVER" \
+            --name "$RULE"
