@@ -5,6 +5,9 @@
     "location": {
       "value": "centralindia"
     },
+    "staticWebAppLocation": {
+      "value": "eastasia"
+    },
     "environment": {
       "value": "dev"
     },

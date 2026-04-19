@@ -33,6 +33,11 @@ on:
         required: false
         type: string
         default: centralindia
+      staticWebAppLocation:
+        description: Region for Microsoft.Web/staticSites (limited availability); workload RG stays in location
+        required: false
+        type: string
+        default: eastasia
     secrets:
       AZURE_CLIENT_ID:
         required: true
@@ -82,6 +87,7 @@ jobs:
               environment="${{ inputs.environment }}" \
               tenantKey="${{ inputs.tenantKey }}" \
               location="${{ inputs.location }}" \
+              staticWebAppLocation="${{ inputs.staticWebAppLocation }}" \
               staticWebSku="${{ inputs.staticWebSku }}" \
               apiPlanSku="${{ inputs.apiPlanSku }}" \
               sqlSku="${{ inputs.sqlSku }}" \

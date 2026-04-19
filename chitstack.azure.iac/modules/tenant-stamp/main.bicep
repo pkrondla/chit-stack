@@ -1,4 +1,5 @@
 param location string
+param staticWebAppLocation string
 param environment string
 param tenantKey string
 param resourcePrefix string
@@ -20,7 +21,7 @@ var tags = {
 module staticWeb '../static-web/main.bicep' = {
   name: 'tenant-static-${suffix}'
   params: {
-    location: location
+    location: staticWebAppLocation
     staticWebName: 'web-${resourcePrefix}-${suffix}'
     staticWebSku: staticWebSku
     tags: tags
