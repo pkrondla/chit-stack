@@ -3,7 +3,7 @@
   <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
   <PropertyGroup>
     <Name>ChitStack.Database.Global</Name>
-    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider</DSP>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
     <ModelCollation>1033, CI</ModelCollation>
     <ProjectGuid>{A1B2C3D4-5678-9012-3456-789012345678}</ProjectGuid>
   </PropertyGroup>
