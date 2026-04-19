@@ -250,13 +250,19 @@ jobs:
             -FixedTenantId ${{ needs.resolve-profile.outputs.fixedTenantId }}
       - name: Deploy Tenant Web
         shell: bash
+        env:
+          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          SWA_NAME: web-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
         run: |
-          az extension add --name staticwebapp --upgrade
-          az staticwebapp deploy \
-            --name "web-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
-            --resource-group "rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}" \
-            --source "artifacts/tenant-web" \
-            --env "production"
+          set -e
+          TOKEN=$(az staticwebapp secrets list --resource-group "$RG" --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Could not read Static Web Apps deployment token (check name/RG and RBAC)."
+            exit 1
+          fi
+          npx --yes @azure/static-web-apps-cli@2.0.8 deploy artifacts/tenant-web \
+            --deployment-token "$TOKEN" \
+            --env production
       - name: Upload DB deploy report
         uses: actions/upload-artifact@v5
         with:
