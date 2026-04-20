@@ -26,7 +26,7 @@ public class GlobalLoginHandler : IRequestHandler<GlobalLoginCommand, Result<str
     {
         // Global Admins always reside in the root tenant.
         var user = await _context.Users
-            .Include(u => u.Tenant)
+            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive, cancellationToken);
 
         if (user == null || user.PasswordHash != request.Password) // TODO: hash comparison

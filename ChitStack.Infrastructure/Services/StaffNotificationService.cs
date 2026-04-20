@@ -50,7 +50,7 @@ public class StaffNotificationWorker
         _httpClientFactory = httpClientFactory;
     }
 
-    [Queue("notifications")]
+    [Queue("tenant-notifications")]
     [AutomaticRetry(Attempts = 2)]
     public async Task ProcessAsync(string title, string message, NotificationType type)
     {

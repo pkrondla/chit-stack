@@ -20,6 +20,7 @@ public class DailyNotificationWorker : IDailyNotificationProcessor
         _backgroundJobClient = backgroundJobClient;
     }
 
+    [Queue("tenant-maintenance")]
     public async Task ProcessAutomatedNotifications()
     {
         using var scope = _serviceProvider.CreateScope();

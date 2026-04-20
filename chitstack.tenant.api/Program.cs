@@ -33,7 +33,7 @@ builder.Services.AddHangfire(configuration => configuration
     .UseSqlServerStorage(tenantDbConnection));
 builder.Services.AddHangfireServer(options =>
 {
-    options.Queues = new[] { "default", "notifications" };
+    options.Queues = new[] { "tenant-default", "tenant-notifications", "tenant-maintenance" };
 });
 
 // Context Accessor
@@ -166,8 +166,9 @@ using (var scope = app.Services.CreateScope())
     }
 
     // Setup Recurring Jobs
-    RecurringJob.AddOrUpdate<ChitStack.Infrastructure.Services.IDailyNotificationProcessor>("daily-automated-notifications", 
-        worker => worker.ProcessAutomatedNotifications(), Cron.Daily(9));
+    RecurringJob.AddOrUpdate<ChitStack.Infrastructure.Services.DailyNotificationWorker>("daily-automated-notifications", 
+        worker => worker.ProcessAutomatedNotifications(),
+        Cron.Daily(9));
 }
 
 app.Run();

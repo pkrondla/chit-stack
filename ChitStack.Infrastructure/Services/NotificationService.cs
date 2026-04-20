@@ -74,6 +74,7 @@ public class NotificationService : INotificationService
             targetMemberId, title, message, channels, sendWhatsApp, sendSms, sendEmail));
     }
 
+    [Queue("tenant-notifications")]
     public async Task DispatchExternalNotificationsForMemberAsync(int memberId, string title, string message, NotificationChannels? channels, bool? prefWhatsApp = true, bool? prefSms = true, bool? prefEmail = true)
     {
         if (memberId <= 0) return;
@@ -207,7 +208,7 @@ public class NotificationService : INotificationService
         return Task.CompletedTask;
     }
 
-    [Queue("notifications")]
+    [Queue("tenant-notifications")]
     [AutomaticRetry(Attempts = 2)]
     public async Task ProcessBroadcastAsync(
         List<int>? userIds, List<int>? memberIds, string? userRole, bool? allMembers,
@@ -267,18 +268,20 @@ public class NotificationService : INotificationService
         return settings;
     }
 
+    [Queue("tenant-default")]
     public async Task SendTemplatedNotificationAsync(int memberId, string templateName, Dictionary<string, string> placeholders)
     {
         // Background the entire templating and sending process
         _backgroundJobClient.Enqueue(() => ProcessAndSendTemplatedNotificationAsync(memberId, templateName, placeholders));
     }
 
+    [Queue("tenant-default")]
     public async Task SendUserTemplatedNotificationAsync(int userId, string templateName, Dictionary<string, string> placeholders)
     {
         _backgroundJobClient.Enqueue(() => ProcessAndSendUserTemplatedNotificationAsync(userId, templateName, placeholders));
     }
 
-    [Queue("notifications")]
+    [Queue("tenant-notifications")]
     [AutomaticRetry(Attempts = 2)]
     public async Task ProcessAndSendTemplatedNotificationAsync(int memberId, string templateName, Dictionary<string, string> placeholders)
     {
@@ -298,7 +301,7 @@ public class NotificationService : INotificationService
         }
     }
 
-    [Queue("notifications")]
+    [Queue("tenant-notifications")]
     [AutomaticRetry(Attempts = 2)]
     public async Task ProcessAndSendUserTemplatedNotificationAsync(int userId, string templateName, Dictionary<string, string> placeholders)
     {
@@ -334,7 +337,7 @@ public class NotificationService : INotificationService
             targetMemberId, content.Title, content.WhatsApp ?? content.Message, channels, sendWhatsApp, sendSms, sendEmail));
     }
 
-    [Queue("notifications")]
+    [Queue("tenant-notifications")]
     public async Task SendExternalOnlyNotificationAsync(int? userId, int memberId, TemplatedContent content, NotificationChannels? channels)
     {
         var member = await _context.Members.AsNoTracking().FirstOrDefaultAsync(m => m.Id == memberId);

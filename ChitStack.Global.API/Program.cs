@@ -1,5 +1,8 @@
 using ChitStack.Application;
+using ChitStack.Application.Common.Interfaces;
+using ChitStack.Global.API.Services;
 using ChitStack.Infrastructure;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -8,6 +11,22 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddApplicationServices();
+
+var globalConnectionString = builder.Configuration.GetConnectionString("GlobalDBConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:GlobalDBConnection is required.");
+builder.Services.AddScoped<INotificationsHubService, NoOpNotificationsHubService>();
+builder.Services.AddTransient<GlobalMaintenanceHeartbeatJob>();
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(globalConnectionString));
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 1;
+    options.Queues = new[] { "global-default", "global-notifications", "global-maintenance" };
+});
+
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // Context Accessor
@@ -112,6 +131,13 @@ app.UseCors("AllowClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard("/global-admin/hangfire");
+
 app.MapControllers();
+
+RecurringJob.AddOrUpdate<GlobalMaintenanceHeartbeatJob>(
+    "global-heartbeat",
+    job => job.RunAsync(),
+    Cron.Hourly());
 
 app.Run();
