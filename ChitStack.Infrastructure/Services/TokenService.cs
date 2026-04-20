@@ -49,12 +49,14 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "super_secret_key_12345_must_be_long_enough"));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        var role = (user.Role ?? string.Empty).Trim();
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim("TenantId", user.TenantId.ToString()),
-            new Claim("role", user.Role.Trim()),
+            new Claim(ClaimTypes.Role, string.IsNullOrEmpty(role) ? "Admin" : role),
+            new Claim("role", string.IsNullOrEmpty(role) ? "Admin" : role),
             new Claim("FullName", user.FullName),
             new Claim("Scope", "GlobalAdmin")
         };

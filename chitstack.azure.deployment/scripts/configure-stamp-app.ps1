@@ -24,11 +24,12 @@ if ($Scope -eq "global") {
     $EnableFixedTenant = $false
 }
 
-$names = & "$PSScriptRoot/resource-names.ps1" -Scope $Scope -Environment $Environment -TenantKey $TenantKey | ConvertFrom-Json
+$names = & "$PSScriptRoot/resource-names.ps1" -Scope $Scope -Environment $Environment -TenantKey $TenantKey -Prefix $ResourcePrefix | ConvertFrom-Json
 $appName = $names.apiAppName
 
-$globalServer = "sql-chit-$Environment-global.database.windows.net"
-$globalDatabase = "sqldb-chit-$Environment-global"
+$globalNames = & "$PSScriptRoot/resource-names.ps1" -Scope global -Environment $Environment -TenantKey global -Prefix $ResourcePrefix | ConvertFrom-Json
+$globalServer = "$($globalNames.sqlServerName).database.windows.net"
+$globalDatabase = $globalNames.sqlDatabaseName
 $globalConn = "Server=tcp:$globalServer,1433;Database=$globalDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
 
 $settings = [ordered]@{}
