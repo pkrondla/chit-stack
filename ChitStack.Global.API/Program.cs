@@ -21,11 +21,6 @@ builder.Services.AddHangfire(configuration => configuration
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
     .UseSqlServerStorage(globalConnectionString));
-builder.Services.AddHangfireServer(options =>
-{
-    options.WorkerCount = 1;
-    options.Queues = new[] { "global-default", "global-notifications", "global-maintenance" };
-});
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
@@ -131,13 +126,6 @@ app.UseCors("AllowClient");
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseHangfireDashboard("/global-admin/hangfire");
-
 app.MapControllers();
-
-RecurringJob.AddOrUpdate<GlobalMaintenanceHeartbeatJob>(
-    "global-heartbeat",
-    job => job.RunAsync(),
-    Cron.Hourly());
 
 app.Run();
