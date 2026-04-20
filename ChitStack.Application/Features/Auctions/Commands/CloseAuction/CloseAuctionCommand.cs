@@ -41,20 +41,27 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         var auction = await _context.Auctions
             .Include(a => a.ChitGroup)
             .ThenInclude(g => g.Tickets)
-            .Include(a => a.WinningTicket)
+            .Include(a => a.WinningTicket!)
             .ThenInclude(t => t.Member)
             .FirstOrDefaultAsync(a => a.Id == request.AuctionId, cancellationToken);
             
         if (auction == null) return Result<int>.Failure("Auction not found.");
+
+        var chitGroup = auction.ChitGroup;
+        if (chitGroup == null) return Result<int>.Failure("Chit group not found for auction.");
+        chitGroup.Tickets ??= new List<Ticket>();
         
         if (auction.WinningTicketId == null)
             return Result<int>.Failure("Cannot close auction without a winner.");
 
+        if (auction.WinningTicket == null)
+            return Result<int>.Failure("Winning ticket not found.");
+
         // Statutoty Validations
         var settings = await _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
         decimal maxCapPercent = settings?.MaxBiddingDiscountPercent ?? 40;
-        decimal maxBiddingAmount = Math.Round(auction.ChitGroup.ChitValue * (maxCapPercent / 100), 0, MidpointRounding.AwayFromZero);
-        decimal minBiddingAmount = Math.Round(auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
+        decimal maxBiddingAmount = Math.Round(chitGroup.ChitValue * (maxCapPercent / 100), 0, MidpointRounding.AwayFromZero);
+        decimal minBiddingAmount = Math.Round(chitGroup.ChitValue * (chitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
 
         if (auction.WinningBidAmount > maxBiddingAmount)
             return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) exceeds the maximum allowed discount of {maxCapPercent}% (₹{maxBiddingAmount:N2}).");
@@ -62,7 +69,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         // Enforce Foreman (Ticket 1) for first installment
         if (auction.InstallmentNumber == 1)
         {
-            var foremanTicket = auction.ChitGroup.Tickets.FirstOrDefault(t => t.TicketNumber == 1);
+            var foremanTicket = chitGroup.Tickets.FirstOrDefault(t => t.TicketNumber == 1);
             if (auction.WinningTicketId != foremanTicket?.Id)
                 return Result<int>.Failure("As per Chit Fund rules, the first installment must be awarded to the Foreman (Ticket #1).");
             
@@ -71,11 +78,11 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         }
         else if (auction.WinningBidAmount < minBiddingAmount)
         {
-            return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) is below the minimum foreman commission of {auction.ChitGroup.ForemanCommissionPercent}% (₹{minBiddingAmount:N2}).");
+            return Result<int>.Failure($"Winning bid (₹{auction.WinningBidAmount:N2}) is below the minimum foreman commission of {chitGroup.ForemanCommissionPercent}% (₹{minBiddingAmount:N2}).");
         }
 
         // Calculate Dividend
-        var commissionBase = Math.Round(auction.ChitGroup.ChitValue * (auction.ChitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
+        var commissionBase = Math.Round(chitGroup.ChitValue * (chitGroup.ForemanCommissionPercent / 100), 0, MidpointRounding.AwayFromZero);
         
         // Calculate GST on Commission
         decimal gstRate = settings?.GstPercent ?? 18;
@@ -92,7 +99,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         var rawDistributableSurplus = auction.WinningBidAmount - commissionBase;
         if (rawDistributableSurplus < 0) rawDistributableSurplus = 0;
 
-        var totalTickets = auction.ChitGroup.Tickets.Count;
+        var totalTickets = chitGroup.Tickets.Count;
         if (totalTickets == 0) return Result<int>.Failure("No tickets in group to distribute dividend.");
 
         // Calculate TDS on Distributable Surplus
@@ -109,11 +116,11 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         auction.ForemanCommissionAmount = commissionBase;
         auction.DividendAmount = roundedDividendPerTicket;
         auction.TdsAmount = totalTds;
-        auction.NetPayableAmount = auction.ChitGroup.ChitValue - auction.WinningBidAmount;
+        auction.NetPayableAmount = chitGroup.ChitValue - auction.WinningBidAmount;
         auction.AuctionStatus = "Closed";
 
         // Mark Ticket as Prized
-        var winningTicket = auction.ChitGroup.Tickets.First(t => t.Id == auction.WinningTicketId);
+        var winningTicket = auction.WinningTicket;
         winningTicket.IsPrized = true;
         winningTicket.PrizedInstallment = auction.InstallmentNumber;
         
@@ -139,7 +146,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
 
         // Calculate Accounting Imbalance due to Rounding
         // Debit (Receivable) must match Credits (Prize + Income + Tax + TDS)
-        decimal totalReceivableAmount = totalTickets * (auction.ChitGroup.InstallmentAmount - roundedDividendPerTicket);
+        decimal totalReceivableAmount = totalTickets * (chitGroup.InstallmentAmount - roundedDividendPerTicket);
         decimal totalCreditAmount = auction.NetPayableAmount + commissionBase + totalGst + totalTds;
         decimal roundingDiff = totalReceivableAmount - totalCreditAmount;
 
@@ -148,7 +155,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             // Total amount members contribute for this auction (Net Installment × Tickets)
             new JournalLinePostingDto 
             { 
-                AccountCode = receivableAccount.Data, 
+                AccountCode = receivableAccount.Data!, 
                 Debit = totalReceivableAmount, 
                 ChitGroupId = auction.ChitGroupId,
                 AuctionId = auction.Id
@@ -157,17 +164,17 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             // Amount we owe the winner
             new JournalLinePostingDto 
             { 
-                AccountCode = prizePayableAccount.Data, 
+                AccountCode = prizePayableAccount.Data!, 
                 Credit = auction.NetPayableAmount,
-                MemberId = auction.WinningTicket?.MemberId,
+                MemberId = winningTicket.MemberId,
                 ChitGroupId = auction.ChitGroupId,
                 AuctionId = auction.Id
             },
             
             // Foreman's earnings
-            new JournalLinePostingDto { AccountCode = incomeAccount.Data, Credit = commissionBase, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id },
-            new JournalLinePostingDto { AccountCode = cgstAccount.Data, Credit = cgst, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id },
-            new JournalLinePostingDto { AccountCode = sgstAccount.Data, Credit = sgst, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id }
+            new JournalLinePostingDto { AccountCode = incomeAccount.Data!, Credit = commissionBase, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id },
+            new JournalLinePostingDto { AccountCode = cgstAccount.Data!, Credit = cgst, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id },
+            new JournalLinePostingDto { AccountCode = sgstAccount.Data!, Credit = sgst, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id }
         };
 
         // Add Rounding Entry if any
@@ -175,7 +182,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         {
             journalLines.Add(new JournalLinePostingDto
             {
-                AccountCode = roundingAccount.Data,
+                AccountCode = roundingAccount.Data!,
                 Credit = roundingDiff > 0 ? roundingDiff : 0,
                 Debit = roundingDiff < 0 ? Math.Abs(roundingDiff) : 0,
                 ChitGroupId = auction.ChitGroupId,
@@ -187,7 +194,7 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
         {
             var tdsAccount = await _accountService.GetAccountCodeByRoleAsync(AccountRoles.TdsLiability, cancellationToken);
             if (!tdsAccount.Succeeded) return Result<int>.Failure(tdsAccount.Errors.First());
-            journalLines.Add(new JournalLinePostingDto { AccountCode = tdsAccount.Data, Credit = totalTds, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id });
+            journalLines.Add(new JournalLinePostingDto { AccountCode = tdsAccount.Data!, Credit = totalTds, ChitGroupId = auction.ChitGroupId, AuctionId = auction.Id });
         }
         
         var journalResult = await _journalService.CreateEntryAsync(
@@ -204,32 +211,32 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             return Result<int>.Failure($"Failed to create journal entry: {journalResult.Errors.First()}");
 
         // Close Group if this is the final installment
-        if (auction.InstallmentNumber >= auction.ChitGroup.DurationMonths)
+        if (auction.InstallmentNumber >= chitGroup.DurationMonths)
         {
-            auction.ChitGroup.Status = Domain.Entities.GroupStatus.Completed;
+            chitGroup.Status = Domain.Entities.GroupStatus.Completed;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
 
         // 6. Send Automated Persistent Notifications
         // 6.1 Notify Winner
-        if (auction.WinningTicket?.MemberId != null)
+        if (winningTicket.MemberId != null)
         {
             var winnerValues = new Dictionary<string, string>
             {
-                { "MemberName", auction.WinningTicket.Member.FullName },
-                { "ChitGroup", auction.ChitGroup.GroupName },
+                { "MemberName", winningTicket.Member?.FullName ?? "Member" },
+                { "ChitGroup", chitGroup.GroupName },
                 { "BidAmount", auction.WinningBidAmount.ToString("N2") },
                 { "Payout", auction.NetPayableAmount.ToString("N2") }
             };
-            await _persistentNotificationService.SendTemplatedNotificationAsync(auction.WinningTicket.MemberId.Value, "AuctionWinner", winnerValues);
+            await _persistentNotificationService.SendTemplatedNotificationAsync(winningTicket.MemberId.Value, "AuctionWinner", winnerValues);
         }
 
         // 6.2 Notify All Members about Dividend
         // Fetch all member IDs in this group
         var groupMembers = await _context.Tickets
             .Where(t => t.ChitGroupId == auction.ChitGroupId && t.MemberId != null)
-            .Select(t => new { t.MemberId, t.TicketNumber })
+            .Select(t => new { MemberId = t.MemberId!.Value, t.TicketNumber })
             .ToListAsync(cancellationToken);
 
         foreach (var m in groupMembers)
@@ -237,22 +244,22 @@ public class CloseAuctionHandler : IRequestHandler<CloseAuctionCommand, Result<i
             var divValues = new Dictionary<string, string>
             {
                 { "Amount", auction.DividendAmount.ToString("N2") },
-                { "ChitGroup", auction.ChitGroup.GroupName },
-                { "NetInstallment", (auction.ChitGroup.InstallmentAmount - auction.DividendAmount).ToString("N2") }
+                { "ChitGroup", chitGroup.GroupName },
+                { "NetInstallment", (chitGroup.InstallmentAmount - auction.DividendAmount).ToString("N2") }
             };
-            await _persistentNotificationService.SendTemplatedNotificationAsync(m.MemberId.Value, "DividendCredit", divValues);
+            await _persistentNotificationService.SendTemplatedNotificationAsync(m.MemberId, "DividendCredit", divValues);
         }
 
         // Notify Room
         await _notificationService.NotifyAuctionClosedAsync(
             auction.Id, 
             auction.WinningTicketId.Value, 
-            auction.WinningTicket?.Member?.FullName ?? "Member", 
+            winningTicket.Member?.FullName ?? "Member", 
             auction.WinningBidAmount);
 
         _staffNotification.Broadcast(
             "Auction Closed",
-            $"Auction #{auction.Id} (installment #{auction.InstallmentNumber}, '{auction.ChitGroup.GroupName}') closed. Winner: {auction.WinningTicket?.Member?.FullName ?? "Ticket #" + auction.WinningTicket?.TicketNumber}, Bid: ₹{auction.WinningBidAmount:N2}.",
+            $"Auction #{auction.Id} (installment #{auction.InstallmentNumber}, '{chitGroup.GroupName}') closed. Winner: {winningTicket.Member?.FullName ?? "Ticket #" + winningTicket.TicketNumber}, Bid: ₹{auction.WinningBidAmount:N2}.",
             NotificationType.Success);
 
         // Auto-Generate Demands!

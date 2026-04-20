@@ -67,7 +67,7 @@ public class MarkAttendanceHandler : IRequestHandler<MarkAttendanceCommand, Resu
 
             await _context.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Result<bool>.Failure("Failed to update attendance records. This might be due to a missing database table. Please contact administrator.");
         }
