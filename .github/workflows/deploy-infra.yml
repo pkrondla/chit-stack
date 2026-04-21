@@ -86,7 +86,7 @@ jobs:
           az group create --name "${{ inputs.resourceGroup }}" --location "${{ inputs.location }}"
           az deployment group create \
             --resource-group "${{ inputs.resourceGroup }}" \
-            --template-file chitstack.azure.iac/main.bicep \
+            --template-file chitstack.azure/iac/main.bicep \
             --parameters \
               scope="${{ inputs.scope }}" \
               environment="${{ inputs.environment }}" \

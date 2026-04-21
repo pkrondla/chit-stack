@@ -2,8 +2,8 @@
 
 This project uses token-driven theming for both web apps:
 
-- `chitstack.tenant.web/src/theme/tokens.js`
-- `chitstack.global.web/src/theme/tokens.js`
+- `chitstack.tenant/chitstack.tenant.web/src/theme/tokens.js`
+- `chitstack.global/chitstack.global.web/src/theme/tokens.js`
 
 ## Rules
 

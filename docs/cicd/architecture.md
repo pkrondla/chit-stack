@@ -13,13 +13,13 @@ Each stamp has:
 - `nonprod-ultra-low`: bootstrap default for global and tenant.
 - `prod-min-safe`: promoted profile for higher reliability.
 
-SKU profiles are defined in `chitstack.azure.deployment/tenants.json` (shared catalog) and enforced by `chitstack.azure.deployment/policies/sku-policy.json`. The global stamp reads `profile` and environment toggles from `chitstack.azure.deployment/global.json`.
+SKU profiles are defined in `chitstack.azure/deployment/tenants.json` (shared catalog) and enforced by `chitstack.azure/deployment/policies/sku-policy.json`. The global stamp reads `profile` and environment toggles from `chitstack.azure/deployment/global.json`.
 
 ## Source of truth
-- Global stamp manifest: `chitstack.azure.deployment/global.json`.
-- Tenant manifest: `chitstack.azure.deployment/tenants.json` (plus shared `profiles`).
+- Global stamp manifest: `chitstack.azure/deployment/global.json`.
+- Tenant manifest: `chitstack.azure/deployment/tenants.json` (plus shared `profiles`).
 - Future source of truth: Global control-plane API.
-- Optional drift gate: if `chitstack.azure.deployment/tenants.control-plane.json` exists, CI validates that enabled tenant keys match the manifest exactly (`validate-deployment-sources.ps1`).
+- Optional drift gate: if `chitstack.azure/deployment/tenants.control-plane.json` exists, CI validates that enabled tenant keys match the manifest exactly (`validate-deployment-sources.ps1`).
 
 ## Resource groups (plan naming)
 - Global stamp: `rg-chitstack-{environment}-global`

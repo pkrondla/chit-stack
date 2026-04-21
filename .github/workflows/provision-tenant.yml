@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tenantKey:
-        description: Tenant key from chitstack.azure.deployment/tenants.json
+        description: Tenant key from chitstack.azure/deployment/tenants.json
         required: true
         type: string
       environment:
@@ -61,9 +61,9 @@ jobs:
         id: resolve
         shell: pwsh
         run: |
-          $config = Get-Content -Raw chitstack.azure.deployment/tenants.json | ConvertFrom-Json
+          $config = Get-Content -Raw chitstack.azure/deployment/tenants.json | ConvertFrom-Json
           $tenant = $config.tenants | Where-Object { $_.tenantKey -eq "${{ inputs.tenantKey }}" } | Select-Object -First 1
-          if (-not $tenant) { throw "Tenant '${{ inputs.tenantKey }}' not found in chitstack.azure.deployment/tenants.json." }
+          if (-not $tenant) { throw "Tenant '${{ inputs.tenantKey }}' not found in chitstack.azure/deployment/tenants.json." }
           if ($tenant.enabled -ne $true) { throw "Tenant '${{ inputs.tenantKey }}' is disabled in tenants.json." }
           $tenantEnv = $tenant.environments.PSObject.Properties["${{ inputs.environment }}"].Value
           if (-not $tenantEnv -or $tenantEnv.enabled -ne $true) { throw "Tenant '${{ inputs.tenantKey }}' is not enabled for environment '${{ inputs.environment }}'." }
@@ -99,15 +99,15 @@ jobs:
       - name: Restore and publish Tenant API
         shell: pwsh
         run: |
-          dotnet restore chitstack.tenant.api/ChitStack.API.csproj
-          dotnet publish chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
+          dotnet restore chitstack.tenant/chitstack.tenant.api/ChitStack.API.csproj
+          dotnet publish chitstack.tenant/chitstack.tenant.api/ChitStack.API.csproj -c Release -o artifacts/tenant-api
       - name: Build Tenant DACPAC
         shell: pwsh
-        run: dotnet build chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj -c Release
+        run: dotnet build chitstack.tenant/chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj -c Release
       - name: Build Tenant web
         shell: pwsh
         run: |
-          Push-Location chitstack.tenant.web
+          Push-Location chitstack.tenant/chitstack.tenant.web
           npm ci
           npm run build
           Pop-Location
@@ -120,12 +120,12 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: tenant-web-dist
-          path: chitstack.tenant.web/dist
+          path: chitstack.tenant/chitstack.tenant.web/dist
       - name: Upload Tenant DACPAC artifact
         uses: actions/upload-artifact@v5
         with:
           name: tenant-dacpac
-          path: chitstack.tenant.database/bin/Release/*.dacpac
+          path: chitstack.tenant/chitstack.tenant.database/bin/Release/*.dacpac
 
   deploy-infra:
     needs: resolve-profile
@@ -239,7 +239,7 @@ jobs:
           RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
-          ./chitstack.azure.deployment/scripts/configure-stamp-app.ps1 `
+          ./chitstack.azure/deployment/scripts/configure-stamp-app.ps1 `
             -Scope tenant `
             -Environment "${{ inputs.environment }}" `
             -TenantKey "${{ inputs.tenantKey }}" `
@@ -327,7 +327,7 @@ jobs:
       - name: Register tenant in Global database
         shell: pwsh
         run: |
-          ./chitstack.azure.deployment/scripts/register-global-tenant.ps1 `
+          ./chitstack.azure/deployment/scripts/register-global-tenant.ps1 `
             -Environment "${{ inputs.environment }}" `
             -TenantKey "${{ inputs.tenantKey }}" `
             -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `
