@@ -52,6 +52,18 @@ module sql '../sql/main.bicep' = {
   }
 }
 
+module sqlAppOutboundFirewall '../sql-app-outbound-firewall/main.bicep' = {
+  name: 'tenant-sql-fw-${suffix}'
+  params: {
+    sqlServerName: 'sql-${resourcePrefix}-${suffix}'
+    appServicePossibleOutboundIpAddresses: appService.outputs.possibleOutboundIpAddresses
+    ruleNamePrefix: 'api-${suffix}'
+  }
+  dependsOn: [
+    sql
+  ]
+}
+
 // Key Vault names: max 24 chars, alphanumeric + hyphen (same family as api-/sql-/web-).
 var keyVaultName = take('kv-${resourcePrefix}-${suffix}', 24)
 

@@ -33,3 +33,5 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
 
 output appServiceName string = webApp.name
 output appServicePlanName string = serverFarm.name
+@description('Superset of egress IPs the app may use; use for SQL firewall /32 rules.')
+output possibleOutboundIpAddresses string = webApp.properties.possibleOutboundIpAddresses

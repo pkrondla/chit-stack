@@ -1,3 +1,4 @@
+using ChitStack.Application.Common;
 using ChitStack.Application.Common.Interfaces;
 using ChitStack.Infrastructure.Configuration;
 using ChitStack.Infrastructure.Data;
@@ -12,14 +13,22 @@ namespace ChitStack.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructureServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        ApplicationHostKind hostKind = ApplicationHostKind.GlobalWebApi)
     {
         services.Configure<TenantStampOptions>(configuration.GetSection(TenantStampOptions.SectionName));
 
-        var globalConnectionString = configuration.GetConnectionString("GlobalDBConnection");
+        if (hostKind == ApplicationHostKind.GlobalWebApi)
+        {
+            var globalConnectionString = configuration.GetConnectionString("GlobalDBConnection");
 
-        services.AddDbContext<GlobalDbContext>(options =>
-            options.UseSqlServer(globalConnectionString));
+            services.AddDbContext<GlobalDbContext>(options =>
+                options.UseSqlServer(globalConnectionString));
+
+            services.AddScoped<IGlobalDbContext>(provider => provider.GetRequiredService<GlobalDbContext>());
+        }
 
         var tenantConnectionString = configuration.GetConnectionString("TenantDBConnection");
         var fixedTenantConnectionString = configuration.GetSection(TenantStampOptions.SectionName).GetValue<string>("FixedTenantConnectionString");
@@ -35,7 +44,6 @@ public static class DependencyInjection
         services.AddScoped<IBranchService, BranchService>();
         
         // Identity / Auth Services
-        services.AddScoped<IGlobalDbContext>(provider => provider.GetRequiredService<GlobalDbContext>());
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<TenantDbContext>());
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IGSTService, GSTService>();

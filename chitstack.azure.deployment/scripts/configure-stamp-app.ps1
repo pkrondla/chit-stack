@@ -27,14 +27,13 @@ if ($Scope -eq "global") {
 $names = & "$PSScriptRoot/resource-names.ps1" -Scope $Scope -Environment $Environment -TenantKey $TenantKey -Prefix $ResourcePrefix | ConvertFrom-Json
 $appName = $names.apiAppName
 
-$globalNames = & "$PSScriptRoot/resource-names.ps1" -Scope global -Environment $Environment -TenantKey global -Prefix $ResourcePrefix | ConvertFrom-Json
-$globalServer = "$($globalNames.sqlServerName).database.windows.net"
-$globalDatabase = $globalNames.sqlDatabaseName
-$globalConn = "Server=tcp:$globalServer,1433;Database=$globalDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
-
 $settings = [ordered]@{}
 
 if ($Scope -eq "global") {
+    $globalNames = & "$PSScriptRoot/resource-names.ps1" -Scope global -Environment $Environment -TenantKey global -Prefix $ResourcePrefix | ConvertFrom-Json
+    $globalServer = "$($globalNames.sqlServerName).database.windows.net"
+    $globalDatabase = $globalNames.sqlDatabaseName
+    $globalConn = "Server=tcp:$globalServer,1433;Database=$globalDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
     $settings["ConnectionStrings__GlobalDBConnection"] = $globalConn
     $settings["SeedOnStartup"] = "false"
 }
@@ -42,7 +41,6 @@ else {
     $tenantServer = "$($names.sqlServerName).database.windows.net"
     $tenantDatabase = $names.sqlDatabaseName
     $tenantConn = "Server=tcp:$tenantServer,1433;Database=$tenantDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
-    $settings["ConnectionStrings__GlobalDBConnection"] = $globalConn
     $settings["ConnectionStrings__TenantDBConnection"] = $tenantConn
     $settings["TenantStamp__EnableFixedTenant"] = $(if ($EnableFixedTenant) { "true" } else { "false" })
     $settings["TenantStamp__FixedTenantId"] = "$FixedTenantId"

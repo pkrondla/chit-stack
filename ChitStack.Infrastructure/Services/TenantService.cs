@@ -48,7 +48,7 @@ public class TenantService : ITenantService
         }
     }
 
-    public string? ConnectionString => _tenantStampOptions.FixedTenantConnectionString ?? string.Empty; // TODO: Lookup from Global DB based on TenantId
+    public string? ConnectionString => _tenantStampOptions.FixedTenantConnectionString ?? string.Empty;
 
     public Task<int> GetTenantIdAsync()
     {

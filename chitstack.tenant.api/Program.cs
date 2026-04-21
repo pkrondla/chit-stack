@@ -1,4 +1,5 @@
 using ChitStack.Application;
+using ChitStack.Application.Common;
 using ChitStack.Infrastructure;
 using ChitStack.Infrastructure.Configuration;
 using ChitStack.API.Middleware;
@@ -22,7 +23,7 @@ builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration, ApplicationHostKind.TenantWebApi);
 builder.Services.AddScoped<ChitStack.Infrastructure.Data.Seeding.InitialDataSeeder>();
 
 // Hangfire Configuration
