@@ -238,17 +238,22 @@ jobs:
         shell: pwsh
         env:
           RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          FIXED_TENANT_ID: ${{ needs.resolve-profile.outputs.fixedTenantId }}
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
-          ./chitstack.azure/deployment/scripts/configure-stamp-app.ps1 `
-            -Scope tenant `
-            -Environment "${{ inputs.environment }}" `
-            -TenantKey "${{ inputs.tenantKey }}" `
-            -ResourceGroup $env:RG `
-            -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `
-            -SqlPassword "${{ secrets.SQL_ADMIN_PASSWORD }}" `
-            -AppInsightsConnectionString $ai `
-            -FixedTenantId ${{ needs.resolve-profile.outputs.fixedTenantId }}
+          $params = @{
+            Scope = "tenant"
+            Environment = "${{ inputs.environment }}"
+            TenantKey = "${{ inputs.tenantKey }}"
+            ResourceGroup = $env:RG
+            SqlLogin = "${{ secrets.SQL_ADMIN_LOGIN }}"
+            SqlPassword = "${{ secrets.SQL_ADMIN_PASSWORD }}"
+            AppInsightsConnectionString = $ai
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:FIXED_TENANT_ID)) {
+            $params.FixedTenantId = [int]$env:FIXED_TENANT_ID
+          }
+          ./chitstack.azure/deployment/scripts/configure-stamp-app.ps1 @params
       - name: Deploy Tenant Web
         shell: bash
         env:
