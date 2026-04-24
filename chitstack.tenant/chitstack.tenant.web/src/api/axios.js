@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiBaseUrl } from '../config/apiConfig';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5045/api', // Matches launchSettings.json http profile
+    baseURL: apiBaseUrl,
     headers: {
         'Content-Type': 'application/json',
     },

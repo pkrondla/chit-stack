@@ -106,6 +106,8 @@ jobs:
         run: dotnet build chitstack.tenant/chitstack.tenant.database/ChitStack.Database.Tenant.sqlproj -c Release
       - name: Build Tenant web
         shell: pwsh
+        env:
+          VITE_API_URL: https://api-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.azurewebsites.net/api
         run: |
           Push-Location chitstack.tenant/chitstack.tenant.web
           npm ci

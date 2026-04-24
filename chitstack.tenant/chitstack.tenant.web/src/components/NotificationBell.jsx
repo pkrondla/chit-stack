@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import useAuthStore from '../store/useAuthStore';
 import api from '../api/axios';
+import { getHubUrl } from '../config/apiConfig';
 
 const { Text } = Typography;
 
@@ -36,9 +37,7 @@ const NotificationBell = ({ isDark = false }) => {
 
         fetchNotifications();
 
-        const hubUrl = import.meta.env.VITE_API_URL 
-            ? `${import.meta.env.VITE_API_URL.replace('/api', '')}/notificationHub`
-            : 'http://localhost:5045/notificationHub';
+        const hubUrl = getHubUrl('/notificationHub');
 
         const newConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {

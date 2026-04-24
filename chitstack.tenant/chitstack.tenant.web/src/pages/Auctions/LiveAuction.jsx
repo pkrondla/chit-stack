@@ -7,6 +7,7 @@ import useAuthStore from '../../store/useAuthStore';
 import api from '../../api/axios';
 import { LiveRoomVoiceQueue } from '../../utils/liveRoomVoiceQueue';
 import { semanticColors } from '../../theme/tokens';
+import { getHubUrl } from '../../config/apiConfig';
 
 const { Title, Text } = Typography;
 
@@ -274,7 +275,7 @@ const LiveAuction = () => {
     useEffect(() => {
         let isStopped = false;
         const newConnection = new signalR.HubConnectionBuilder()
-            .withUrl("http://localhost:5045/auctionHub")
+            .withUrl(getHubUrl('/auctionHub'))
             .withAutomaticReconnect()
             .build();
 

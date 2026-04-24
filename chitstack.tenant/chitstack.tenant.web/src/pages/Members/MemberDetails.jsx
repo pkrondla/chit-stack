@@ -4,6 +4,7 @@ import { Card, Typography, Button, Spin, Avatar, Descriptions, Tag, Divider, Tab
 import { User, ArrowLeft, Phone, Mail, Hash, FileText, Edit, Bell, MessageSquare, Smartphone } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadFile } from '../../utils/downloadHelper';
+import { apiOrigin } from '../../config/apiConfig';
 
 const { Title } = Typography;
 
@@ -183,7 +184,7 @@ const MemberDetails = () => {
                         <div className="flex flex-col gap-1">
                             <span className="font-mono font-medium text-slate-800">{member.panNumber || 'Pending'}</span>
                             {member.panDocumentUrl && (
-                                <a href={`http://localhost:5045${member.panDocumentUrl}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                <a href={`${apiOrigin}${member.panDocumentUrl}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                                     <FileText size={12} /> View Document
                                 </a>
                             )}
@@ -193,7 +194,7 @@ const MemberDetails = () => {
                         <div className="flex flex-col gap-1">
                             <span className="font-mono font-medium text-slate-800">{member.aadhaarNumber || 'Pending'}</span>
                             {member.aadhaarDocumentUrl && (
-                                <a href={`http://localhost:5045${member.aadhaarDocumentUrl}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                <a href={`${apiOrigin}${member.aadhaarDocumentUrl}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                                     <FileText size={12} /> View Document
                                 </a>
                             )}

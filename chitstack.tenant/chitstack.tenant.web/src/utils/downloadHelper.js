@@ -1,3 +1,5 @@
+import { getAbsoluteApiUrl } from '../config/apiConfig';
+
 export const downloadFile = (url) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -5,8 +7,7 @@ export const downloadFile = (url) => {
         return;
     }
 
-    const baseUrl = 'http://localhost:5045/api';
-    const absoluteUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
+    const absoluteUrl = getAbsoluteApiUrl(url);
     const separator = absoluteUrl.includes('?') ? '&' : '?';
 
     window.open(`${absoluteUrl}${separator}access_token=${token}`, '_blank');
