@@ -192,10 +192,12 @@ Each **stamp** is an isolated Azure resource group: Static Web App, App Service,
 
 ## License
 
-Specify your license before publishing (e.g. MIT, Apache 2.0, or proprietary). This repository does not include a license file by default.
+[MIT](LICENSE) — Copyright (c) 2026 Praveen Rondla
 
 ---
 
 ## Author
 
-Portfolio project demonstrating full-stack SaaS engineering on Microsoft Azure.
+Portfolio project by **Praveen Rondla** — full-stack SaaS engineering on Microsoft Azure.
+
+**One-page summary for recruiters:** [Portfolio Summary](docs/portfolio-recruiter-summary.md) (print or export to PDF)

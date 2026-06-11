@@ -6,6 +6,7 @@ Welcome to the ChitStack documentation. Use this index to navigate the repositor
 
 | Document | Audience | Description |
 |----------|----------|-------------|
+| [Portfolio Summary (1 page)](portfolio-recruiter-summary.md) | Recruiters, reviewers | Printable overview — export to PDF |
 | [Getting Started](getting-started.md) | Developers | Run the solution locally |
 | [Architecture Overview](architecture/overview.md) | Engineers, reviewers | System design and patterns |
 | [CI/CD Guide](cicd/README.md) | DevOps, reviewers | Build, test, and deploy pipelines |
