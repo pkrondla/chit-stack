@@ -61,11 +61,13 @@ jobs:
         with:
           name: global-api-package
           path: artifacts/global-api
+          retention-days: 1
       - name: Upload Tenant API artifact
         uses: actions/upload-artifact@v5
         with:
           name: tenant-api-package
           path: artifacts/tenant-api
+          retention-days: 1
 
   build-global-slice:
     runs-on: ubuntu-latest
@@ -110,6 +112,7 @@ jobs:
         with:
           name: global-web-dist
           path: chitstack.global/chitstack.global.web/dist
+          retention-days: 1
 
   build-tenant-web:
     runs-on: ubuntu-latest
@@ -130,6 +133,7 @@ jobs:
         with:
           name: tenant-web-dist
           path: chitstack.tenant/chitstack.tenant.web/dist
+          retention-days: 1
 
   build-dacpac:
     runs-on: ubuntu-latest
@@ -149,8 +153,10 @@ jobs:
         with:
           name: global-dacpac
           path: chitstack.global/chitstack.global.database/bin/Release/*.dacpac
+          retention-days: 1
       - name: Upload Tenant DACPAC artifact
         uses: actions/upload-artifact@v5
         with:
           name: tenant-dacpac
           path: chitstack.tenant/chitstack.tenant.database/bin/Release/*.dacpac
+          retention-days: 1

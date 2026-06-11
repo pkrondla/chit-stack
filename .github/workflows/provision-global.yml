@@ -105,16 +105,19 @@ jobs:
         with:
           name: global-api-package
           path: artifacts/global-api
+          retention-days: 1
       - name: Upload Global web artifact
         uses: actions/upload-artifact@v5
         with:
           name: global-web-dist
           path: chitstack.global/chitstack.global.web/dist
+          retention-days: 1
       - name: Upload Global DACPAC artifact
         uses: actions/upload-artifact@v5
         with:
           name: global-dacpac
           path: chitstack.global/chitstack.global.database/bin/Release/*.dacpac
+          retention-days: 1
 
   deploy-infra:
     needs: resolve-profile
@@ -255,6 +258,7 @@ jobs:
         with:
           name: global-db-deploy-report
           path: global-deploy-report.xml
+          retention-days: 1
       - name: Remove temporary SQL firewall for GitHub runner
         if: always()
         continue-on-error: true

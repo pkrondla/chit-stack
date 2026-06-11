@@ -118,16 +118,19 @@ jobs:
         with:
           name: tenant-api-package
           path: artifacts/tenant-api
+          retention-days: 1
       - name: Upload Tenant web artifact
         uses: actions/upload-artifact@v5
         with:
           name: tenant-web-dist
           path: chitstack.tenant/chitstack.tenant.web/dist
+          retention-days: 1
       - name: Upload Tenant DACPAC artifact
         uses: actions/upload-artifact@v5
         with:
           name: tenant-dacpac
           path: chitstack.tenant/chitstack.tenant.database/bin/Release/*.dacpac
+          retention-days: 1
 
   deploy-infra:
     needs: resolve-profile
@@ -276,6 +279,7 @@ jobs:
         with:
           name: tenant-${{ inputs.tenantKey }}-db-deploy-report
           path: tenant-${{ inputs.tenantKey }}-deploy-report.xml
+          retention-days: 1
       - name: Remove temporary SQL firewall for GitHub runner
         if: always()
         continue-on-error: true
