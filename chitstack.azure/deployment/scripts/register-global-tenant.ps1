@@ -28,10 +28,13 @@ if ([string]::IsNullOrWhiteSpace($Subdomain)) {
     $Subdomain = if ($tenant.subdomain) { [string]$tenant.subdomain } else { $TenantKey }
 }
 
-$globalServer = "sql-chitstack-$Environment-global.database.windows.net"
-$globalDatabase = "sqldb-chitstack-$Environment-global"
-$tenantServer = "sql-chitstack-$Environment-$TenantKey.database.windows.net"
-$tenantDatabase = "sqldb-chitstack-$Environment-$TenantKey"
+$prefix = if ($config.defaults.azureResourcePrefix) { [string]$config.defaults.azureResourcePrefix } else { "chitstack" }
+$globalNames = & "$PSScriptRoot/resource-names.ps1" -Scope global -Environment $Environment -TenantKey global -Prefix $prefix | ConvertFrom-Json
+$tenantNames = & "$PSScriptRoot/resource-names.ps1" -Scope tenant -Environment $Environment -TenantKey $TenantKey -Prefix $prefix | ConvertFrom-Json
+$globalServer = "$($globalNames.sqlServerName).database.windows.net"
+$globalDatabase = $globalNames.sqlDatabaseName
+$tenantServer = "$($tenantNames.sqlServerName).database.windows.net"
+$tenantDatabase = $tenantNames.sqlDatabaseName
 
 $tenantConn = "Server=tcp:$tenantServer,1433;Database=$tenantDatabase;User ID=$SqlLogin;Password=$SqlPassword;Encrypt=True;TrustServerCertificate=False;MultipleActiveResultSets=true"
 

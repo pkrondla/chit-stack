@@ -2,7 +2,8 @@
   "defaults": {
     "environment": "prod",
     "profile": "nonprod-ultra-low",
-    "region": "centralindia"
+    "region": "centralindia",
+    "azureResourcePrefix": "tr-cs"
   },
   "profiles": {
     "nonprod-ultra-low": {
