@@ -12,7 +12,7 @@
       "value": "prod"
     },
     "resourcePrefix": {
-      "value": "chitstack"
+      "value": "tr-cs"
     },
     "staticWebSku": {
       "value": "Free"

@@ -47,6 +47,7 @@ jobs:
       staticWebSku: ${{ steps.resolve.outputs.staticWebSku }}
       apiPlanSku: ${{ steps.resolve.outputs.apiPlanSku }}
       sqlSku: ${{ steps.resolve.outputs.sqlSku }}
+      azureResourcePrefix: ${{ steps.resolve.outputs.azureResourcePrefix }}
     steps:
       - uses: actions/checkout@v5
       - name: Resolve global stamp settings from manifests
@@ -66,9 +67,13 @@ jobs:
           $staticWebSku = if ($overrides -and $overrides.staticWebSku) { [string]$overrides.staticWebSku } else { [string]$profile.staticWebSku }
           $apiPlanSku = if ($overrides -and $overrides.apiPlanSku) { [string]$overrides.apiPlanSku } else { [string]$profile.apiPlanSku }
           $sqlSku = if ($overrides -and $overrides.sqlSku) { [string]$overrides.sqlSku } else { [string]$profile.sqlSku }
+          $prefix = if ($config.defaults -and $config.defaults.azureResourcePrefix) { [string]$config.defaults.azureResourcePrefix } else { "chitstack" }
+          if ([string]::IsNullOrWhiteSpace($prefix)) { throw "defaults.azureResourcePrefix must be set in tenants.json." }
+          if ($prefix -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') { throw "defaults.azureResourcePrefix must be lowercase alphanumeric with hyphens (got: '$prefix')." }
           "staticWebSku=$staticWebSku" >> $env:GITHUB_OUTPUT
           "apiPlanSku=$apiPlanSku" >> $env:GITHUB_OUTPUT
           "sqlSku=$sqlSku" >> $env:GITHUB_OUTPUT
+          "azureResourcePrefix=$prefix" >> $env:GITHUB_OUTPUT
 
   build:
     needs: resolve-profile
@@ -94,7 +99,7 @@ jobs:
       - name: Build Global web
         shell: pwsh
         env:
-          VITE_API_BASE_URL: https://api-chitstack-${{ inputs.environment }}-global.azurewebsites.net/api
+          VITE_API_BASE_URL: https://api-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-global.azurewebsites.net/api
         run: |
           Push-Location chitstack.global/chitstack.global.web
           npm ci
@@ -130,15 +135,20 @@ jobs:
       staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
       apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
       sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
-      resourceGroup: rg-chitstack-${{ inputs.environment }}-global
+      resourcePrefix: ${{ needs.resolve-profile.outputs.azureResourcePrefix }}
+      resourceGroup: rg-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-global
     secrets: inherit
 
   deploy-db-api-web:
     runs-on: ubuntu-latest
     needs:
+      - resolve-profile
       - build
       - deploy-infra
     environment: ${{ inputs.environment }}
+    env:
+      PREFIX: ${{ needs.resolve-profile.outputs.azureResourcePrefix }}
+      ENV_NAME: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v5
       - name: Download Global API artifact
@@ -166,8 +176,8 @@ jobs:
         id: sqlfw
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-global
-          SQL_SERVER: sql-chitstack-${{ inputs.environment }}-global
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
+          SQL_SERVER: sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
         run: |
           set -e
           RUNNER_IP=$(curl -4sSf https://ipv4.icanhazip.com)
@@ -189,8 +199,8 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:DeployReport \
             /SourceFile:artifacts/global-dacpac/ChitStack.Database.Global.dacpac \
-            /TargetServerName:sql-chitstack-${{ inputs.environment }}-global.database.windows.net \
-            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-global \
+            /TargetServerName:sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global.database.windows.net \
+            /TargetDatabaseName:sqldb-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /OutputPath:global-deploy-report.xml
@@ -200,25 +210,24 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:Publish \
             /SourceFile:artifacts/global-dacpac/ChitStack.Database.Global.dacpac \
-            /TargetServerName:sql-chitstack-${{ inputs.environment }}-global.database.windows.net \
-            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-global \
+            /TargetServerName:sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global.database.windows.net \
+            /TargetDatabaseName:sqldb-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /p:BlockOnPossibleDataLoss=true
       - name: Deploy Global API
         uses: azure/webapps-deploy@v3
         with:
-          app-name: api-chitstack-${{ inputs.environment }}-global
+          app-name: api-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
           package: artifacts/global-api
       - name: Resolve App Insights connection string
         id: ai
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-global
-          ENV_NAME: ${{ inputs.environment }}
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
         run: |
           set +e
-          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chitstack-${ENV_NAME}-global" --query connectionString -o tsv)
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global" --query connectionString -o tsv)
           {
             echo "connection<<AIEOF"
             echo "$AI"
@@ -227,22 +236,23 @@ jobs:
       - name: Configure Global API app settings
         shell: pwsh
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-global
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
           ./chitstack.azure/deployment/scripts/configure-stamp-app.ps1 `
             -Scope global `
-            -Environment "${{ inputs.environment }}" `
+            -Environment "${{ env.ENV_NAME }}" `
             -TenantKey global `
             -ResourceGroup $env:RG `
             -SqlLogin "${{ secrets.SQL_ADMIN_LOGIN }}" `
             -SqlPassword "${{ secrets.SQL_ADMIN_PASSWORD }}" `
+            -ResourcePrefix "${{ env.PREFIX }}" `
             -AppInsightsConnectionString $ai
       - name: Deploy Global Web
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-global
-          SWA_NAME: web-chitstack-${{ inputs.environment }}-global
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
+          SWA_NAME: web-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
         run: |
           set -e
           TOKEN=$(az staticwebapp secrets list --resource-group "$RG" --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
@@ -264,8 +274,8 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-global
-          SQL_SERVER: sql-chitstack-${{ inputs.environment }}-global
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
+          SQL_SERVER: sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-global
         run: |
           RULE="${{ steps.sqlfw.outputs.rule }}"
           if [ -z "$RULE" ]; then exit 0; fi

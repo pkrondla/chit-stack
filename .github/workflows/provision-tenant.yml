@@ -55,6 +55,7 @@ jobs:
       apiPlanSku: ${{ steps.resolve.outputs.apiPlanSku }}
       sqlSku: ${{ steps.resolve.outputs.sqlSku }}
       fixedTenantId: ${{ steps.resolve.outputs.fixedTenantId }}
+      azureResourcePrefix: ${{ steps.resolve.outputs.azureResourcePrefix }}
     steps:
       - uses: actions/checkout@v5
       - name: Resolve tenant settings from tenants.json
@@ -78,10 +79,14 @@ jobs:
           $apiPlanSku = if ($tenantOverrides -and $tenantOverrides.apiPlanSku) { [string]$tenantOverrides.apiPlanSku } else { [string]$profile.apiPlanSku }
           $sqlSku = if ($tenantOverrides -and $tenantOverrides.sqlSku) { [string]$tenantOverrides.sqlSku } else { [string]$profile.sqlSku }
           $fixedTenantId = [int]$tenant.tenantId
+          $prefix = if ($config.defaults -and $config.defaults.azureResourcePrefix) { [string]$config.defaults.azureResourcePrefix } else { "chitstack" }
+          if ([string]::IsNullOrWhiteSpace($prefix)) { throw "defaults.azureResourcePrefix must be set in tenants.json." }
+          if ($prefix -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') { throw "defaults.azureResourcePrefix must be lowercase alphanumeric with hyphens (got: '$prefix')." }
           "staticWebSku=$staticWebSku" >> $env:GITHUB_OUTPUT
           "apiPlanSku=$apiPlanSku" >> $env:GITHUB_OUTPUT
           "sqlSku=$sqlSku" >> $env:GITHUB_OUTPUT
           "fixedTenantId=$fixedTenantId" >> $env:GITHUB_OUTPUT
+          "azureResourcePrefix=$prefix" >> $env:GITHUB_OUTPUT
 
   build:
     needs: resolve-profile
@@ -107,7 +112,7 @@ jobs:
       - name: Build Tenant web
         shell: pwsh
         env:
-          VITE_API_URL: https://api-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.azurewebsites.net/api
+          VITE_API_URL: https://api-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-${{ inputs.tenantKey }}.azurewebsites.net/api
         run: |
           Push-Location chitstack.tenant/chitstack.tenant.web
           npm ci
@@ -143,7 +148,8 @@ jobs:
       staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
       apiPlanSku: ${{ needs.resolve-profile.outputs.apiPlanSku }}
       sqlSku: ${{ needs.resolve-profile.outputs.sqlSku }}
-      resourceGroup: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+      resourcePrefix: ${{ needs.resolve-profile.outputs.azureResourcePrefix }}
+      resourceGroup: rg-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-${{ inputs.tenantKey }}
     secrets: inherit
 
   deploy-db-api-web:
@@ -153,6 +159,10 @@ jobs:
       - build
       - deploy-infra
     environment: ${{ inputs.environment }}
+    env:
+      PREFIX: ${{ needs.resolve-profile.outputs.azureResourcePrefix }}
+      ENV_NAME: ${{ inputs.environment }}
+      TENANT_KEY: ${{ inputs.tenantKey }}
     steps:
       - uses: actions/checkout@v5
       - name: Download Tenant API artifact
@@ -180,8 +190,8 @@ jobs:
         id: sqlfw
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
-          SQL_SERVER: sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
+          SQL_SERVER: sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
         run: |
           set -e
           RUNNER_IP=$(curl -4sSf https://ipv4.icanhazip.com)
@@ -203,37 +213,35 @@ jobs:
           ~/.dotnet/tools/sqlpackage \
             /Action:DeployReport \
             /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
-            /TargetServerName:sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
-            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetServerName:sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}.database.windows.net \
+            /TargetDatabaseName:sqldb-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }} \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
-            /OutputPath:tenant-${{ inputs.tenantKey }}-deploy-report.xml
+            /OutputPath:tenant-${{ env.TENANT_KEY }}-deploy-report.xml
       - name: Publish Tenant DACPAC
         shell: bash
         run: |
           ~/.dotnet/tools/sqlpackage \
             /Action:Publish \
             /SourceFile:artifacts/tenant-dacpac/ChitStack.Database.Tenant.dacpac \
-            /TargetServerName:sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}.database.windows.net \
-            /TargetDatabaseName:sqldb-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }} \
+            /TargetServerName:sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}.database.windows.net \
+            /TargetDatabaseName:sqldb-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }} \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
             /p:BlockOnPossibleDataLoss=true
       - name: Deploy Tenant API
         uses: azure/webapps-deploy@v3
         with:
-          app-name: api-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          app-name: api-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
           package: artifacts/tenant-api
       - name: Resolve App Insights connection string
         id: ai
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
-          ENV_NAME: ${{ inputs.environment }}
-          TK: ${{ inputs.tenantKey }}
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
         run: |
           set +e
-          AI=$(az monitor app-insights component show -g "$RG" --app "ai-chitstack-${ENV_NAME}-${TK}" --query connectionString -o tsv)
+          AI=$(az monitor app-insights component show -g "$RG" --app "ai-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}" --query connectionString -o tsv)
           {
             echo "connection<<AIEOF"
             echo "$AI"
@@ -242,17 +250,18 @@ jobs:
       - name: Configure Tenant API app settings
         shell: pwsh
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
           FIXED_TENANT_ID: ${{ needs.resolve-profile.outputs.fixedTenantId }}
         run: |
           $ai = "${{ steps.ai.outputs.connection }}"
           $params = @{
             Scope = "tenant"
-            Environment = "${{ inputs.environment }}"
-            TenantKey = "${{ inputs.tenantKey }}"
+            Environment = "${{ env.ENV_NAME }}"
+            TenantKey = "${{ env.TENANT_KEY }}"
             ResourceGroup = $env:RG
             SqlLogin = "${{ secrets.SQL_ADMIN_LOGIN }}"
             SqlPassword = "${{ secrets.SQL_ADMIN_PASSWORD }}"
+            ResourcePrefix = "${{ env.PREFIX }}"
             AppInsightsConnectionString = $ai
           }
           if (-not [string]::IsNullOrWhiteSpace($env:FIXED_TENANT_ID)) {
@@ -262,8 +271,8 @@ jobs:
       - name: Deploy Tenant Web
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
-          SWA_NAME: web-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
+          SWA_NAME: web-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
         run: |
           set -e
           TOKEN=$(az staticwebapp secrets list --resource-group "$RG" --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
@@ -285,8 +294,8 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          RG: rg-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
-          SQL_SERVER: sql-chitstack-${{ inputs.environment }}-${{ inputs.tenantKey }}
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
+          SQL_SERVER: sql-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }}
         run: |
           RULE="${{ steps.sqlfw.outputs.rule }}"
           if [ -z "$RULE" ]; then exit 0; fi

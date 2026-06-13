@@ -26,6 +26,14 @@ if (-not $config.profiles.PSObject.Properties.Name) {
     throw "No profiles defined in $ConfigPath."
 }
 
+$prefix = if ($config.defaults -and $config.defaults.azureResourcePrefix) { [string]$config.defaults.azureResourcePrefix } else { "chitstack" }
+if ([string]::IsNullOrWhiteSpace($prefix)) {
+    throw "defaults.azureResourcePrefix must be set in $ConfigPath."
+}
+if ($prefix -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') {
+    throw "defaults.azureResourcePrefix must be lowercase alphanumeric with hyphens (got: '$prefix')."
+}
+
 function Test-SkuAllowed {
     param(
         [string]$Environment,
