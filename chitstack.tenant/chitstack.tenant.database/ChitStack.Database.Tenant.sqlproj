@@ -16,4 +16,12 @@
     <Build Remove="PostDeploy.sql" />
     <PostDeploy Include="PostDeploy.sql" />
   </ItemGroup>
+  <!-- SQLCMD variables used in PostDeploy seed scripts.
+       DefaultValue is used at build time only; the real value is passed via
+       /v:TenantId=<n> when sqlpackage runs in the CI/CD pipeline. -->
+  <ItemGroup>
+    <SqlCmdVariable Include="TenantId">
+      <DefaultValue>1</DefaultValue>
+    </SqlCmdVariable>
+  </ItemGroup>
 </Project>
