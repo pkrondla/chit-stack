@@ -3,7 +3,6 @@ using ChitStack.Domain.Common;
 using ChitStack.Domain.Global;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace ChitStack.Application.Features.Orders.Commands.RecordPayment;
 
@@ -23,16 +22,16 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
 {
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
-    private readonly IConfiguration _configuration;
+    private readonly IGlobalSettingsService _settings;
 
     public RecordPaymentHandler(
         IGlobalDbContext context,
         IEmailService emailService,
-        IConfiguration configuration)
+        IGlobalSettingsService settings)
     {
         _context = context;
         _emailService = emailService;
-        _configuration = configuration;
+        _settings = settings;
     }
 
     public async Task<Result<bool>> Handle(
@@ -47,26 +46,26 @@ public class RecordPaymentHandler : IRequestHandler<RecordPaymentCommand, Result
 
         var transaction = new TenantPaymentTransaction
         {
-            OrderId = order.Id,
+            OrderId              = order.Id,
             TransactionReference = request.TransactionReference,
-            PaymentDate = request.PaymentDate,
-            Amount = request.Amount,
-            PaymentMethod = request.PaymentMethod,
-            BankOrUpiDetails = request.BankOrUpiDetails,
-            UpdatedBy = request.UpdatedBy,
-            UpdatedByRole = request.UpdatedByRole,
-            Status = "Pending",
-            CreatedBy = request.UpdatedBy
+            PaymentDate          = request.PaymentDate,
+            Amount               = request.Amount,
+            PaymentMethod        = request.PaymentMethod,
+            BankOrUpiDetails     = request.BankOrUpiDetails,
+            UpdatedBy            = request.UpdatedBy,
+            UpdatedByRole        = request.UpdatedByRole,
+            Status               = "Pending",
+            CreatedBy            = request.UpdatedBy
         };
 
         order.OrderStatus = "PaymentPending";
         _context.TenantPaymentTransactions.Add(transaction);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Notify admin when user submits payment
+        // Notify admin when the customer submits payment details
         if (request.UpdatedByRole == "User")
         {
-            var adminEmail = _configuration["Platform:AdminEmail"];
+            var adminEmail = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.AdminEmail, cancellationToken);
             if (!string.IsNullOrWhiteSpace(adminEmail))
             {
                 _ = _emailService.SendAsync(

@@ -11,6 +11,7 @@ import UserManagement from './pages/Admin/UserManagement';
 import Tenants from './pages/Admin/Tenants';
 import Catalog from './pages/Admin/Catalog';
 import Orders from './pages/Admin/Orders';
+import Settings from './pages/Admin/Settings';
 
 // Placeholder Pages
 const Dashboard = () => <div><h2>Global Admin Dashboard</h2><p>Select a module from the sidebar.</p></div>;
@@ -45,6 +46,7 @@ function App() {
                     <Route path="admin/users" element={<UserManagement />} />
                     <Route path="admin/catalog" element={<Catalog />} />
                     <Route path="admin/orders" element={<Orders />} />
+                    <Route path="admin/settings" element={<Settings />} />
                 </Route>
             </Routes>
         </Router>

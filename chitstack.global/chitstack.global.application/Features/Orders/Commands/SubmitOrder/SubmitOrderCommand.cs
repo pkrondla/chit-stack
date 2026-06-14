@@ -3,7 +3,6 @@ using ChitStack.Domain.Common;
 using ChitStack.Domain.Global;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace ChitStack.Application.Features.Orders.Commands.SubmitOrder;
 
@@ -44,16 +43,16 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
 {
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
-    private readonly IConfiguration _configuration;
+    private readonly IGlobalSettingsService _settings;
 
     public SubmitOrderHandler(
         IGlobalDbContext context,
         IEmailService emailService,
-        IConfiguration configuration)
+        IGlobalSettingsService settings)
     {
         _context = context;
         _emailService = emailService;
-        _configuration = configuration;
+        _settings = settings;
     }
 
     public async Task<Result<SubmitOrderResponse>> Handle(
@@ -161,11 +160,11 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
         await _context.SaveChangesAsync(cancellationToken);
 
         // Email tenant
-        var globalPortal = _configuration["Platform:GlobalPortalBaseUrl"] ?? "";
-        var upiId = _configuration["Platform:PaymentUpiId"] ?? "";
-        var bankName = _configuration["Platform:PaymentBankName"] ?? "";
-        var account = _configuration["Platform:PaymentAccountNumber"] ?? "";
-        var ifsc = _configuration["Platform:PaymentIfsc"] ?? "";
+        var globalPortal = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.GlobalPortalBaseUrl, cancellationToken) ?? "";
+        var upiId        = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.PaymentUpiId, cancellationToken) ?? "";
+        var bankName     = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.PaymentBankName, cancellationToken) ?? "";
+        var account      = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.PaymentAccountNumber, cancellationToken) ?? "";
+        var ifsc         = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.PaymentIfsc, cancellationToken) ?? "";
 
         _ = _emailService.SendAsync(
             request.AdminEmail,
@@ -173,7 +172,7 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
             BuildOrderEmail(order, globalPortal, upiId, bankName, account, ifsc));
 
         // Notify admin
-        var adminEmail = _configuration["Platform:AdminEmail"];
+        var adminEmail = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.AdminEmail, cancellationToken);
         if (!string.IsNullOrWhiteSpace(adminEmail))
         {
             _ = _emailService.SendAsync(

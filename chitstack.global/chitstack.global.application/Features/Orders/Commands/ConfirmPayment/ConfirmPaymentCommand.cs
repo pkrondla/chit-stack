@@ -2,7 +2,6 @@ using ChitStack.Application.Common.Interfaces;
 using ChitStack.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace ChitStack.Application.Features.Orders.Commands.ConfirmPayment;
 
@@ -19,16 +18,11 @@ public class ConfirmPaymentHandler : IRequestHandler<ConfirmPaymentCommand, Resu
 {
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
-    private readonly IConfiguration _configuration;
 
-    public ConfirmPaymentHandler(
-        IGlobalDbContext context,
-        IEmailService emailService,
-        IConfiguration configuration)
+    public ConfirmPaymentHandler(IGlobalDbContext context, IEmailService emailService)
     {
         _context = context;
         _emailService = emailService;
-        _configuration = configuration;
     }
 
     public async Task<Result<bool>> Handle(

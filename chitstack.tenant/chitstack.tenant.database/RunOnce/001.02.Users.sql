@@ -15,7 +15,8 @@ CREATE TABLE [dbo].[Users] (
     [CreatedBy] NVARCHAR(200) NULL,
     [LastModifiedAt] DATETIME2 NULL,
     [LastModifiedBy] NVARCHAR(200) NULL,
-    [IsActive] BIT NOT NULL CONSTRAINT [DF_Users_IsActive] DEFAULT 1
+    [IsActive]       BIT       NOT NULL CONSTRAINT [DF_Users_IsActive] DEFAULT 1,
+    [TrialEndDate]   DATETIME2 NULL  -- Demo stamp only; NULL on dedicated tenant stamps
 );
 GO
 

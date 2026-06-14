@@ -4,7 +4,6 @@ using ChitStack.Infrastructure.Global.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace ChitStack.Infrastructure.Global;
 
@@ -16,10 +15,18 @@ public static class DependencyInjection
     {
         var globalConnectionString = configuration.GetConnectionString("GlobalDBConnection");
 
+        // Register both factory (for singleton-safe services) and scoped context (for request handlers)
+        services.AddDbContextFactory<GlobalDbContext>(options =>
+            options.UseSqlServer(globalConnectionString));
+
         services.AddDbContext<GlobalDbContext>(options =>
             options.UseSqlServer(globalConnectionString));
 
         services.AddScoped<IGlobalDbContext>(provider => provider.GetRequiredService<GlobalDbContext>());
+
+        services.AddMemoryCache();
+
+        services.AddSingleton<IGlobalSettingsService, GlobalSettingsService>();
         services.AddScoped<IGlobalTokenService, GlobalTokenService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IDemoStampService, DemoStampService>();

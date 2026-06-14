@@ -1,18 +1,17 @@
 using ChitStack.Application.Common.Interfaces;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace ChitStack.Infrastructure.Global.Services;
 
 public class DemoStampService : IDemoStampService
 {
-    private readonly IConfiguration _configuration;
+    private readonly IGlobalSettingsService _settings;
     private readonly ILogger<DemoStampService> _logger;
 
-    public DemoStampService(IConfiguration configuration, ILogger<DemoStampService> logger)
+    public DemoStampService(IGlobalSettingsService settings, ILogger<DemoStampService> logger)
     {
-        _configuration = configuration;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -23,9 +22,8 @@ public class DemoStampService : IDemoStampService
         DateTime trialEndDate,
         CancellationToken cancellationToken = default)
     {
-        var connectionStringName = _configuration["DemoStamp:ConnectionStringName"] ?? "TenantDBConnection";
-        var connString = _configuration.GetConnectionString(connectionStringName);
-        var demoTenantId = int.Parse(_configuration["DemoStamp:DemoTenantId"] ?? "1");
+        var connString   = await _settings.GetAsync(SettingKeys.DemoStamp.Group, SettingKeys.DemoStamp.ConnectionString, cancellationToken);
+        var demoTenantId = int.Parse(await _settings.GetAsync(SettingKeys.DemoStamp.Group, SettingKeys.DemoStamp.DemoTenantId, cancellationToken) ?? "1");
 
         if (string.IsNullOrWhiteSpace(connString))
         {

@@ -11,6 +11,7 @@ public interface IGlobalDbContext
     DbSet<TenantOrder> TenantOrders { get; }
     DbSet<TenantOrderItem> TenantOrderItems { get; }
     DbSet<TenantPaymentTransaction> TenantPaymentTransactions { get; }
+    DbSet<GlobalSetting> GlobalSettings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

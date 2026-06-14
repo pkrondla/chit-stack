@@ -2,7 +2,6 @@ using ChitStack.Application.Common.Interfaces;
 using ChitStack.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace ChitStack.Application.Features.Orders.Commands.CompleteProvisioning;
 
@@ -18,16 +17,11 @@ public class CompleteProvisioningHandler : IRequestHandler<CompleteProvisioningC
 {
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
-    private readonly IConfiguration _configuration;
 
-    public CompleteProvisioningHandler(
-        IGlobalDbContext context,
-        IEmailService emailService,
-        IConfiguration configuration)
+    public CompleteProvisioningHandler(IGlobalDbContext context, IEmailService emailService)
     {
         _context = context;
         _emailService = emailService;
-        _configuration = configuration;
     }
 
     public async Task<Result<bool>> Handle(

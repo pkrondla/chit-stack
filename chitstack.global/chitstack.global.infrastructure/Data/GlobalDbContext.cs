@@ -16,6 +16,7 @@ public class GlobalDbContext : DbContext, IGlobalDbContext
     public DbSet<TenantOrder> TenantOrders => Set<TenantOrder>();
     public DbSet<TenantOrderItem> TenantOrderItems => Set<TenantOrderItem>();
     public DbSet<TenantPaymentTransaction> TenantPaymentTransactions => Set<TenantPaymentTransaction>();
+    public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +71,13 @@ public class GlobalDbContext : DbContext, IGlobalDbContext
         {
             e.ToTable("TenantPaymentTransactions");
             e.HasKey(x => x.Id);
+        });
+
+        modelBuilder.Entity<GlobalSetting>(e =>
+        {
+            e.ToTable("GlobalSettings");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.SettingGroup, x.SettingKey }).IsUnique();
         });
     }
 }

@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Dropdown } from 'antd';
 import {
     LayoutDashboard, Users,
-    LogOut, Settings, ChevronDown, Building, Package, ShoppingBag
+    LogOut, Settings, Settings2, ChevronDown, Building, Package, ShoppingBag
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import { semanticColors } from '../theme/tokens';
@@ -30,7 +30,7 @@ const Layout = () => {
         { key: '/admin/orders', icon: <ShoppingBag size={18} />, label: 'Subscription Orders' },
         { key: '/admin/catalog', icon: <Package size={18} />, label: 'Product Catalog' },
         { key: '/admin/users', icon: <Users size={18} />, label: 'System Users' },
-        { key: '/settings', icon: <Settings size={18} />, label: 'Global Settings' },
+        { key: '/admin/settings', icon: <Settings2 size={18} />, label: 'Platform Settings' },
     ];
 
     return (

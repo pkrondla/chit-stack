@@ -3,7 +3,6 @@ using ChitStack.Domain.Common;
 using ChitStack.Domain.Global;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace ChitStack.Application.Features.Registration.Commands.RegisterTenant;
@@ -31,20 +30,20 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IDemoStampService _demoStampService;
-    private readonly IConfiguration _configuration;
+    private readonly IGlobalSettingsService _settings;
     private readonly ILogger<RegisterTenantHandler> _logger;
 
     public RegisterTenantHandler(
         IGlobalDbContext context,
         IEmailService emailService,
         IDemoStampService demoStampService,
-        IConfiguration configuration,
+        IGlobalSettingsService settings,
         ILogger<RegisterTenantHandler> logger)
     {
         _context = context;
         _emailService = emailService;
         _demoStampService = demoStampService;
-        _configuration = configuration;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -52,7 +51,6 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
         RegisterTenantCommand request,
         CancellationToken cancellationToken)
     {
-        // Validate email uniqueness
         if (await _context.Tenants.AnyAsync(
                 t => t.ContactEmail == request.ContactEmail,
                 cancellationToken))
@@ -61,30 +59,29 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
                 "This email is already registered. Please log in to the demo portal.");
         }
 
-        var trialDays = int.Parse(_configuration["DemoStamp:TrialDays"] ?? "30");
-        var now = DateTime.UtcNow;
+        var trialDays    = int.Parse(await _settings.GetAsync(SettingKeys.DemoStamp.Group, SettingKeys.DemoStamp.TrialDays, cancellationToken) ?? "30");
+        var demoPortalUrl= await _settings.GetAsync(SettingKeys.DemoStamp.Group, SettingKeys.DemoStamp.DemoPortalUrl, cancellationToken) ?? "";
+        var adminEmail   = await _settings.GetAsync(SettingKeys.Platform.Group, SettingKeys.Platform.AdminEmail, cancellationToken);
+
+        var now      = DateTime.UtcNow;
         var trialEnd = now.AddDays(trialDays);
 
-        // Create GlobalTenant record
         var tenant = new GlobalTenant
         {
-            Name = request.CompanyName,
-            Subdomain = string.Empty,          // assigned at subscription time
-            State = request.State,
-            ContactEmail = request.ContactEmail,
-            ContactPhone = request.ContactPhone,
+            Name               = request.CompanyName,
+            Subdomain          = string.Empty,
+            State              = request.State,
+            ContactEmail       = request.ContactEmail,
+            ContactPhone       = request.ContactPhone,
             SubscriptionStatus = "DemoAccess",
-            TrialStartDate = now,
-            TrialEndDate = trialEnd,
-            ConnectionString = string.Empty,
-            CreatedBy = "Registration"
+            TrialStartDate     = now,
+            TrialEndDate       = trialEnd,
+            ConnectionString   = string.Empty,
+            CreatedBy          = "Registration"
         };
 
         _context.Tenants.Add(tenant);
         await _context.SaveChangesAsync(cancellationToken);
-
-        // Create trial user in the demo stamp DB
-        var demoPortalUrl = _configuration["DemoStamp:DemoPortalUrl"] ?? "http://localhost:5173";
 
         await _demoStampService.CreateDemoUserAsync(
             request.ContactEmail,
@@ -93,16 +90,8 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
             trialEnd,
             cancellationToken);
 
-        // Send welcome email (fire-and-forget; failure doesn't break registration)
-        _ = SendWelcomeEmailAsync(
-            request.ContactEmail,
-            request.AdminFullName,
-            demoPortalUrl,
-            request.ContactEmail,
-            trialEnd);
+        _ = SendWelcomeEmailAsync(request.ContactEmail, request.AdminFullName, demoPortalUrl, trialEnd);
 
-        // Notify platform admin
-        var adminEmail = _configuration["Platform:AdminEmail"];
         if (!string.IsNullOrWhiteSpace(adminEmail))
         {
             _ = _emailService.SendAsync(
@@ -116,19 +105,15 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
 
         return Result<RegisterTenantResponse>.Success(new RegisterTenantResponse
         {
-            TenantId = tenant.Id,
-            DemoPortalUrl = demoPortalUrl,
-            Username = request.ContactEmail,
+            TenantId     = tenant.Id,
+            DemoPortalUrl= demoPortalUrl,
+            Username     = request.ContactEmail,
             TrialEndDate = trialEnd
         });
     }
 
     private async Task SendWelcomeEmailAsync(
-        string to,
-        string fullName,
-        string portalUrl,
-        string username,
-        DateTime trialEnd)
+        string to, string fullName, string portalUrl, DateTime trialEnd)
     {
         var subject = "Welcome to ChitStack — Your Trial Has Started!";
         var body = $"""
@@ -137,7 +122,7 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
               <p>Your 30-day free trial has started. Explore all features on our shared demo portal.</p>
               <table style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;width:100%;background:#f8fafc">
                 <tr><td><strong>Demo Portal:</strong></td><td><a href="{portalUrl}">{portalUrl}</a></td></tr>
-                <tr><td><strong>Username:</strong></td><td>{username}</td></tr>
+                <tr><td><strong>Username:</strong></td><td>{to}</td></tr>
                 <tr><td><strong>Trial Ends:</strong></td><td>{trialEnd:dd MMM yyyy}</td></tr>
               </table>
               <p style="margin-top:24px">
@@ -147,7 +132,6 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
               <p style="color:#64748b;font-size:12px">ChitStack &mdash; Chit Fund Management Software</p>
             </div>
             """;
-
         await _emailService.SendAsync(to, subject, body);
     }
 }

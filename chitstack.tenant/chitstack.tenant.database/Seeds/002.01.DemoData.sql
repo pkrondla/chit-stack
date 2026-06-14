@@ -5,8 +5,8 @@
 -- to restore a clean state.
 -- ============================================================
 
--- Idempotent: only insert if SeedHistory doesn't have this entry.
-IF EXISTS (SELECT 1 FROM [dbo].[SeedHistory] WHERE [SeedName] = '002.01.DemoData') RETURN;
+-- Idempotent: skip if already applied.
+IF EXISTS (SELECT 1 FROM [dbo].[SeedHistory] WHERE [SeedKey] = '002.01.DemoData') GOTO Done;
 
 DECLARE @TenantId INT = 1;
 DECLARE @BranchId INT;
@@ -63,5 +63,7 @@ BEGIN
         (N'DM-005', N'Venkat',  N'Rao',     N'venkat@example.com',  N'9876543214', N'34 Indiranagar',  N'Bengaluru', N'Karnataka', @TenantId, @BranchId, N'System');
 END
 
-INSERT INTO [dbo].[SeedHistory] ([SeedName]) VALUES ('002.01.DemoData');
+INSERT INTO [dbo].[SeedHistory] ([SeedKey]) VALUES ('002.01.DemoData');
+
+Done:;
 GO
