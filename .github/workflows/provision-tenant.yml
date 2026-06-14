@@ -209,6 +209,8 @@ jobs:
         run: dotnet tool update --global microsoft.sqlpackage
       - name: Generate Tenant DB deploy report
         shell: bash
+        env:
+          FIXED_TENANT_ID: ${{ needs.resolve-profile.outputs.fixedTenantId }}
         run: |
           ~/.dotnet/tools/sqlpackage \
             /Action:DeployReport \
@@ -217,9 +219,12 @@ jobs:
             /TargetDatabaseName:sqldb-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }} \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /v:TenantId="$FIXED_TENANT_ID" \
             /OutputPath:tenant-${{ env.TENANT_KEY }}-deploy-report.xml
       - name: Publish Tenant DACPAC
         shell: bash
+        env:
+          FIXED_TENANT_ID: ${{ needs.resolve-profile.outputs.fixedTenantId }}
         run: |
           ~/.dotnet/tools/sqlpackage \
             /Action:Publish \
@@ -228,6 +233,7 @@ jobs:
             /TargetDatabaseName:sqldb-${{ env.PREFIX }}-${{ env.ENV_NAME }}-${{ env.TENANT_KEY }} \
             /TargetUser:${{ secrets.SQL_ADMIN_LOGIN }} \
             /TargetPassword:${{ secrets.SQL_ADMIN_PASSWORD }} \
+            /v:TenantId="$FIXED_TENANT_ID" \
             /p:BlockOnPossibleDataLoss=true
       - name: Deploy Tenant API
         uses: azure/webapps-deploy@v3

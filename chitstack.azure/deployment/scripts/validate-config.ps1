@@ -109,11 +109,11 @@ foreach ($tenant in $config.tenants) {
     }
 }
 
-# tenantId is the per-database row identifier (used for row-level filtering inside each
-# tenant's own isolated database). Dedicated tenant stamps each have their own SQL database
-# where TenantId = 1 is the norm. The shared demo stamp also uses TenantId = 1 in its
-# database. Uniqueness is therefore scoped per-database, not globally across all tenants in
-# this file, so no cross-tenant uniqueness check is performed here.
+$tenantIds = @($config.tenants | ForEach-Object { [int]$_.tenantId })
+$duplicateTenantIds = @($tenantIds | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { $_.Name })
+if ($duplicateTenantIds.Count -gt 0) {
+    throw "Duplicate tenantId values found in config: $($duplicateTenantIds -join ', ')"
+}
 
 Write-Host "Tenant/global configuration validation passed."
 

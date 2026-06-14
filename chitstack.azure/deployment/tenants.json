@@ -43,7 +43,7 @@
     },
     {
       "tenantKey": "tenant1",
-      "tenantId": 1,
+      "tenantId": 2,
       "displayName": "Tenant One",
       "subdomain": "tenant1",
       "enabled": true,
