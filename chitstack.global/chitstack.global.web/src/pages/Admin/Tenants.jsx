@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Table, Typography, Button, Form, Input, Tag, message, Space } from 'antd';
-import { Building, Plus } from 'lucide-react';
+import { Card, Table, Typography, Button, Form, Input, Tag, message, Space, Tooltip } from 'antd';
+import { Building, Plus, Mail } from 'lucide-react';
 import api from '../../api/axios';
 
 const { Title } = Typography;
@@ -36,6 +36,12 @@ const Tenants = () => {
         createMutation.mutate(values);
     };
 
+    const STATUS_COLORS = {
+        DemoAccess: 'blue', TrialExpired: 'orange', OrderSubmitted: 'cyan',
+        PaymentPending: 'gold', PaymentConfirmed: 'green', Provisioning: 'purple',
+        Active: 'success', Suspended: 'red'
+    };
+
     const columns = [
         {
             title: 'Tenant',
@@ -47,21 +53,55 @@ const Tenants = () => {
                     </div>
                     <div>
                         <div className="font-semibold text-lg">{record.name}</div>
-                        <div className="text-slate-500 text-sm">Key: {record.tenantKey}</div>
+                        <div className="text-slate-500 text-sm">
+                            {record.subdomain ? `${record.subdomain}.chitstack.com` : 'Demo access'}
+                        </div>
                     </div>
                 </Space>
             )
         },
         {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            align: 'right',
-            render: (status) => (
-                <Tag color="success" className="px-3 py-1 rounded-full font-bold text-sm">
-                    {status || 'Active'}
-                </Tag>
+            title: 'Contact',
+            key: 'contact',
+            render: (_, r) => (
+                <div className="text-sm">
+                    <div className="flex items-center gap-1 text-slate-600">
+                        <Mail size={12} />{r.contactEmail || '—'}
+                    </div>
+                    {r.contactPhone && <div className="text-slate-400">{r.contactPhone}</div>}
+                </div>
             )
+        },
+        {
+            title: 'Subscription',
+            dataIndex: 'subscriptionStatus',
+            key: 'subscriptionStatus',
+            render: (status) => (
+                <Tag color={STATUS_COLORS[status] || 'default'}>{status || 'Active'}</Tag>
+            )
+        },
+        {
+            title: 'Trial Ends',
+            dataIndex: 'trialEndDate',
+            key: 'trialEndDate',
+            render: (v, r) => {
+                if (!v || r.subscriptionStatus === 'Active') return '—';
+                const end = new Date(v);
+                const past = end < new Date();
+                return (
+                    <Tooltip title={end.toLocaleString('en-IN')}>
+                        <span className={past ? 'text-red-600 font-semibold' : 'text-slate-600'}>
+                            {end.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {past ? ' (expired)' : ''}
+                        </span>
+                    </Tooltip>
+                );
+            }
+        },
+        {
+            title: 'State',
+            dataIndex: 'state',
+            key: 'state',
         }
     ];
 

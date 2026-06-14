@@ -6,6 +6,7 @@ import {
     ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen, Bell, User
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import TrialBanner from './TrialBanner';
 import useAuthStore from '../store/useAuthStore';
 import { semanticColors } from '../theme/tokens';
 
@@ -244,6 +245,7 @@ const Layout = () => {
                         </Dropdown>
                     </div>
                 </Header>
+                <TrialBanner />
                 <Content
                     className="m-4 md:m-6 p-4 md:p-6 min-h-[calc(100vh-120px)] rounded-2xl shadow-sm overflow-x-hidden"
                     style={{ background: semanticColors.surface }}

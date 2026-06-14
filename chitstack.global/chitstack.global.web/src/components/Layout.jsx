@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Dropdown } from 'antd';
 import {
     LayoutDashboard, Users,
-    LogOut, Settings, ChevronDown, Building
+    LogOut, Settings, ChevronDown, Building, Package, ShoppingBag
 } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import { semanticColors } from '../theme/tokens';
@@ -27,6 +27,8 @@ const Layout = () => {
     const globalAdminItems = [
         { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
         { key: '/tenants', icon: <Building size={18} />, label: 'Tenants' },
+        { key: '/admin/orders', icon: <ShoppingBag size={18} />, label: 'Subscription Orders' },
+        { key: '/admin/catalog', icon: <Package size={18} />, label: 'Product Catalog' },
         { key: '/admin/users', icon: <Users size={18} />, label: 'System Users' },
         { key: '/settings', icon: <Settings size={18} />, label: 'Global Settings' },
     ];

@@ -33,6 +33,13 @@ public class TenantTokenService : ITenantTokenService
             new Claim("MemberId", user.MemberId?.ToString() ?? string.Empty)
         };
 
+        // Add trial claims when user is on the demo stamp (TrialEndDate is set)
+        if (user.TrialEndDate.HasValue)
+        {
+            claims.Add(new Claim("TrialEndDate", user.TrialEndDate.Value.ToString("O")));
+            claims.Add(new Claim("SubscriptionStatus", "DemoAccess"));
+        }
+
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"] ?? "ChitStack",
             audience: _configuration["Jwt:Audience"] ?? "ChitStackApp",

@@ -11,6 +11,11 @@ public class GlobalTenantDto
     public string Name { get; set; } = string.Empty;
     public string Subdomain { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
+    public string SubscriptionStatus { get; set; } = string.Empty;
+    public DateTime TrialEndDate { get; set; }
+    public string ContactEmail { get; set; } = string.Empty;
+    public string? ContactPhone { get; set; }
+    public DateTime? ProvisionedAt { get; set; }
 }
 
 public class GetGlobalTenantsQuery : IRequest<Result<List<GlobalTenantDto>>>
@@ -34,7 +39,12 @@ public class GetGlobalTenantsHandler : IRequestHandler<GetGlobalTenantsQuery, Re
                 Id = t.Id,
                 Name = t.Name,
                 Subdomain = t.Subdomain,
-                State = t.State
+                State = t.State,
+                SubscriptionStatus = t.SubscriptionStatus,
+                TrialEndDate = t.TrialEndDate,
+                ContactEmail = t.ContactEmail,
+                ContactPhone = t.ContactPhone,
+                ProvisionedAt = t.ProvisionedAt
             })
             .ToListAsync(cancellationToken);
 

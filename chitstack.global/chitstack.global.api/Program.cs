@@ -14,6 +14,7 @@ builder.Services.AddGlobalApplicationServices();
 var globalConnectionString = builder.Configuration.GetConnectionString("GlobalDBConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:GlobalDBConnection is required.");
 builder.Services.AddTransient<GlobalMaintenanceHeartbeatJob>();
+builder.Services.AddTransient<DemoDataResetJob>();
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -21,6 +22,7 @@ builder.Services.AddHangfire(configuration => configuration
     .UseSqlServerStorage(globalConnectionString));
 
 builder.Services.AddGlobalInfrastructureServices(builder.Configuration);
+builder.Services.AddHangfireServer(options => options.Queues = ["global-maintenance", "default"]);
 
 // Context Accessor
 builder.Services.AddHttpContextAccessor();
@@ -125,5 +127,14 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Hangfire dashboard
+app.UseHangfireDashboard("/hangfire");
+
+// Schedule recurring Hangfire jobs
+RecurringJob.AddOrUpdate<DemoDataResetJob>(
+    "demo-data-reset",
+    job => job.RunAsync(CancellationToken.None),
+    Cron.Weekly(DayOfWeek.Sunday, 2, 0)); // Every Sunday 02:00 UTC
 
 app.Run();

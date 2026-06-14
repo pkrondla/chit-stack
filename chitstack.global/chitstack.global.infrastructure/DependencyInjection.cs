@@ -4,6 +4,7 @@ using ChitStack.Infrastructure.Global.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ChitStack.Infrastructure.Global;
 
@@ -20,6 +21,8 @@ public static class DependencyInjection
 
         services.AddScoped<IGlobalDbContext>(provider => provider.GetRequiredService<GlobalDbContext>());
         services.AddScoped<IGlobalTokenService, GlobalTokenService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IDemoStampService, DemoStampService>();
 
         services.AddHttpClient();
 

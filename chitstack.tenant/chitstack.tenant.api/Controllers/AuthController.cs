@@ -25,6 +25,10 @@ public class AuthController : ControllerBase
         var result = await _mediator.Send(command);
         if (!result.Succeeded)
         {
+            // Return 402 Payment Required specifically for trial expiry
+            if (result.Errors.Any(e => e == "TrialExpired"))
+                return StatusCode(402, new { error = "TrialExpired", message = "Your demo trial has ended. Please subscribe to continue." });
+
             return Unauthorized(result);
         }
         return Ok(result);

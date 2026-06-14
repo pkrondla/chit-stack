@@ -22,5 +22,8 @@ public class User : TenantEntity
     public decimal? LastLongitude { get; set; }
     public DateTime? LastLocationUpdateTime { get; set; }
 
+    // Demo trial — set on demo stamp, null on dedicated stamps
+    public DateTime? TrialEndDate { get; set; }
+
     public ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
 }

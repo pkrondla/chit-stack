@@ -84,6 +84,12 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
             if (user.PasswordHash != request.Password) // TODO: Hash check
                 return Result<LoginResponse>.Failure("Invalid password.");
         }
+
+        // Trial enforcement — only applies to demo stamp users with TrialEndDate set
+        if (user.TrialEndDate.HasValue && user.TrialEndDate.Value < DateTime.UtcNow)
+        {
+            return Result<LoginResponse>.Failure("TrialExpired");
+        }
         
         var token = _tokenService.GenerateToken(user, tenantId);
         

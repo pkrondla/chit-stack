@@ -19,6 +19,29 @@
   },
   "tenants": [
     {
+      "tenantKey": "demo",
+      "tenantId": 1,
+      "displayName": "ChitStack Demo",
+      "subdomain": "demo",
+      "enabled": true,
+      "profile": "nonprod-ultra-low",
+      "environments": {
+        "prod": {
+          "enabled": true
+        },
+        "dev": {
+          "enabled": false
+        },
+        "uat": {
+          "enabled": false
+        },
+        "qa": {
+          "enabled": false
+        }
+      },
+      "overrides": {}
+    },
+    {
       "tenantKey": "tenant1",
       "tenantId": 1,
       "displayName": "Tenant One",

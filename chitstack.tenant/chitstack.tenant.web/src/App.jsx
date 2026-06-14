@@ -8,6 +8,7 @@ import Loading from './components/Loading';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
+const TrialExpired = lazy(() => import('./pages/TrialExpired'));
 
 // Feature Pages
 const Groups = lazy(() => import('./pages/Groups/GroupList'));
@@ -67,6 +68,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/trial-expired" element={<TrialExpired />} />
           
           {/* Main App Layout */}
           <Route path="/" element={<ProtectedRoute allowedRoles={['Admin', 'Staff', 'Manager', 'Auditor']}><Layout /></ProtectedRoute>}>

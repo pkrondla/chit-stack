@@ -7,6 +7,10 @@ public interface IGlobalDbContext
 {
     DbSet<GlobalTenant> Tenants { get; }
     DbSet<GlobalUser> Users { get; }
+    DbSet<SoftwareComponent> SoftwareComponents { get; }
+    DbSet<TenantOrder> TenantOrders { get; }
+    DbSet<TenantOrderItem> TenantOrderItems { get; }
+    DbSet<TenantPaymentTransaction> TenantPaymentTransactions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
