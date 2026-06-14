@@ -37,30 +37,30 @@ BEGIN
     VALUES (N'demo.admin', N'Demo@1234', N'demo@chitstack.com', N'Demo Admin', N'Admin', @TenantId, N'System');
 END
 
--- Demo chit groups
-IF NOT EXISTS (SELECT 1 FROM [dbo].[ChitGroups] WHERE [GroupCode] = N'DEMO-001' AND [TenantId] = @TenantId)
+-- Demo chit groups  (GroupStatus: 0=Proposed, 1=Active, 2=Completed, 3=Closed)
+IF NOT EXISTS (SELECT 1 FROM [dbo].[ChitGroups] WHERE [GroupName] = N'Gold Chit Group - 20L' AND [TenantId] = @TenantId)
 BEGIN
     INSERT INTO [dbo].[ChitGroups]
-        ([GroupCode], [Name], [ChitValue], [Duration], [MemberCount], [MonthlyContribution],
-         [CommissionRate], [Status], [TenantId], [BranchId], [CreatedBy])
+        ([GroupName], [ChitValue], [DurationMonths], [InstallmentAmount],
+         [ForemanCommissionPercent], [Status], [TenantId], [BranchId], [CreatedBy])
     VALUES
-        (N'DEMO-001', N'Gold Chit Group - 20L', 2000000, 20, 20, 100000, 5, N'Active', @TenantId, @BranchId, N'System'),
-        (N'DEMO-002', N'Silver Chit Group - 10L', 1000000, 20, 20, 50000,  5, N'Active', @TenantId, @BranchId, N'System'),
-        (N'DEMO-003', N'Bronze Chit Group - 5L',   500000, 12, 12, 41667,  5, N'Active', @TenantId, @BranchId, N'System');
+        (N'Gold Chit Group - 20L',   2000000, 20, 100000, 5, 1, @TenantId, @BranchId, N'System'),
+        (N'Silver Chit Group - 10L', 1000000, 20,  50000, 5, 1, @TenantId, @BranchId, N'System'),
+        (N'Bronze Chit Group - 5L',   500000, 12,  41667, 5, 1, @TenantId, @BranchId, N'System');
 END
 
 -- Demo members
-IF NOT EXISTS (SELECT 1 FROM [dbo].[Members] WHERE [MemberCode] = N'DM-001' AND [TenantId] = @TenantId)
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Members] WHERE [PhoneNumber] = N'9876543210' AND [TenantId] = @TenantId)
 BEGIN
     INSERT INTO [dbo].[Members]
-        ([MemberCode], [FirstName], [LastName], [Email], [Phone], [Address], [City], [State],
-         [TenantId], [BranchId], [CreatedBy])
+        ([FullName], [PhoneNumber], [Email], [Address],
+         [TenantId], [RegistrationBranchId], [CreatedBy])
     VALUES
-        (N'DM-001', N'Rajesh',  N'Kumar',   N'rajesh@example.com',  N'9876543210', N'123 MG Road',     N'Bengaluru', N'Karnataka', @TenantId, @BranchId, N'System'),
-        (N'DM-002', N'Priya',   N'Sharma',  N'priya@example.com',   N'9876543211', N'456 Brigade Rd',  N'Bengaluru', N'Karnataka', @TenantId, @BranchId, N'System'),
-        (N'DM-003', N'Suresh',  N'Reddy',   N'suresh@example.com',  N'9876543212', N'789 Residency Rd',N'Bengaluru', N'Karnataka', @TenantId, @BranchId, N'System'),
-        (N'DM-004', N'Anitha',  N'Nair',    N'anitha@example.com',  N'9876543213', N'12 Koramangala',  N'Bengaluru', N'Karnataka', @TenantId, @BranchId, N'System'),
-        (N'DM-005', N'Venkat',  N'Rao',     N'venkat@example.com',  N'9876543214', N'34 Indiranagar',  N'Bengaluru', N'Karnataka', @TenantId, @BranchId, N'System');
+        (N'Rajesh Kumar',  N'9876543210', N'rajesh@example.com',  N'123 MG Road, Bengaluru',      @TenantId, @BranchId, N'System'),
+        (N'Priya Sharma',  N'9876543211', N'priya@example.com',   N'456 Brigade Road, Bengaluru', @TenantId, @BranchId, N'System'),
+        (N'Suresh Reddy',  N'9876543212', N'suresh@example.com',  N'789 Residency Rd, Bengaluru', @TenantId, @BranchId, N'System'),
+        (N'Anitha Nair',   N'9876543213', N'anitha@example.com',  N'12 Koramangala, Bengaluru',   @TenantId, @BranchId, N'System'),
+        (N'Venkat Rao',    N'9876543214', N'venkat@example.com',  N'34 Indiranagar, Bengaluru',   @TenantId, @BranchId, N'System');
 END
 
 INSERT INTO [dbo].[SeedHistory] ([SeedKey]) VALUES ('002.01.DemoData');
