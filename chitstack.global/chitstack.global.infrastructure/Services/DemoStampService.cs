@@ -27,8 +27,9 @@ public class DemoStampService : IDemoStampService
 
         if (string.IsNullOrWhiteSpace(connString))
         {
-            _logger.LogWarning("DemoStampService: Demo connection string not configured. User {Email} not created in demo stamp.", email);
-            return;
+            throw new InvalidOperationException(
+                "DemoStamp:ConnectionString is not configured in Platform Settings. " +
+                "Go to Global Admin → Platform Settings → Demo Stamp and set the connection string before accepting registrations.");
         }
 
         await using var conn = new SqlConnection(connString);
