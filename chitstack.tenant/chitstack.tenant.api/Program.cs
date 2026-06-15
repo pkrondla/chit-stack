@@ -86,12 +86,23 @@ builder.Services.AddHttpClient<IAzureSpeechSynthesisService, AzureSpeechSynthesi
     client.Timeout = TimeSpan.FromSeconds(8);
 });
 
-// CORS
+// CORS — merge localhost defaults with Azure-hosted origins from config
+var corsOriginsFromConfig = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
+var allCorsOrigins = new[]
+{
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173"
+}.Concat(corsOriginsFromConfig.Where(o => !string.IsNullOrWhiteSpace(o))).ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173")
+        policy.WithOrigins(allCorsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

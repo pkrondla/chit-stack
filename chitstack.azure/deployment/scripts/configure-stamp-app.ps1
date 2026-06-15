@@ -46,6 +46,16 @@ else {
     $settings["TenantStamp__FixedTenantId"] = "$FixedTenantId"
     $settings["TenantStamp__FixedTenantConnectionString"] = $tenantConn
     $settings["SeedOnStartup"] = "false"
+
+    # CORS — allow the tenant's Static Web App origin so browsers can reach the API
+    $swaHostname = az staticwebapp show -n $names.staticWebName -g $ResourceGroup --query "defaultHostname" -o tsv 2>$null
+    if (-not [string]::IsNullOrWhiteSpace($swaHostname)) {
+        $swaOrigin = "https://$($swaHostname.Trim())"
+        Write-Host "Adding SWA origin to CORS: $swaOrigin"
+        $settings["Cors__AllowedOrigins__0"] = $swaOrigin
+    } else {
+        Write-Host "Warning: Could not determine SWA hostname for CORS. Set Cors__AllowedOrigins__0 manually on $appName."
+    }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($AppInsightsConnectionString)) {
