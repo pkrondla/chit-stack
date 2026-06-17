@@ -27,7 +27,8 @@ public class OrderItemDto
     public string ComponentCategory { get; set; } = string.Empty;
     public string PricingType { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
-    public int? EstimatedHours { get; set; }
+    public int Quantity { get; set; }
+    public DateTime? ExpiryDate { get; set; }
     public decimal LineTotal { get; set; }
 }
 
@@ -107,7 +108,8 @@ public class GetOrderHandler : IRequestHandler<GetOrderQuery, Result<OrderDetail
                 ComponentCategory = i.ComponentCategory,
                 PricingType = i.PricingType,
                 UnitPrice = i.UnitPrice,
-                EstimatedHours = i.EstimatedHours,
+                Quantity = i.Quantity,
+                ExpiryDate = i.ExpiryDate,
                 LineTotal = i.LineTotal
             }).ToList(),
             PaymentTransactions = order.PaymentTransactions
