@@ -113,6 +113,7 @@ jobs:
         shell: pwsh
         env:
           VITE_API_URL: https://api-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-${{ inputs.tenantKey }}.azurewebsites.net/api
+          VITE_GLOBAL_PORTAL_URL: ${{ vars.GLOBAL_PORTAL_URL }}
         run: |
           Push-Location chitstack.tenant/chitstack.tenant.web
           npm ci
