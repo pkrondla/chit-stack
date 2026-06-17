@@ -8,6 +8,7 @@ USING (VALUES
     ('DemoStamp', 'DemoBranchId',      '1',                         'Fixed BranchId used for the demo stamp', 0),
     ('DemoStamp', 'DemoPortalUrl',     'https://demo.chitstack.com','Public URL of the demo tenant portal', 0),
     -- Platform
+    ('Platform',  'AMCPercentage',      '25',                        'Annual Maintenance Contract as % of total license cost', 0),
     ('Platform',  'AdminEmail',         '',                          'Global admin email for operational notifications', 0),
     ('Platform',  'PaymentUpiId',       '',                          'UPI ID for manual bank transfer payments', 0),
     ('Platform',  'PaymentBankName',    '',                          'Bank name shown to subscribers', 0),

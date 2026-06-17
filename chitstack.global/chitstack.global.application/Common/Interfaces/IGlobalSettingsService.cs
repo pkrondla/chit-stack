@@ -35,6 +35,7 @@ public static class SettingKeys
     public static class Platform
     {
         public const string Group = "Platform";
+        public const string AMCPercentage = "AMCPercentage";
         public const string AdminEmail = "AdminEmail";
         public const string PaymentUpiId = "PaymentUpiId";
         public const string PaymentBankName = "PaymentBankName";

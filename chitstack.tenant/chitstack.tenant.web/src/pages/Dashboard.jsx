@@ -2,11 +2,13 @@ import { Row, Col, Card, Statistic, Table } from 'antd';
 import { UserOutlined, GroupOutlined, DollarOutlined, TransactionOutlined } from '@ant-design/icons';
 import React from 'react';
 import { semanticColors } from '../theme/tokens';
+import RenewalsBanner from '../components/RenewalsBanner';
 
 const Dashboard = () => {
     return (
         <div className="dashboard-container" style={{ padding: '24px' }}>
             <h1 style={{ marginBottom: '24px' }}>Dashboard</h1>
+            <RenewalsBanner />
             
             <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12} lg={6}>

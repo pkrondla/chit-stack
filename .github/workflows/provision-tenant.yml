@@ -114,6 +114,7 @@ jobs:
         env:
           VITE_API_URL: https://api-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-${{ inputs.tenantKey }}.azurewebsites.net/api
           VITE_GLOBAL_PORTAL_URL: ${{ vars.GLOBAL_PORTAL_URL }}
+          VITE_GLOBAL_API_URL: https://api-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-global.azurewebsites.net/api
         run: |
           Push-Location chitstack.tenant/chitstack.tenant.web
           npm ci

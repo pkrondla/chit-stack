@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
     Steps, Form, Input, Select, Button, Card, Typography, Alert, Space,
-    Checkbox, InputNumber, Divider, Radio, Tag, Spin
+    Checkbox, InputNumber, Divider, Tag, Spin, Tooltip
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, ShoppingCart, CheckCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, ShoppingCart, CheckCircle, Info } from 'lucide-react';
 import api from '../../api/axios';
 
 const { Title, Text, Paragraph } = Typography;
@@ -15,23 +15,15 @@ const STATES = [
     'Maharashtra', 'Gujarat', 'Rajasthan', 'Delhi', 'West Bengal'
 ];
 
-const BILLING_OPTIONS = [
-    { value: 'Monthly', label: 'Monthly', savings: '' },
-    { value: 'HalfYearly', label: 'Half-Yearly', savings: 'Save ~17%' },
-    { value: 'Annual', label: 'Annual', savings: 'Save ~25%' },
-];
-
 function formatINR(amount) {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 }
 
-function getUnitPrice(comp, billingPeriod) {
-    if (comp.pricingType === 'License') return comp.licensePrice;
-    if (comp.pricingType === 'Hourly') return comp.hourlyPrice;
-    if (billingPeriod === 'HalfYearly') return comp.halfYearlyPrice;
-    if (billingPeriod === 'Annual') return comp.annualPrice;
-    return comp.monthlyPrice;
-}
+const PRICING_LABELS = {
+    License: { label: 'One-Time', color: 'purple' },
+    Annual:  { label: 'Annual',   color: 'blue'   },
+    PerDay:  { label: 'Per Day',  color: 'orange' },
+};
 
 export default function Subscribe() {
     const navigate = useNavigate();
@@ -41,16 +33,21 @@ export default function Subscribe() {
     const [error, setError] = useState('');
     const [components, setComponents] = useState([]);
     const [componentsLoading, setComponentsLoading] = useState(false);
-    const [billingPeriod, setBillingPeriod] = useState('Monthly');
     const [selectedIds, setSelectedIds] = useState([]);
-    const [hourlyInputs, setHourlyInputs] = useState({});
+    const [dayInputs, setDayInputs] = useState({});   // componentId -> number of days
     const [orderResult, setOrderResult] = useState(null);
-    const [tenantInfo, setTenantInfo] = useState(null);
+    const [amcPct, setAmcPct] = useState(25);
 
     useEffect(() => {
         setComponentsLoading(true);
-        api.get('/Catalog/components')
-            .then(r => setComponents(r.data.data || []))
+        Promise.all([
+            api.get('/Catalog/components'),
+            api.get('/Settings/amc-percentage').catch(() => ({ data: { data: 25 } }))
+        ])
+            .then(([compRes, amcRes]) => {
+                setComponents(compRes.data.data || []);
+                setAmcPct(Number(amcRes.data.data) || 25);
+            })
             .catch(() => {})
             .finally(() => setComponentsLoading(false));
     }, []);
@@ -61,66 +58,49 @@ export default function Subscribe() {
         setSelectedIds(prev => [...new Set([...prev, ...mandatory])]);
     }, [components]);
 
+    // Group components by pricingType
     const grouped = components.reduce((acc, c) => {
-        const key = `${c.category}__${c.pricingType}`;
-        if (!acc[key]) acc[key] = { category: c.category, pricingType: c.pricingType, items: [] };
-        acc[key].items.push(c);
+        if (!acc[c.pricingType]) acc[c.pricingType] = [];
+        acc[c.pricingType].push(c);
         return acc;
     }, {});
 
-    const totals = components.filter(c => selectedIds.includes(c.id)).reduce(
-        (acc, c) => {
-            const hours = hourlyInputs[c.id] || 1;
-            const price = getUnitPrice(c, billingPeriod);
-            const lineTotal = c.pricingType === 'Hourly' ? price * hours : price;
-            if (c.pricingType === 'License') acc.oneTime += lineTotal;
-            else if (c.pricingType === 'Hourly') acc.service += lineTotal;
-            else if (c.category === 'Service') acc.service += lineTotal;
-            else acc.recurring += lineTotal;
-            return acc;
-        },
-        { recurring: 0, oneTime: 0, service: 0 }
-    );
-    const grandTotal = totals.recurring + totals.oneTime + totals.service;
+    const selected = components.filter(c => selectedIds.includes(c.id));
+    const licenseTotal  = selected.filter(c => c.pricingType === 'License').reduce((s, c) => s + c.licensePrice, 0);
+    const annualTotal   = selected.filter(c => c.pricingType === 'Annual').reduce((s, c) => s + c.annualPrice, 0);
+    const trainingTotal = selected.filter(c => c.pricingType === 'PerDay').reduce((s, c) => s + c.dailyPrice * (dayInputs[c.id] || 1), 0);
+    const amcAmount     = Math.round(licenseTotal * (amcPct / 100));
+    const grandTotal    = licenseTotal + annualTotal + trainingTotal + amcAmount;
 
     const handleLookup = async () => {
         try {
             await form.validateFields(['contactEmail']);
-            const email = form.getFieldValue('contactEmail');
-            setLoading(true);
-            // Just proceed to next step — server validates email at submission
-            setTenantInfo({ contactEmail: email });
             setStep(1);
         } catch { }
-        finally { setLoading(false); }
     };
 
     const handleSubmit = async () => {
-        try {
-            await form.validateFields();
-        } catch { return; }
-
+        try { await form.validateFields(); } catch { return; }
         setLoading(true);
         setError('');
         try {
             const v = form.getFieldsValue(true);
             const items = selectedIds.map(id => {
                 const c = components.find(x => x.id === id);
-                return { componentId: id, estimatedHours: c?.pricingType === 'Hourly' ? (hourlyInputs[id] || 1) : null };
+                return { componentId: id, quantity: c?.pricingType === 'PerDay' ? (dayInputs[id] || 1) : 1 };
             });
             const res = await api.post('/Orders', {
                 contactEmail: v.contactEmail,
-                companyName: v.companyName,
-                tenantKey: v.tenantKey,
-                adminName: v.adminName,
-                adminEmail: v.adminEmail,
-                adminPhone: v.adminPhone,
-                state: v.state || 'Karnataka',
-                billingPeriod,
+                companyName:  v.companyName,
+                tenantKey:    v.tenantKey,
+                adminName:    v.adminName,
+                adminEmail:   v.adminEmail,
+                adminPhone:   v.adminPhone,
+                state:        v.state || 'Karnataka',
                 items,
             });
             setOrderResult(res.data.data);
-            setStep(5);
+            setStep(4);
         } catch (err) {
             setError(err.response?.data?.errors?.[0] || 'Submission failed. Please try again.');
         } finally {
@@ -131,7 +111,6 @@ export default function Subscribe() {
     const steps = [
         { title: 'Email' },
         { title: 'Details' },
-        { title: 'Billing' },
         { title: 'Components' },
         { title: 'Review' },
         { title: 'Payment' },
@@ -151,6 +130,7 @@ export default function Subscribe() {
                     {error && <Alert message={error} type="error" showIcon className="mb-4" />}
 
                     <Form form={form} layout="vertical" size="large">
+
                         {/* Step 0 — Email */}
                         {step === 0 && (
                             <>
@@ -159,7 +139,10 @@ export default function Subscribe() {
                                     rules={[{ required: true }, { type: 'email' }]}>
                                     <Input placeholder="your@email.com" />
                                 </Form.Item>
-                                <Text type="secondary">Not registered yet? <Button type="link" className="p-0" onClick={() => navigate('/register')}>Register here</Button></Text>
+                                <Text type="secondary">
+                                    Not registered yet?{' '}
+                                    <Button type="link" className="p-0" onClick={() => navigate('/register')}>Register here</Button>
+                                </Text>
                             </>
                         )}
 
@@ -170,15 +153,15 @@ export default function Subscribe() {
                                 <Form.Item name="companyName" label="Company Name" rules={[{ required: true }]}>
                                     <Input placeholder="Lakshmi Chit Funds Pvt Ltd" />
                                 </Form.Item>
-                                <Form.Item name="tenantKey" label="Portal Subdomain / Tenant Key"
+                                <Form.Item name="tenantKey" label="Portal Subdomain"
                                     rules={[
                                         { required: true },
-                                        { pattern: /^[a-z0-9-]+$/, message: 'Only lowercase letters, numbers and hyphens' },
+                                        { pattern: /^[a-z0-9-]+$/, message: 'Lowercase letters, numbers and hyphens only' },
                                         { min: 3, message: 'Min 3 characters' }
                                     ]}>
                                     <Input placeholder="lakshmi-chits" addonBefore="https://" addonAfter=".chitstack.com" />
                                 </Form.Item>
-                                <Form.Item name="adminName" label="Admin User Full Name" rules={[{ required: true }]}>
+                                <Form.Item name="adminName" label="Admin Full Name" rules={[{ required: true }]}>
                                     <Input placeholder="Rajesh Kumar" />
                                 </Form.Item>
                                 <Form.Item name="adminEmail" label="Admin Email" rules={[{ required: true }, { type: 'email' }]}>
@@ -193,157 +176,174 @@ export default function Subscribe() {
                             </>
                         )}
 
-                        {/* Step 2 — Billing Period */}
+                        {/* Step 2 — Component Selector */}
                         {step === 2 && (
                             <>
-                                <Title level={4}>Choose billing period</Title>
-                                <Paragraph type="secondary">
-                                    License and hourly items are not affected by billing period.
-                                </Paragraph>
-                                <Radio.Group
-                                    value={billingPeriod}
-                                    onChange={e => setBillingPeriod(e.target.value)}
-                                    className="w-full"
-                                >
-                                    <Space direction="vertical" className="w-full">
-                                        {BILLING_OPTIONS.map(opt => (
-                                            <Radio.Button key={opt.value} value={opt.value}
-                                                className="w-full text-left h-auto py-3 px-4 rounded-lg">
-                                                <Space>
-                                                    <span className="font-semibold">{opt.label}</span>
-                                                    {opt.savings && <Tag color="green">{opt.savings}</Tag>}
-                                                </Space>
-                                            </Radio.Button>
-                                        ))}
-                                    </Space>
-                                </Radio.Group>
-                            </>
-                        )}
-
-                        {/* Step 3 — Component Selector */}
-                        {step === 3 && (
-                            <>
                                 <Title level={4}>Select software & services</Title>
-                                {componentsLoading ? <Spin /> : Object.values(grouped).map(group => (
-                                    <div key={`${group.category}-${group.pricingType}`} className="mb-6">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="font-semibold text-slate-700 uppercase text-xs tracking-wider">
-                                                {group.category}
-                                            </span>
-                                            <Tag color={group.pricingType === 'License' ? 'purple' : group.pricingType === 'Hourly' ? 'orange' : 'blue'}>
-                                                {group.pricingType === 'Monthly' ? `${billingPeriod}` : group.pricingType}
-                                            </Tag>
-                                        </div>
-                                        <div className="border border-slate-200 rounded-xl overflow-hidden">
-                                            {group.items.map((comp, idx) => {
-                                                const price = getUnitPrice(comp, billingPeriod);
-                                                const isMandatory = comp.isMandatory;
-                                                const isChecked = selectedIds.includes(comp.id);
-                                                return (
-                                                    <div key={comp.id}
-                                                        className={`flex items-center justify-between p-3 ${idx > 0 ? 'border-t border-slate-100' : ''} ${isMandatory ? 'bg-indigo-50' : ''}`}>
-                                                        <Space>
-                                                            <Checkbox
-                                                                checked={isChecked}
-                                                                disabled={isMandatory}
-                                                                onChange={e => {
-                                                                    if (e.target.checked) setSelectedIds(p => [...p, comp.id]);
-                                                                    else setSelectedIds(p => p.filter(x => x !== comp.id));
-                                                                }}
-                                                            />
-                                                            <div>
-                                                                <div className="font-medium text-slate-800">{comp.name}</div>
-                                                                {comp.description && <div className="text-xs text-slate-500">{comp.description}</div>}
-                                                            </div>
-                                                        </Space>
-                                                        <Space align="center">
-                                                            {isChecked && comp.pricingType === 'Hourly' && (
-                                                                <InputNumber
-                                                                    min={1} max={500}
-                                                                    value={hourlyInputs[comp.id] || 1}
-                                                                    onChange={v => setHourlyInputs(p => ({ ...p, [comp.id]: v }))}
-                                                                    size="small"
-                                                                    addonAfter="hrs"
-                                                                    className="w-28"
-                                                                />
-                                                            )}
-                                                            <div className="text-right min-w-[80px]">
-                                                                <div className="font-semibold text-indigo-700">
-                                                                    {formatINR(price)}
-                                                                </div>
-                                                                <div className="text-xs text-slate-400">
-                                                                    {comp.pricingType === 'License' ? 'once' : comp.pricingType === 'Hourly' ? '/hr' : '/period'}
-                                                                </div>
-                                                            </div>
-                                                        </Space>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
-                            </>
-                        )}
-
-                        {/* Step 4 — Review */}
-                        {step === 4 && (
-                            <>
-                                <Title level={4}>Review your order</Title>
-                                {totals.recurring > 0 && (
+                                {componentsLoading ? <Spin /> : (
                                     <>
-                                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                                            Recurring ({billingPeriod})
-                                        </div>
-                                        {components.filter(c => selectedIds.includes(c.id) && c.pricingType === 'Monthly' && c.category !== 'Service').map(c => (
-                                            <div key={c.id} className="flex justify-between py-1 text-sm">
-                                                <span>{c.name}</span>
-                                                <span className="font-medium">{formatINR(getUnitPrice(c, billingPeriod))}</span>
+                                        {['License', 'Annual', 'PerDay'].map(type => {
+                                            const items = grouped[type] || [];
+                                            if (!items.length) return null;
+                                            const { label, color } = PRICING_LABELS[type] || { label: type, color: 'default' };
+                                            return (
+                                                <div key={type} className="mb-6">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="font-semibold text-slate-700 uppercase text-xs tracking-wider">
+                                                            {type === 'License' ? 'Core & Add-Ons' : type === 'Annual' ? 'Annual Services' : 'Training'}
+                                                        </span>
+                                                        <Tag color={color}>{label}</Tag>
+                                                    </div>
+                                                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                                        {items.map((comp, idx) => {
+                                                            const price = type === 'License' ? comp.licensePrice
+                                                                        : type === 'Annual'  ? comp.annualPrice
+                                                                        : comp.dailyPrice ?? comp.hourlyPrice;
+                                                            const isChecked = selectedIds.includes(comp.id);
+                                                            return (
+                                                                <div key={comp.id}
+                                                                    className={`flex items-center justify-between p-3 ${idx > 0 ? 'border-t border-slate-100' : ''} ${comp.isMandatory ? 'bg-indigo-50' : ''}`}>
+                                                                    <Space>
+                                                                        <Checkbox
+                                                                            checked={isChecked}
+                                                                            disabled={comp.isMandatory}
+                                                                            onChange={e => {
+                                                                                if (e.target.checked) setSelectedIds(p => [...p, comp.id]);
+                                                                                else setSelectedIds(p => p.filter(x => x !== comp.id));
+                                                                            }}
+                                                                        />
+                                                                        <div>
+                                                                            <div className="font-medium text-slate-800">
+                                                                                {comp.name}
+                                                                                {comp.isMandatory && <Tag color="indigo" className="ml-2 text-xs">Required</Tag>}
+                                                                            </div>
+                                                                            {comp.description && <div className="text-xs text-slate-500">{comp.description}</div>}
+                                                                        </div>
+                                                                    </Space>
+                                                                    <Space align="center">
+                                                                        {isChecked && type === 'PerDay' && (
+                                                                            <InputNumber
+                                                                                min={1} max={30}
+                                                                                value={dayInputs[comp.id] || 1}
+                                                                                onChange={v => setDayInputs(p => ({ ...p, [comp.id]: v }))}
+                                                                                size="small"
+                                                                                addonAfter="days"
+                                                                                className="w-28"
+                                                                            />
+                                                                        )}
+                                                                        <div className="text-right min-w-[90px]">
+                                                                            <div className="font-semibold text-indigo-700">{formatINR(price)}</div>
+                                                                            <div className="text-xs text-slate-400">
+                                                                                {type === 'License' ? 'one-time' : type === 'Annual' ? '/year' : '/day'}
+                                                                            </div>
+                                                                        </div>
+                                                                    </Space>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* AMC info box */}
+                                        {licenseTotal > 0 && (
+                                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                                                <Info size={18} className="text-amber-600 mt-0.5 shrink-0" />
+                                                <div>
+                                                    <div className="font-semibold text-amber-800">
+                                                        Annual Maintenance Contract (AMC) — {formatINR(amcAmount)}/year
+                                                    </div>
+                                                    <div className="text-xs text-amber-700 mt-1">
+                                                        {amcPct}% of your license cost ({formatINR(licenseTotal)}) is automatically added as AMC.
+                                                        AMC covers bug fixes, version upgrades, and technical support.
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ))}
-                                        <Divider className="my-2" />
-                                        <div className="flex justify-between font-semibold text-indigo-700 mb-4">
-                                            <span>Recurring Total</span><span>{formatINR(totals.recurring)}</span>
-                                        </div>
+                                        )}
                                     </>
                                 )}
-                                {totals.oneTime > 0 && (
+                            </>
+                        )}
+
+                        {/* Step 3 — Review */}
+                        {step === 3 && (
+                            <>
+                                <Title level={4}>Review your order</Title>
+
+                                {/* One-Time License */}
+                                {licenseTotal > 0 && (
                                     <>
-                                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">One-Time License</div>
-                                        {components.filter(c => selectedIds.includes(c.id) && c.pricingType === 'License').map(c => (
+                                        <div className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">One-Time License</div>
+                                        {selected.filter(c => c.pricingType === 'License').map(c => (
                                             <div key={c.id} className="flex justify-between py-1 text-sm">
-                                                <span>{c.name}</span><span className="font-medium">{formatINR(c.licensePrice)}</span>
+                                                <span>{c.name}</span>
+                                                <span className="font-medium">{formatINR(c.licensePrice)}</span>
                                             </div>
                                         ))}
                                         <Divider className="my-2" />
                                         <div className="flex justify-between font-semibold text-purple-700 mb-4">
-                                            <span>One-Time Total</span><span>{formatINR(totals.oneTime)}</span>
+                                            <span>License Total</span><span>{formatINR(licenseTotal)}</span>
                                         </div>
                                     </>
                                 )}
-                                {totals.service > 0 && (
+
+                                {/* Annual (Cloud Infra + AMC) */}
+                                {(annualTotal > 0 || amcAmount > 0) && (
                                     <>
-                                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Services</div>
-                                        {components.filter(c => selectedIds.includes(c.id) && (c.pricingType === 'Hourly' || (c.pricingType === 'Monthly' && c.category === 'Service'))).map(c => (
+                                        <div className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">Annual Recurring</div>
+                                        {selected.filter(c => c.pricingType === 'Annual').map(c => (
                                             <div key={c.id} className="flex justify-between py-1 text-sm">
-                                                <span>{c.name}{c.pricingType === 'Hourly' ? ` (${hourlyInputs[c.id] || 1} hrs)` : ''}</span>
-                                                <span className="font-medium">{formatINR(c.pricingType === 'Hourly' ? c.hourlyPrice * (hourlyInputs[c.id] || 1) : getUnitPrice(c, billingPeriod))}</span>
+                                                <span>{c.name}</span>
+                                                <span className="font-medium">{formatINR(c.annualPrice)}<span className="text-slate-400 text-xs">/yr</span></span>
                                             </div>
                                         ))}
+                                        {amcAmount > 0 && (
+                                            <div className="flex justify-between py-1 text-sm">
+                                                <span>AMC ({amcPct}% of license)</span>
+                                                <span className="font-medium">{formatINR(amcAmount)}<span className="text-slate-400 text-xs">/yr</span></span>
+                                            </div>
+                                        )}
                                         <Divider className="my-2" />
-                                        <div className="flex justify-between font-semibold text-orange-600 mb-4">
-                                            <span>Service Total</span><span>{formatINR(totals.service)}</span>
+                                        <div className="flex justify-between font-semibold text-blue-700 mb-4">
+                                            <span>Annual Total</span><span>{formatINR(annualTotal + amcAmount)}<span className="font-normal text-slate-400 text-xs">/yr</span></span>
                                         </div>
                                     </>
                                 )}
-                                <div className="bg-indigo-50 rounded-xl p-4 flex justify-between items-center">
+
+                                {/* Training */}
+                                {trainingTotal > 0 && (
+                                    <>
+                                        <div className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Training</div>
+                                        {selected.filter(c => c.pricingType === 'PerDay').map(c => {
+                                            const days = dayInputs[c.id] || 1;
+                                            const price = c.dailyPrice ?? c.hourlyPrice;
+                                            return (
+                                                <div key={c.id} className="flex justify-between py-1 text-sm">
+                                                    <span>{c.name} × {days} day{days > 1 ? 's' : ''}</span>
+                                                    <span className="font-medium">{formatINR(price * days)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                        <Divider className="my-2" />
+                                        <div className="flex justify-between font-semibold text-orange-600 mb-4">
+                                            <span>Training Total</span><span>{formatINR(trainingTotal)}</span>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="bg-indigo-50 rounded-xl p-4 flex justify-between items-center mb-2">
                                     <span className="text-lg font-bold text-slate-800">Due Now</span>
                                     <span className="text-2xl font-bold text-indigo-700">{formatINR(grandTotal)}</span>
                                 </div>
+                                <p className="text-xs text-slate-500 text-center">
+                                    Annual items (AMC + Cloud Infrastructure) renew every year. One-time licenses are yours to keep.
+                                </p>
                             </>
                         )}
 
-                        {/* Step 5 — Payment Instructions */}
-                        {step === 5 && orderResult && (
+                        {/* Step 4 — Payment Instructions */}
+                        {step === 4 && orderResult && (
                             <div className="text-center">
                                 <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
                                 <Title level={3}>Order Submitted!</Title>
@@ -373,21 +373,18 @@ export default function Subscribe() {
                         )}
                     </Form>
 
-                    {step < 5 && (
+                    {step < 4 && (
                         <Space className="w-full justify-between mt-6">
                             {step > 0 ? (
                                 <Button icon={<ArrowLeft size={16} />} onClick={() => setStep(s => s - 1)}>Back</Button>
                             ) : <span />}
-                            {step < 4 ? (
+                            {step < 3 ? (
                                 <Button
                                     type="primary"
                                     className="bg-indigo-600"
                                     icon={<ArrowRight size={16} />}
                                     loading={loading}
-                                    onClick={() => {
-                                        if (step === 0) handleLookup();
-                                        else setStep(s => s + 1);
-                                    }}
+                                    onClick={() => step === 0 ? handleLookup() : setStep(s => s + 1)}
                                 >
                                     Next
                                 </Button>

@@ -12,9 +12,17 @@ public class TenantOrderItem : BaseEntity
 
     public string ComponentName { get; set; } = string.Empty;
     public string ComponentCategory { get; set; } = string.Empty;
+
+    /// <summary>"License" | "Annual" | "PerDay" | "AMC"</summary>
     public string PricingType { get; set; } = string.Empty;
 
     public decimal UnitPrice { get; set; }
-    public int? EstimatedHours { get; set; }
+
+    /// <summary>Number of days for PerDay items; 1 for everything else.</summary>
+    public int Quantity { get; set; } = 1;
+
     public decimal LineTotal { get; set; }
+
+    /// <summary>Set for Annual and AMC items (OrderDate + 1 year). Null for License/PerDay.</summary>
+    public DateTime? ExpiryDate { get; set; }
 }
