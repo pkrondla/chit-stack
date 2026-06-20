@@ -58,14 +58,14 @@ export default function PaymentEntry() {
     };
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center">
             <Spin size="large" />
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-slate-900 py-8 px-4">
-            <div className="max-w-lg mx-auto">
+        <div className="min-h-screen bg-slate-900 py-8 px-4 flex flex-col items-center">
+            <div className="w-full max-w-lg">
                 <div className="text-center mb-6">
                     <div className="mx-auto bg-indigo-600 text-white w-14 h-14 rounded-2xl flex items-center justify-center mb-4">
                         <CreditCard size={28} />
