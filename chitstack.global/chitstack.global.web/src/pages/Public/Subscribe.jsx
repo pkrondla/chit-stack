@@ -117,8 +117,8 @@ export default function Subscribe() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-900 py-8 px-4">
-            <div className="max-w-2xl mx-auto">
+        <div className="min-h-screen bg-slate-900 py-8 px-4 flex flex-col items-center">
+            <div className="w-full max-w-2xl">
                 <div className="text-center mb-8">
                     <div className="mx-auto bg-indigo-600 text-white w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold mb-4">CS</div>
                     <Title level={2} className="m-0 text-white">Subscribe to ChitStack</Title>
@@ -196,48 +196,50 @@ export default function Subscribe() {
                                                     </div>
                                                     <div className="border border-slate-200 rounded-xl overflow-hidden">
                                                         {items.map((comp, idx) => {
-                                                            const price = type === 'License' ? comp.licensePrice
-                                                                        : type === 'Annual'  ? comp.annualPrice
-                                                                        : comp.dailyPrice ?? comp.hourlyPrice;
+                                            const price = type === 'License' ? comp.licensePrice
+                                                        : type === 'Annual'  ? comp.annualPrice
+                                                        : comp.dailyPrice;
                                                             const isChecked = selectedIds.includes(comp.id);
                                                             return (
                                                                 <div key={comp.id}
-                                                                    className={`flex items-center justify-between p-3 ${idx > 0 ? 'border-t border-slate-100' : ''} ${comp.isMandatory ? 'bg-indigo-50' : ''}`}>
-                                                                    <Space>
-                                                                        <Checkbox
-                                                                            checked={isChecked}
-                                                                            disabled={comp.isMandatory}
-                                                                            onChange={e => {
-                                                                                if (e.target.checked) setSelectedIds(p => [...p, comp.id]);
-                                                                                else setSelectedIds(p => p.filter(x => x !== comp.id));
-                                                                            }}
-                                                                        />
-                                                                        <div>
-                                                                            <div className="font-medium text-slate-800">
-                                                                                {comp.name}
-                                                                                {comp.isMandatory && <Tag color="indigo" className="ml-2 text-xs">Required</Tag>}
-                                                                            </div>
-                                                                            {comp.description && <div className="text-xs text-slate-500">{comp.description}</div>}
+                                                                    className={`flex items-center gap-3 p-3 ${idx > 0 ? 'border-t border-slate-100' : ''} ${comp.isMandatory ? 'bg-indigo-50' : ''}`}>
+                                                                    {/* Checkbox */}
+                                                                    <Checkbox
+                                                                        checked={isChecked}
+                                                                        disabled={comp.isMandatory}
+                                                                        onChange={e => {
+                                                                            if (e.target.checked) setSelectedIds(p => [...p, comp.id]);
+                                                                            else setSelectedIds(p => p.filter(x => x !== comp.id));
+                                                                        }}
+                                                                    />
+                                                                    {/* Name + description — fills all remaining space */}
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="font-medium text-slate-800 flex items-center gap-2 flex-wrap">
+                                                                            {comp.name}
+                                                                            {comp.isMandatory && <Tag color="geekblue" className="text-xs">Required</Tag>}
                                                                         </div>
-                                                                    </Space>
-                                                                    <Space align="center">
-                                                                        {isChecked && type === 'PerDay' && (
-                                                                            <InputNumber
-                                                                                min={1} max={30}
-                                                                                value={dayInputs[comp.id] || 1}
-                                                                                onChange={v => setDayInputs(p => ({ ...p, [comp.id]: v }))}
-                                                                                size="small"
-                                                                                addonAfter="days"
-                                                                                className="w-28"
-                                                                            />
+                                                                        {comp.description && (
+                                                                            <div className="text-xs text-slate-500 mt-0.5">{comp.description}</div>
                                                                         )}
-                                                                        <div className="text-right min-w-[90px]">
-                                                                            <div className="font-semibold text-indigo-700">{formatINR(price)}</div>
-                                                                            <div className="text-xs text-slate-400">
-                                                                                {type === 'License' ? 'one-time' : type === 'Annual' ? '/year' : '/day'}
-                                                                            </div>
+                                                                    </div>
+                                                                    {/* Day input for training */}
+                                                                    {isChecked && type === 'PerDay' && (
+                                                                        <InputNumber
+                                                                            min={1} max={30}
+                                                                            value={dayInputs[comp.id] || 1}
+                                                                            onChange={v => setDayInputs(p => ({ ...p, [comp.id]: v }))}
+                                                                            size="small"
+                                                                            addonAfter="days"
+                                                                            className="w-28 shrink-0"
+                                                                        />
+                                                                    )}
+                                                                    {/* Price — fixed width, never shrinks */}
+                                                                    <div className="text-right w-20 shrink-0">
+                                                                        <div className="font-semibold text-indigo-700">{formatINR(price)}</div>
+                                                                        <div className="text-xs text-slate-400">
+                                                                            {type === 'License' ? 'one-time' : type === 'Annual' ? '/year' : '/day'}
                                                                         </div>
-                                                                    </Space>
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })}
@@ -255,8 +257,8 @@ export default function Subscribe() {
                                                         Annual Maintenance Contract (AMC) — {formatINR(amcAmount)}/year
                                                     </div>
                                                     <div className="text-xs text-amber-700 mt-1">
-                                                        {amcPct}% of your license cost ({formatINR(licenseTotal)}) is automatically added as AMC.
-                                                        AMC covers bug fixes, version upgrades, and technical support.
+                                                        {amcPct}% of your license cost ({formatINR(licenseTotal)}) added as annual AMC —
+                                                        covers bug fixes, version upgrades, and technical support. Renews every year.
                                                     </div>
                                                 </div>
                                             </div>
@@ -317,7 +319,7 @@ export default function Subscribe() {
                                         <div className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Training</div>
                                         {selected.filter(c => c.pricingType === 'PerDay').map(c => {
                                             const days = dayInputs[c.id] || 1;
-                                            const price = c.dailyPrice ?? c.hourlyPrice;
+                                            const price = c.dailyPrice;
                                             return (
                                                 <div key={c.id} className="flex justify-between py-1 text-sm">
                                                     <span>{c.name} × {days} day{days > 1 ? 's' : ''}</span>

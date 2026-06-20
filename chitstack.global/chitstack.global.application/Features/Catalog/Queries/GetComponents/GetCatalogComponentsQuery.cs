@@ -17,7 +17,7 @@ public class SoftwareComponentDto
     public decimal HalfYearlyPrice { get; set; }
     public decimal AnnualPrice { get; set; }
     public decimal LicensePrice { get; set; }
-    public decimal HourlyPrice { get; set; }
+    public decimal DailyPrice { get; set; }   // PerDay training items (stored in HourlyPrice column)
     public int DisplayOrder { get; set; }
     public bool IsActive { get; set; }
 }
@@ -60,7 +60,7 @@ public class GetCatalogComponentsHandler
                 HalfYearlyPrice = c.HalfYearlyPrice,
                 AnnualPrice = c.AnnualPrice,
                 LicensePrice = c.LicensePrice,
-                HourlyPrice = c.HourlyPrice,
+                DailyPrice = c.HourlyPrice,   // HourlyPrice column repurposed for training day rate
                 DisplayOrder = c.DisplayOrder,
                 IsActive = c.IsActive
             })
