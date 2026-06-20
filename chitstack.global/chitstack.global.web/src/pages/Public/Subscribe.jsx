@@ -192,7 +192,14 @@ export default function Subscribe() {
             setOrderResult(res.data.data);
             setStep(4);
         } catch (err) {
-            setError(err.response?.data?.errors?.[0] || 'Submission failed. Please try again.');
+            const d = err.response?.data;
+            // handles our Result<T> shape ({ errors: [...] }) and ASP.NET validation shape ({ title, errors: {...} })
+            const msg = d?.errors?.[0]
+                ?? (typeof d?.errors === 'object' ? Object.values(d.errors).flat()[0] : null)
+                ?? d?.title
+                ?? d?.message
+                ?? 'Submission failed. Please try again.';
+            setError(msg);
         } finally {
             setLoading(false);
         }

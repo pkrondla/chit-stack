@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using ChitStack.Domain.Common;
 
 namespace ChitStack.Domain.Global;
@@ -24,13 +25,14 @@ public class SoftwareComponent : BaseEntity
     public decimal AnnualPrice { get; set; }
 
     /// <summary>Cost per training day. Populated when PricingType = "PerDay".</summary>
+    [NotMapped]
     public decimal DailyPrice
     {
         get => HourlyPrice;   // stored in HourlyPrice column (no schema change needed)
         set => HourlyPrice = value;
     }
 
-    // Kept for EF Core column mapping — use DailyPrice in code for PerDay items
+    // EF Core maps this to the HourlyPrice column; use DailyPrice in application code for PerDay items.
     public decimal HourlyPrice { get; set; }
 
     // Retained columns — no longer used for pricing but kept to avoid DB drift
