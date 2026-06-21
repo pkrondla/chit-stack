@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Layout from './components/Layout';
 import Register from './pages/Public/Register';
 import Subscribe from './pages/Public/Subscribe';
+import OrderStatus from './pages/Public/OrderStatus';
 import PaymentEntry from './pages/Public/PaymentEntry';
 
 import UserManagement from './pages/Admin/UserManagement';
@@ -36,6 +37,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/subscribe" element={<Subscribe />} />
+                <Route path="/orders/:orderRef" element={<OrderStatus />} />
                 <Route path="/orders/:orderRef/payment" element={<PaymentEntry />} />
 
                 {/* Protected admin routes */}

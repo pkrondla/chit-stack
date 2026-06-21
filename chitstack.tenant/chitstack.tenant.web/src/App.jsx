@@ -58,6 +58,7 @@ const RouteManagement = lazy(() => import('./pages/Admin/RouteManagement'));
 const AdminNotifications = lazy(() => import('./pages/Admin/Notifications'));
 const BroadcastCenter = lazy(() => import('./pages/Admin/BroadcastCenter'));
 const Settings = lazy(() => import('./pages/Settings/Settings'));
+const MySubscription = lazy(() => import('./pages/Subscription/MySubscription'));
 const MessageTemplates = lazy(() => import('./pages/Settings/MessageTemplates'));
 const NotificationSettings = lazy(() => import('./pages/Settings/NotificationSettings'));
 
@@ -110,6 +111,7 @@ function App() {
             <Route path="settings/notifications" element={<NotificationSettings />} />
             <Route path="settings/automation" element={<AutomationRules />} />
             <Route path="profile" element={<UserProfile />} />
+            <Route path="subscription" element={<MySubscription />} />
           </Route>
 
           {/* Member Portal Routes */}

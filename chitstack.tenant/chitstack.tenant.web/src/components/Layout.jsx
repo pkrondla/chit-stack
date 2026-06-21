@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, Dropdown, Select } from 'antd';
 import {
     LayoutDashboard, Users, Gavel, LogOut, FileText,
-    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen, Bell, User
+    ScrollText, IndianRupee, Settings, ChevronDown, Building2, MapPin, BookOpen, Bell, User, CreditCard
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import TrialBanner from './TrialBanner';
@@ -117,6 +117,7 @@ const Layout = () => {
         { type: 'divider' },
         { key: '/settings', icon: <Settings size={18} />, label: 'Settings' },
         { key: '/admin/users', icon: <Users size={18} />, label: 'Users' },
+        { key: '/subscription', icon: <CreditCard size={18} />, label: 'My Subscription' },
     ];
 
     const portalItems = [

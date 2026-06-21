@@ -3,6 +3,8 @@ using ChitStack.Domain.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
+// IGlobalSettingsService + SettingKeys are in the same assembly — no extra using needed.
+
 namespace ChitStack.Application.Features.Orders.Commands.CompleteProvisioning;
 
 public class CompleteProvisioningCommand : IRequest<Result<bool>>
@@ -17,11 +19,16 @@ public class CompleteProvisioningHandler : IRequestHandler<CompleteProvisioningC
 {
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IGlobalSettingsService _settings;
 
-    public CompleteProvisioningHandler(IGlobalDbContext context, IEmailService emailService)
+    public CompleteProvisioningHandler(
+        IGlobalDbContext context,
+        IEmailService emailService,
+        IGlobalSettingsService settings)
     {
-        _context = context;
+        _context  = context;
         _emailService = emailService;
+        _settings = settings;
     }
 
     public async Task<Result<bool>> Handle(
@@ -51,23 +58,43 @@ public class CompleteProvisioningHandler : IRequestHandler<CompleteProvisioningC
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Send welcome email with portal details
         var portalUrl = string.IsNullOrWhiteSpace(request.PortalUrl)
             ? $"https://{order.TenantKey}.chitstack.com"
             : request.PortalUrl;
 
+        var globalPortalUrl = await _settings.GetAsync(
+            SettingKeys.Platform.Group,
+            SettingKeys.Platform.GlobalPortalBaseUrl,
+            cancellationToken) ?? "";
+
         _ = _emailService.SendAsync(
             order.AdminEmail,
             "Your ChitStack Portal is Ready!",
-            BuildWelcomeEmail(order, portalUrl));
+            BuildWelcomeEmail(order, portalUrl, globalPortalUrl));
 
         return Result<bool>.Success(true);
     }
 
     private static string BuildWelcomeEmail(
         ChitStack.Domain.Global.TenantOrder order,
-        string portalUrl)
+        string portalUrl,
+        string globalPortalUrl)
     {
+        var orderTrackUrl      = string.IsNullOrWhiteSpace(globalPortalUrl)
+            ? string.Empty
+            : $"{globalPortalUrl}/orders/{order.OrderReference}";
+
+        var orderTrackSection = string.IsNullOrWhiteSpace(orderTrackUrl) ? string.Empty : $"""
+              <p style="margin-top:16px">
+                <strong>View your order &amp; subscription details:</strong><br/>
+                <a href="{orderTrackUrl}">{orderTrackUrl}</a>
+              </p>
+              <p style="color:#64748b;font-size:12px">
+                After logging in, go to <strong>My Subscription</strong> in the sidebar to view
+                your active licenses, annual renewal dates, and renew upcoming items.
+              </p>
+            """;
+
         return $"""
             <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
               <h2 style="color:#4f46e5">Your ChitStack Portal is Ready!</h2>
@@ -83,10 +110,11 @@ public class CompleteProvisioningHandler : IRequestHandler<CompleteProvisioningC
               </p>
               <p>Your subscription details:</p>
               <ul>
-                <li>Billing Period: {order.BillingPeriod}</li>
                 <li>Company: {order.CompanyName}</li>
                 <li>Order Reference: {order.OrderReference}</li>
+                <li>Total Amount: &#8377;{order.TotalAmount:N2}</li>
               </ul>
+              {orderTrackSection}
               <p style="color:#64748b;font-size:12px">
                 ChitStack &mdash; Chit Fund Management Software
               </p>

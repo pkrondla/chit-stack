@@ -3,6 +3,7 @@ using ChitStack.Application.Features.Orders.Commands.ConfirmPayment;
 using ChitStack.Application.Features.Orders.Commands.RecordPayment;
 using ChitStack.Application.Features.Orders.Commands.SetOrderStatus;
 using ChitStack.Application.Features.Orders.Commands.SubmitOrder;
+using ChitStack.Application.Features.Orders.Queries.GetMyOrder;
 using ChitStack.Application.Features.Orders.Queries.GetOrder;
 using ChitStack.Application.Features.Orders.Queries.GetOrders;
 using ChitStack.Domain.Common;
@@ -30,6 +31,15 @@ public class OrdersController : ControllerBase
     {
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    /// <summary>Public — fetch the subscriber's latest order by their contact email.</summary>
+    [HttpGet("my-order")]
+    [AllowAnonymous]
+    public async Task<ActionResult<Result<OrderDetailDto?>>> GetMyOrder([FromQuery] string email)
+    {
+        var result = await _mediator.Send(new GetMyOrderQuery { ContactEmail = email });
         return Ok(result);
     }
 

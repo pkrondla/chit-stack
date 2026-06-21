@@ -23,6 +23,13 @@ public class SubmitOrderCommand : IRequest<Result<SubmitOrderResponse>>
     public string? AdminPhone { get; set; }
     public string State { get; set; } = "Karnataka";
     public List<OrderItemRequest> Items { get; set; } = [];
+
+    /// <summary>
+    /// Renewal orders carry no new License items (licenseTotal = 0), so AMC cannot be
+    /// auto-calculated at 25% of zero. Pass the stored AMC unit price from the original
+    /// order to preserve the correct annual amount. Null = use auto-calculation.
+    /// </summary>
+    public decimal? ExplicitAmcAmount { get; set; }
 }
 
 public class SubmitOrderResponse
@@ -142,8 +149,12 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
             }
         }
 
-        // Auto-add AMC line = amcPct % of all License items in this order
-        var amcAmount = Math.Round(licenseTotal * amcPct, 2);
+        // For renewal orders, use the explicitly passed AMC amount (licenseTotal is 0).
+        // For new orders, calculate AMC as amcPct % of licenseTotal.
+        var amcAmount = request.ExplicitAmcAmount.HasValue
+            ? request.ExplicitAmcAmount.Value
+            : Math.Round(licenseTotal * amcPct, 2);
+
         if (amcAmount > 0)
         {
             // Use a sentinel ComponentId = 0 (AMC is not a catalog item)
