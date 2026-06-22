@@ -114,6 +114,8 @@ function OrderSummary({ selected, licenseTotal, annualTotal, trainingTotal, amcA
     );
 }
 
+const GLOBAL_PORTAL = import.meta.env.VITE_GLOBAL_PORTAL_URL || 'http://localhost:5062';
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function Subscribe() {
     const navigate = useNavigate();
@@ -127,6 +129,7 @@ export default function Subscribe() {
     const [dayInputs, setDayInputs] = useState({});
     const [orderResult, setOrderResult] = useState(null);
     const [amcPct, setAmcPct] = useState(25);
+    const [existingOrder, setExistingOrder] = useState(null); // set when email already has an active order
 
     useEffect(() => {
         setComponentsLoading(true);
@@ -166,7 +169,34 @@ export default function Subscribe() {
     const isTwoCol = step === 2 || step === 3;
 
     const handleLookup = async () => {
-        try { await form.validateFields(['contactEmail']); setStep(1); } catch { }
+        try {
+            await form.validateFields(['contactEmail']);
+        } catch {
+            return;
+        }
+
+        setLoading(true);
+        setExistingOrder(null);
+        try {
+            const email = form.getFieldValue('contactEmail');
+            const res = await api.get(`/Orders/my-order?email=${encodeURIComponent(email)}`);
+            const order = res.data?.data;
+
+            if (order && order.orderStatus !== 'Cancelled') {
+                // Active order found — stop here and show the user their existing order
+                setExistingOrder(order);
+                return;
+            }
+
+            // No active order — proceed normally
+            setStep(1);
+        } catch {
+            // If the check fails (e.g. network error), allow the user to proceed;
+            // the backend will be the authoritative guard.
+            setStep(1);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -221,20 +251,64 @@ export default function Subscribe() {
 
             <Form form={form} layout="vertical" size="large">
 
-                {/* Step 0 — Email */}
-                {step === 0 && (
-                    <>
-                        <Title level={4}>Enter your registered email</Title>
-                        <Form.Item name="contactEmail" label="Email used during registration"
-                            rules={[{ required: true }, { type: 'email' }]}>
-                            <Input placeholder="your@email.com" />
-                        </Form.Item>
-                        <Text type="secondary">
-                            Not registered yet?{' '}
-                            <Button type="link" className="p-0" onClick={() => navigate('/register')}>Register here</Button>
-                        </Text>
-                    </>
-                )}
+                        {/* Step 0 — Email */}
+                        {step === 0 && (
+                            <>
+                                <Title level={4}>Enter your registered email</Title>
+                                <Form.Item name="contactEmail" label="Email used during registration"
+                                    rules={[{ required: true }, { type: 'email' }]}>
+                                    <Input
+                                        placeholder="your@email.com"
+                                        onChange={() => setExistingOrder(null)}
+                                    />
+                                </Form.Item>
+
+                                {existingOrder && (() => {
+                                    const isProvisioned = existingOrder.orderStatus === 'Provisioned';
+                                    const trackUrl = `${GLOBAL_PORTAL}/orders/${existingOrder.orderReference}`;
+                                    const portalUrl = `https://${existingOrder.tenantKey}.chitstack.com`;
+                                    return (
+                                        <Alert
+                                            type={isProvisioned ? 'success' : 'warning'}
+                                            showIcon
+                                            className="mb-4"
+                                            message={
+                                                isProvisioned
+                                                    ? 'Your portal is already provisioned'
+                                                    : `You already have an active order (${existingOrder.orderReference})`
+                                            }
+                                            description={
+                                                <div className="flex flex-col gap-2 mt-1">
+                                                    <span className="text-sm">
+                                                        {isProvisioned
+                                                            ? 'Your dedicated ChitStack portal is ready. You cannot place a duplicate order.'
+                                                            : `Status: ${existingOrder.orderStatus} · ₹${existingOrder.totalAmount?.toLocaleString('en-IN')}`}
+                                                    </span>
+                                                    <div className="flex gap-2 flex-wrap">
+                                                        {isProvisioned ? (
+                                                            <Button size="small" type="primary" className="bg-green-600"
+                                                                href={portalUrl} target="_blank">
+                                                                Go to your portal
+                                                            </Button>
+                                                        ) : (
+                                                            <Button size="small" type="primary" className="bg-indigo-600"
+                                                                href={trackUrl} target="_blank">
+                                                                Track existing order
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            }
+                                        />
+                                    );
+                                })()}
+
+                                <Text type="secondary">
+                                    Not registered yet?{' '}
+                                    <Button type="link" className="p-0" onClick={() => navigate('/register')}>Register here</Button>
+                                </Text>
+                            </>
+                        )}
 
                 {/* Step 1 — Tenant Details */}
                 {step === 1 && (
@@ -434,23 +508,24 @@ export default function Subscribe() {
                 )}
             </Form>
 
-            {step < 4 && (
-                <Space className="w-full justify-between mt-6">
-                    {step > 0
-                        ? <Button icon={<ArrowLeft size={16} />} onClick={() => setStep(s => s - 1)}>Back</Button>
-                        : <span />}
-                    {step < 3
-                        ? <Button type="primary" className="bg-indigo-600" icon={<ArrowRight size={16} />}
-                            loading={loading}
-                            onClick={() => step === 0 ? handleLookup() : setStep(s => s + 1)}>
-                            Next
-                          </Button>
-                        : <Button type="primary" className="bg-green-600" icon={<ShoppingCart size={16} />}
-                            loading={loading} onClick={handleSubmit}>
-                            Submit Order
-                          </Button>}
-                </Space>
-            )}
+                    {step < 4 && (
+                        <Space className="w-full justify-between mt-6">
+                            {step > 0
+                                ? <Button icon={<ArrowLeft size={16} />} onClick={() => setStep(s => s - 1)}>Back</Button>
+                                : <span />}
+                            {step < 3
+                                ? <Button type="primary" className="bg-indigo-600" icon={<ArrowRight size={16} />}
+                                    loading={loading}
+                                    disabled={step === 0 && existingOrder !== null}
+                                    onClick={() => step === 0 ? handleLookup() : setStep(s => s + 1)}>
+                                    Next
+                                  </Button>
+                                : <Button type="primary" className="bg-green-600" icon={<ShoppingCart size={16} />}
+                                    loading={loading} onClick={handleSubmit}>
+                                    Submit Order
+                                  </Button>}
+                        </Space>
+                    )}
         </Card>
     );
 

@@ -78,6 +78,22 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
             return Result<SubmitOrderResponse>.Failure(
                 "This subdomain/tenant key is already taken. Please choose another.");
 
+        // Renewals (tenant already Active/Provisioned) are allowed to create new orders.
+        // For all other statuses, block if a non-cancelled order already exists.
+        if (globalTenant.SubscriptionStatus != "Active")
+        {
+            var existingOrder = await _context.TenantOrders
+                .Where(o => o.TenantId == globalTenant.Id && o.OrderStatus != "Cancelled")
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new { o.OrderReference, o.OrderStatus })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingOrder is not null)
+                return Result<SubmitOrderResponse>.Failure(
+                    $"You already have an active order ({existingOrder.OrderReference}) with status '{existingOrder.OrderStatus}'. " +
+                    "Please track your existing order or contact support.");
+        }
+
         var componentIds = request.Items.Select(i => i.ComponentId).ToList();
         var components = await _context.SoftwareComponents
             .Where(c => componentIds.Contains(c.Id) && c.IsActive)
