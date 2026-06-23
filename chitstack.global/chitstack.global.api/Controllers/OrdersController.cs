@@ -3,6 +3,7 @@ using ChitStack.Application.Features.Orders.Commands.ConfirmPayment;
 using ChitStack.Application.Features.Orders.Commands.RecordPayment;
 using ChitStack.Application.Features.Orders.Commands.SetOrderStatus;
 using ChitStack.Application.Features.Orders.Commands.SubmitOrder;
+using ChitStack.Application.Features.Orders.Commands.UpdateOrderAffiliate;
 using ChitStack.Application.Features.Orders.Queries.GetMyOrder;
 using ChitStack.Application.Features.Orders.Queries.GetOrder;
 using ChitStack.Application.Features.Orders.Queries.GetOrders;
@@ -155,6 +156,20 @@ public class OrdersController : ControllerBase
     {
         command.OrderReference = orderRef;
         command.CompletedBy = User.Identity?.Name ?? "Admin";
+        var result = await _mediator.Send(command);
+        if (!result.Succeeded) return BadRequest(result);
+        return Ok(result);
+    }
+
+    /// <summary>Admin — assign or change the affiliate on an order.</summary>
+    [HttpPatch("admin/{orderRef}/affiliate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<Result<bool>>> UpdateAffiliate(
+        string orderRef,
+        UpdateOrderAffiliateCommand command)
+    {
+        command.OrderReference = orderRef;
+        command.UpdatedBy = User.Identity?.Name ?? "Admin";
         var result = await _mediator.Send(command);
         if (!result.Succeeded) return BadRequest(result);
         return Ok(result);

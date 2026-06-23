@@ -53,6 +53,14 @@ public class OrderDetailDto
     public DateTime? ProvisionedAt { get; set; }
     public List<OrderItemDto> Items { get; set; } = [];
     public List<PaymentTransactionDto> PaymentTransactions { get; set; } = [];
+
+    public int? AffiliateId { get; set; }
+    public string? AffiliateCode { get; set; }
+    public string? AffiliateName { get; set; }
+    public string? AffiliateCompany { get; set; }
+    public decimal? CommissionPercent { get; set; }
+    public decimal? CommissionAmount { get; set; }
+    public string? CommissionStatus { get; set; }
 }
 
 public class GetOrderQuery : IRequest<Result<OrderDetailDto>>
@@ -77,6 +85,8 @@ public class GetOrderHandler : IRequestHandler<GetOrderQuery, Result<OrderDetail
             .AsNoTracking()
             .Include(o => o.Items)
             .Include(o => o.PaymentTransactions)
+            .Include(o => o.Affiliate)
+            .Include(o => o.Commission)
             .FirstOrDefaultAsync(o => o.OrderReference == request.OrderReference, cancellationToken);
 
         if (order is null)
@@ -101,6 +111,13 @@ public class GetOrderHandler : IRequestHandler<GetOrderQuery, Result<OrderDetail
             CreatedAt = order.CreatedAt,
             ConfirmedAt = order.ConfirmedAt,
             ProvisionedAt = order.ProvisionedAt,
+            AffiliateId = order.AffiliateId,
+            AffiliateCode = order.Affiliate?.Code,
+            AffiliateName = order.Affiliate?.Name,
+            AffiliateCompany = order.Affiliate?.CompanyName,
+            CommissionPercent = order.Commission?.CommissionPercent,
+            CommissionAmount = order.Commission?.CommissionAmount,
+            CommissionStatus = order.Commission?.Status,
             Items = order.Items.Select(i => new OrderItemDto
             {
                 ComponentId = i.ComponentId,

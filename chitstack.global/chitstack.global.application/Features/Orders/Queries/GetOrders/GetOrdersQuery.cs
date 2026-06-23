@@ -18,6 +18,10 @@ public class OrderSummaryDto
     public string PaymentStatus { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? ConfirmedAt { get; set; }
+
+    public int? AffiliateId { get; set; }
+    public string? AffiliateCode { get; set; }
+    public string? AffiliateName { get; set; }
 }
 
 public class GetOrdersQuery : IRequest<Result<List<OrderSummaryDto>>>
@@ -47,6 +51,7 @@ public class GetOrdersHandler : IRequestHandler<GetOrdersQuery, Result<List<Orde
             baseQuery = baseQuery.Where(o => o.OrderStatus == request.StatusFilter);
 
         var orders = await baseQuery
+            .Include(o => o.Affiliate)
             .OrderByDescending(o => o.CreatedAt)
             .Select(o => new OrderSummaryDto
             {
@@ -63,7 +68,10 @@ public class GetOrdersHandler : IRequestHandler<GetOrdersQuery, Result<List<Orde
                     .Select(t => t.Status)
                     .FirstOrDefault() ?? "None",
                 CreatedAt = o.CreatedAt,
-                ConfirmedAt = o.ConfirmedAt
+                ConfirmedAt = o.ConfirmedAt,
+                AffiliateId = o.AffiliateId,
+                AffiliateCode = o.Affiliate != null ? o.Affiliate.Code : null,
+                AffiliateName = o.Affiliate != null ? o.Affiliate.Name : null
             })
             .ToListAsync(cancellationToken);
 
