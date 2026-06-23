@@ -30,6 +30,9 @@ public class SubmitOrderCommand : IRequest<Result<SubmitOrderResponse>>
     /// order to preserve the correct annual amount. Null = use auto-calculation.
     /// </summary>
     public decimal? ExplicitAmcAmount { get; set; }
+
+    /// <summary>Optional affiliate referral code entered by the subscriber during checkout.</summary>
+    public string? AffiliateCode { get; set; }
 }
 
 public class SubmitOrderResponse
@@ -197,6 +200,21 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
         var orderRef = $"CS-{year}-{seq:D4}";
         var grandTotal = licenseTotal + annualTotal + trainingTotal;
 
+        // Resolve optional affiliate code
+        int? affiliateId = null;
+        if (!string.IsNullOrWhiteSpace(request.AffiliateCode))
+        {
+            var affiliate = await _context.Affiliates
+                .FirstOrDefaultAsync(a => a.Code == request.AffiliateCode && a.IsApproved && a.IsActive, cancellationToken);
+            if (affiliate is not null)
+            {
+                affiliateId = affiliate.Id;
+                // Link affiliate to tenant if not already linked
+                if (globalTenant.AffiliateId is null)
+                    globalTenant.AffiliateId = affiliate.Id;
+            }
+        }
+
         var order = new TenantOrder
         {
             OrderReference = orderRef,
@@ -213,6 +231,7 @@ public class SubmitOrderHandler : IRequestHandler<SubmitOrderCommand, Result<Sub
             ServiceTotal   = trainingTotal,
             TotalAmount    = grandTotal,
             OrderStatus    = "Submitted",
+            AffiliateId    = affiliateId,
             CreatedBy      = request.ContactEmail,
             Items          = orderItems
         };

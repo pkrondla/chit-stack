@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IGlobalTokenService, GlobalTokenService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IDemoStampService, DemoStampService>();
+        services.AddScoped<IAffiliateCodeGenerator, AffiliateCodeGenerator>();
 
         services.AddHttpClient();
 

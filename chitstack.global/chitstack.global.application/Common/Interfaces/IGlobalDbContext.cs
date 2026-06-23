@@ -13,5 +13,9 @@ public interface IGlobalDbContext
     DbSet<TenantPaymentTransaction> TenantPaymentTransactions { get; }
     DbSet<GlobalSetting> GlobalSettings { get; }
 
+    DbSet<Affiliate> Affiliates { get; }
+    DbSet<AffiliateCommission> AffiliateCommissions { get; }
+    DbSet<AffiliatePayout> AffiliatePayouts { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

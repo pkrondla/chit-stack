@@ -1,8 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import useAuthStore from './store/useAuthStore';
+import useAffiliateAuthStore from './store/useAffiliateAuthStore';
 import Login from './pages/Login';
 import Layout from './components/Layout';
+import AffiliateLayout from './components/AffiliateLayout';
 import Register from './pages/Public/Register';
 import Subscribe from './pages/Public/Subscribe';
 import OrderStatus from './pages/Public/OrderStatus';
@@ -13,8 +15,16 @@ import Tenants from './pages/Admin/Tenants';
 import Catalog from './pages/Admin/Catalog';
 import Orders from './pages/Admin/Orders';
 import Settings from './pages/Admin/Settings';
+import Affiliates from './pages/Admin/Affiliates';
+import AffiliateCommissionsAdmin from './pages/Admin/AffiliateCommissions';
 
-// Placeholder Pages
+import AffiliateLogin from './pages/Affiliate/AffiliateLogin';
+import AffiliateRegister from './pages/Affiliate/AffiliateRegister';
+import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard';
+import AffiliateCommissions from './pages/Affiliate/AffiliateCommissions';
+import AffiliatePayouts from './pages/Affiliate/AffiliatePayouts';
+import AffiliateTenants from './pages/Affiliate/AffiliateTenants';
+
 const Dashboard = () => <div><h2>Global Admin Dashboard</h2><p>Select a module from the sidebar.</p></div>;
 
 const ProtectedRoute = ({ children }) => {
@@ -25,9 +35,16 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
+const AffiliateProtectedRoute = ({ children }) => {
+    const affiliate = useAffiliateAuthStore((state) => state.affiliate);
+    if (!affiliate) return <Navigate to="/affiliate/login" />;
+    return children;
+};
+
 function App() {
     useEffect(() => {
         useAuthStore.getState().initAuth();
+        useAffiliateAuthStore.getState().initAuth();
     }, []);
 
     return (
@@ -40,6 +57,19 @@ function App() {
                 <Route path="/orders/:orderRef" element={<OrderStatus />} />
                 <Route path="/orders/:orderRef/payment" element={<PaymentEntry />} />
 
+                {/* Affiliate public routes */}
+                <Route path="/affiliate/login" element={<AffiliateLogin />} />
+                <Route path="/affiliate/register" element={<AffiliateRegister />} />
+
+                {/* Affiliate portal — protected */}
+                <Route path="/affiliate" element={<AffiliateProtectedRoute><AffiliateLayout /></AffiliateProtectedRoute>}>
+                    <Route index element={<Navigate to="/affiliate/dashboard" replace />} />
+                    <Route path="dashboard" element={<AffiliateDashboard />} />
+                    <Route path="commissions" element={<AffiliateCommissions />} />
+                    <Route path="payouts" element={<AffiliatePayouts />} />
+                    <Route path="tenants" element={<AffiliateTenants />} />
+                </Route>
+
                 {/* Protected admin routes */}
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route index element={<Navigate to="/dashboard" replace />} />
@@ -49,6 +79,8 @@ function App() {
                     <Route path="admin/catalog" element={<Catalog />} />
                     <Route path="admin/orders" element={<Orders />} />
                     <Route path="admin/settings" element={<Settings />} />
+                    <Route path="admin/affiliates" element={<Affiliates />} />
+                    <Route path="admin/affiliate-commissions" element={<AffiliateCommissionsAdmin />} />
                 </Route>
             </Routes>
         </Router>

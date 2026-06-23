@@ -217,6 +217,7 @@ export default function Subscribe() {
                 adminEmail:   v.adminEmail,
                 adminPhone:   v.adminPhone,
                 state:        v.state || 'Karnataka',
+                affiliateCode: v.affiliateCode || undefined,
                 items,
             });
             setOrderResult(res.data.data);
@@ -336,6 +337,11 @@ export default function Subscribe() {
                         </Form.Item>
                         <Form.Item name="state" label="State" initialValue="Karnataka">
                             <Select>{STATES.map(s => <Option key={s} value={s}>{s}</Option>)}</Select>
+                        </Form.Item>
+                        <Form.Item name="affiliateCode" label="Affiliate Code (optional)"
+                            extra="If you were referred by a hardware vendor or partner, enter their code here.">
+                            <Input placeholder="e.g. LAK-1234" style={{ textTransform: 'uppercase' }}
+                                onChange={e => e.target.value = e.target.value.toUpperCase()} />
                         </Form.Item>
                     </>
                 )}

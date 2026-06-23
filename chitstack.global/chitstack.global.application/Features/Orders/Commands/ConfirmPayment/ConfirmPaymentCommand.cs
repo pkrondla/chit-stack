@@ -1,5 +1,6 @@
 using ChitStack.Application.Common.Interfaces;
 using ChitStack.Domain.Common;
+using ChitStack.Domain.Global;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,11 +19,13 @@ public class ConfirmPaymentHandler : IRequestHandler<ConfirmPaymentCommand, Resu
 {
     private readonly IGlobalDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IGlobalSettingsService _settings;
 
-    public ConfirmPaymentHandler(IGlobalDbContext context, IEmailService emailService)
+    public ConfirmPaymentHandler(IGlobalDbContext context, IEmailService emailService, IGlobalSettingsService settings)
     {
         _context = context;
         _emailService = emailService;
+        _settings = settings;
     }
 
     public async Task<Result<bool>> Handle(
@@ -71,6 +74,39 @@ public class ConfirmPaymentHandler : IRequestHandler<ConfirmPaymentCommand, Resu
             }
             order.OrderStatus = "PaymentConfirmed";
             order.ConfirmedAt = now;
+
+            // Auto-create affiliate commission if order is linked to an affiliate
+            if (order.AffiliateId.HasValue)
+            {
+                var alreadyExists = await _context.AffiliateCommissions
+                    .AnyAsync(c => c.TenantOrderId == order.Id, cancellationToken);
+
+                if (!alreadyExists)
+                {
+                    var affiliate = await _context.Affiliates
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(a => a.Id == order.AffiliateId.Value, cancellationToken);
+
+                    if (affiliate is not null)
+                    {
+                        var defaultPctStr = await _settings.GetAsync(
+                            SettingKeys.Affiliate.Group, SettingKeys.Affiliate.DefaultCommissionPercent, cancellationToken);
+                        var defaultPct = decimal.TryParse(defaultPctStr, out var parsed) ? parsed : 5m;
+                        var pct = affiliate.CommissionPercent ?? defaultPct;
+
+                        _context.AffiliateCommissions.Add(new AffiliateCommission
+                        {
+                            AffiliateId = affiliate.Id,
+                            TenantOrderId = order.Id,
+                            OrderAmount = order.TotalAmount,
+                            CommissionPercent = pct,
+                            CommissionAmount = Math.Round(order.TotalAmount * pct / 100, 2),
+                            Status = "Pending",
+                            CreatedBy = request.ConfirmedBy
+                        });
+                    }
+                }
+            }
 
             _ = _emailService.SendAsync(
                 order.AdminEmail,

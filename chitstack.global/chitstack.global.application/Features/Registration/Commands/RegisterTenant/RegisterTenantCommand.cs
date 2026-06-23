@@ -15,6 +15,8 @@ public class RegisterTenantCommand : IRequest<Result<RegisterTenantResponse>>
     public string ContactPhone { get; set; } = string.Empty;
     public string AdminFullName { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    /// <summary>Optional affiliate referral code entered during registration.</summary>
+    public string? AffiliateCode { get; set; }
 }
 
 public class RegisterTenantResponse
@@ -66,6 +68,15 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
         var now      = DateTime.UtcNow;
         var trialEnd = now.AddDays(trialDays);
 
+        // Resolve optional affiliate code from registration
+        int? affiliateId = null;
+        if (!string.IsNullOrWhiteSpace(request.AffiliateCode))
+        {
+            var affiliate = await _context.Affiliates
+                .FirstOrDefaultAsync(a => a.Code == request.AffiliateCode && a.IsApproved && a.IsActive, cancellationToken);
+            affiliateId = affiliate?.Id;
+        }
+
         var tenant = new GlobalTenant
         {
             Name               = request.CompanyName,
@@ -77,6 +88,7 @@ public class RegisterTenantHandler : IRequestHandler<RegisterTenantCommand, Resu
             TrialStartDate     = now,
             TrialEndDate       = trialEnd,
             ConnectionString   = string.Empty,
+            AffiliateId        = affiliateId,
             CreatedBy          = "Registration"
         };
 

@@ -24,6 +24,13 @@ builder.Services.AddHangfire(configuration => configuration
 builder.Services.AddGlobalInfrastructureServices(builder.Configuration);
 builder.Services.AddHangfireServer(options => options.Queues = ["global-maintenance", "default"]);
 
+// Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Affiliate", policy =>
+        policy.RequireClaim("Scope", "Affiliate"));
+});
+
 // Context Accessor
 builder.Services.AddHttpContextAccessor();
 

@@ -17,6 +17,9 @@ public class GlobalDbContext : DbContext, IGlobalDbContext
     public DbSet<TenantOrderItem> TenantOrderItems => Set<TenantOrderItem>();
     public DbSet<TenantPaymentTransaction> TenantPaymentTransactions => Set<TenantPaymentTransaction>();
     public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
+    public DbSet<Affiliate> Affiliates => Set<Affiliate>();
+    public DbSet<AffiliateCommission> AffiliateCommissions => Set<AffiliateCommission>();
+    public DbSet<AffiliatePayout> AffiliatePayouts => Set<AffiliatePayout>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +29,10 @@ public class GlobalDbContext : DbContext, IGlobalDbContext
         {
             e.ToTable("Tenants");
             e.HasKey(x => x.Id);
+            e.HasOne(x => x.Affiliate)
+                .WithMany()
+                .HasForeignKey(x => x.AffiliateId)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<GlobalUser>(e =>
@@ -56,6 +63,13 @@ public class GlobalDbContext : DbContext, IGlobalDbContext
             e.HasMany(x => x.PaymentTransactions)
                 .WithOne(x => x.Order)
                 .HasForeignKey(x => x.OrderId);
+            e.HasOne(x => x.Affiliate)
+                .WithMany()
+                .HasForeignKey(x => x.AffiliateId)
+                .IsRequired(false);
+            e.HasOne(x => x.Commission)
+                .WithOne(x => x.TenantOrder)
+                .HasForeignKey<AffiliateCommission>(x => x.TenantOrderId);
         });
 
         modelBuilder.Entity<TenantOrderItem>(e =>
@@ -78,6 +92,36 @@ public class GlobalDbContext : DbContext, IGlobalDbContext
             e.ToTable("GlobalSettings");
             e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.SettingGroup, x.SettingKey }).IsUnique();
+        });
+
+        modelBuilder.Entity<Affiliate>(e =>
+        {
+            e.ToTable("Affiliates");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Email).IsUnique();
+            e.HasMany(x => x.Commissions)
+                .WithOne(x => x.Affiliate)
+                .HasForeignKey(x => x.AffiliateId);
+            e.HasMany(x => x.Payouts)
+                .WithOne(x => x.Affiliate)
+                .HasForeignKey(x => x.AffiliateId);
+        });
+
+        modelBuilder.Entity<AffiliateCommission>(e =>
+        {
+            e.ToTable("AffiliateCommissions");
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Payout)
+                .WithMany(x => x.Commissions)
+                .HasForeignKey(x => x.PayoutId)
+                .IsRequired(false);
+        });
+
+        modelBuilder.Entity<AffiliatePayout>(e =>
+        {
+            e.ToTable("AffiliatePayouts");
+            e.HasKey(x => x.Id);
         });
     }
 }

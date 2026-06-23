@@ -44,6 +44,12 @@ public static class SettingKeys
         public const string GlobalPortalBaseUrl = "GlobalPortalBaseUrl";
     }
 
+    public static class Affiliate
+    {
+        public const string Group = "Affiliate";
+        public const string DefaultCommissionPercent = "DefaultCommissionPercent";
+    }
+
     public static class Email
     {
         public const string Group = "Email";

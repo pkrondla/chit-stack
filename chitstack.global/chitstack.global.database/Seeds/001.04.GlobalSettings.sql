@@ -15,6 +15,7 @@ USING (VALUES
     ('Platform',  'PaymentAccountNumber','',                         'Bank account number shown to subscribers', 0),
     ('Platform',  'PaymentIfsc',        '',                          'IFSC code shown to subscribers', 0),
     ('Platform',  'GlobalPortalBaseUrl','https://manage.chitstack.com','Base URL of the global admin portal (used in emails)', 0),
+    ('Affiliate', 'DefaultCommissionPercent', '5', 'Default affiliate commission as % of confirmed order total', 0),
     -- Email / SMTP
     ('Email',     'SmtpHost',           '',                          'SMTP server hostname (leave blank to log emails only)', 0),
     ('Email',     'SmtpPort',           '587',                       'SMTP server port', 0),

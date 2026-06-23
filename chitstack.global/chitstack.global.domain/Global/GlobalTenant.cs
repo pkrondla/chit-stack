@@ -17,6 +17,9 @@ public class GlobalTenant : BaseEntity
     public string? ContactPhone { get; set; }
     public DateTime? ProvisionedAt { get; set; }
 
+    public int? AffiliateId { get; set; }
+    public Affiliate? Affiliate { get; set; }
+
     public bool IsTrialExpired =>
         SubscriptionStatus == "DemoAccess" && TrialEndDate < DateTime.UtcNow;
 }

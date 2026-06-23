@@ -20,6 +20,7 @@ CREATE TABLE [dbo].[TenantOrders] (
     [CreatedBy]        NVARCHAR(200)  NULL,
     [LastModifiedAt]   DATETIME2      NULL,
     [LastModifiedBy]   NVARCHAR(200)  NULL,
+    [AffiliateId]      INT            NULL REFERENCES [dbo].[Affiliates]([Id]),
     [ConfirmedAt]      DATETIME2      NULL,
     [ProvisionedAt]    DATETIME2      NULL,
     [IsActive]         BIT            NOT NULL CONSTRAINT [DF_TO_IsActive]      DEFAULT 1

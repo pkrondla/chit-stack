@@ -11,6 +11,7 @@ CREATE TABLE [dbo].[Tenants] (
     [ContactEmail]       NVARCHAR(200)  NOT NULL CONSTRAINT [DF_T_Email]      DEFAULT N'',
     [ContactPhone]       NVARCHAR(50)   NULL,
     [ProvisionedAt]      DATETIME2      NULL,
+    [AffiliateId]        INT            NULL REFERENCES [dbo].[Affiliates]([Id]),
     -- Audit
     [CreatedAt]          DATETIME2      NOT NULL CONSTRAINT [DF_GlobalTenants_CreatedAt] DEFAULT GETUTCDATE(),
     [CreatedBy]          NVARCHAR(200)  NULL,

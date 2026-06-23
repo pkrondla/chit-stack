@@ -56,6 +56,7 @@ export default function Register() {
                 contactPhone: values.contactPhone,
                 adminFullName: values.adminFullName,
                 password: values.password,
+                affiliateCode: values.affiliateCode || undefined,
             });
             setResult(res.data.data);
             setCurrentStep(2);
@@ -108,6 +109,13 @@ export default function Register() {
                                     <Select placeholder="Select your state">
                                         {STATES.map(s => <Option key={s} value={s}>{s}</Option>)}
                                     </Select>
+                                </Form.Item>
+                                <Form.Item
+                                    name="affiliateCode"
+                                    label="Affiliate / Referral Code (optional)"
+                                    extra="If a hardware vendor referred you, enter their code here."
+                                >
+                                    <Input placeholder="e.g. LAK-1234" />
                                 </Form.Item>
                             </>
                         )}

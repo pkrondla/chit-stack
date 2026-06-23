@@ -26,9 +26,13 @@ public class TenantOrder : BaseEntity
     public string? Notes { get; set; }
     public string? ConnectionString { get; set; }
 
+    public int? AffiliateId { get; set; }
+    public Affiliate? Affiliate { get; set; }
+
     public DateTime? ConfirmedAt { get; set; }
     public DateTime? ProvisionedAt { get; set; }
 
     public List<TenantOrderItem> Items { get; set; } = [];
     public List<TenantPaymentTransaction> PaymentTransactions { get; set; } = [];
+    public AffiliateCommission? Commission { get; set; }
 }
