@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "profile": "nonprod-ultra-low",
+  "environments": {
+    "prod": {
+      "enabled": true
+    },
+    "dev": {
+      "enabled": false
+    },
+    "uat": {
+      "enabled": false
+    },
+    "qa": {
+      "enabled": false
+    }
+  },
+  "overrides": {}
+}

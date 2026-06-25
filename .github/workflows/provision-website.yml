@@ -1,0 +1,128 @@
+name: CD - Provision Website
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - uat
+          - dev
+          - qa
+      confirm:
+        description: Type DEPLOY to create/update Azure infrastructure
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  resolve-profile:
+    runs-on: ubuntu-latest
+    outputs:
+      staticWebSku: ${{ steps.resolve.outputs.staticWebSku }}
+      azureResourcePrefix: ${{ steps.resolve.outputs.azureResourcePrefix }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Resolve website stamp settings from manifests
+        id: resolve
+        shell: pwsh
+        run: |
+          $website = Get-Content -Raw chitstack.azure/deployment/website.json | ConvertFrom-Json
+          $config = Get-Content -Raw chitstack.azure/deployment/tenants.json | ConvertFrom-Json
+          if ($website.enabled -ne $true) { throw "Website stamp is disabled in chitstack.azure/deployment/website.json." }
+          $envKey = "${{ inputs.environment }}"
+          $we = $website.environments.PSObject.Properties[$envKey].Value
+          if (-not $we -or $we.enabled -ne $true) { throw "Environment '$envKey' is not enabled for website in website.json." }
+          $profileName = [string]$website.profile
+          $profile = $config.profiles.PSObject.Properties[$profileName].Value
+          if (-not $profile) { throw "Profile '$profileName' not found in tenants.json." }
+          $overrides = if (($website.PSObject.Properties.Name -contains 'overrides') -and $website.overrides) { $website.overrides } else { $null }
+          $staticWebSku = if ($overrides -and $overrides.staticWebSku) { [string]$overrides.staticWebSku } else { [string]$profile.staticWebSku }
+          $prefix = if ($config.defaults -and $config.defaults.azureResourcePrefix) { [string]$config.defaults.azureResourcePrefix } else { "chitstack" }
+          if ([string]::IsNullOrWhiteSpace($prefix)) { throw "defaults.azureResourcePrefix must be set in tenants.json." }
+          if ($prefix -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') { throw "defaults.azureResourcePrefix must be lowercase alphanumeric with hyphens (got: '$prefix')." }
+          "staticWebSku=$staticWebSku" >> $env:GITHUB_OUTPUT
+          "azureResourcePrefix=$prefix" >> $env:GITHUB_OUTPUT
+
+  build:
+    needs: resolve-profile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Build website
+        working-directory: chitstack.website
+        env:
+          VITE_GLOBAL_PORTAL_URL: https://web-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-global.azurestaticapps.net
+        run: |
+          npm ci
+          npm run build
+      - name: Upload website artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: website-dist
+          path: chitstack.website/dist
+          retention-days: 1
+
+  deploy-infra:
+    needs: resolve-profile
+    uses: ./.github/workflows/deploy-infra.yml
+    with:
+      confirm: ${{ inputs.confirm }}
+      scope: website
+      environment: ${{ inputs.environment }}
+      tenantKey: website
+      staticWebSku: ${{ needs.resolve-profile.outputs.staticWebSku }}
+      apiPlanSku: Free
+      sqlSku: Basic
+      resourceGroup: rg-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-website
+      resourcePrefix: ${{ needs.resolve-profile.outputs.azureResourcePrefix }}
+    secrets: inherit
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    needs:
+      - resolve-profile
+      - build
+      - deploy-infra
+    environment: ${{ inputs.environment }}
+    env:
+      PREFIX: ${{ needs.resolve-profile.outputs.azureResourcePrefix }}
+      ENV_NAME: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download website artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: website-dist
+          path: artifacts/website
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy Website SWA
+        shell: bash
+        env:
+          RG: rg-${{ env.PREFIX }}-${{ env.ENV_NAME }}-website
+          SWA_NAME: web-${{ env.PREFIX }}-${{ env.ENV_NAME }}-website
+        run: |
+          set -e
+          TOKEN=$(az staticwebapp secrets list --resource-group "$RG" --name "$SWA_NAME" --query "properties.apiKey" -o tsv)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Could not read Static Web Apps deployment token (check name/RG and RBAC)."
+            exit 1
+          fi
+          npx --yes @azure/static-web-apps-cli@2.0.8 deploy artifacts/website \
+            --deployment-token "$TOKEN" \
+            --env production
