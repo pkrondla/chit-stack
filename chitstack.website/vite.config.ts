@@ -7,4 +7,8 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
+  server: {
+    // Avoid clashing with chitstack.global.web (default 5173)
+    port: 5175,
+  },
 })

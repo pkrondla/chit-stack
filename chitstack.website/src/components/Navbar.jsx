@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { Menu, X, Layers } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -38,7 +37,7 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             <a
-              href={`${portalUrl}/login`}
+              href={portalLinks.login}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
@@ -46,7 +45,15 @@ export default function Navbar() {
               Sign In
             </a>
             <a
-              href={`${portalUrl}/register`}
+              href={portalLinks.demo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              Try Demo
+            </a>
+            <a
+              href={portalLinks.register}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
@@ -81,7 +88,7 @@ export default function Navbar() {
           ))}
           <div className="pt-3 border-t border-slate-100 space-y-2">
             <a
-              href={`${portalUrl}/login`}
+              href={portalLinks.login}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-sm font-medium text-slate-600 py-1"
@@ -89,7 +96,15 @@ export default function Navbar() {
               Sign In
             </a>
             <a
-              href={`${portalUrl}/register`}
+              href={portalLinks.demo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm font-medium text-slate-600 py-1"
+            >
+              Try Demo
+            </a>
+            <a
+              href={portalLinks.register}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-center px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium"

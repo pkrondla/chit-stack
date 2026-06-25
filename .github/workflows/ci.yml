@@ -149,6 +149,9 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: chitstack.website
+        env:
+          VITE_GLOBAL_PORTAL_URL: https://manage.chitstack.com
+          VITE_DEMO_TENANT_URL: https://demo.chitstack.com
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:

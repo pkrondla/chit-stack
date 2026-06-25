@@ -3,7 +3,9 @@
   "profile": "nonprod-ultra-low",
   "environments": {
     "prod": {
-      "enabled": true
+      "enabled": true,
+      "globalPortalUrl": "https://calm-bay-0dff6cd00.7.azurestaticapps.net",
+      "demoTenantUrl": "https://victorious-stone-061d07800.7.azurestaticapps.net"
     },
     "dev": {
       "enabled": false

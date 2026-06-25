@@ -3,7 +3,7 @@ import {
   CheckCircle, Clock, ArrowRight
 } from 'lucide-react'
 
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 const steps = [
   {
@@ -91,7 +91,7 @@ export default function AffiliatePage() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
-              href={`${portalUrl}/affiliate/register`}
+              href={portalLinks.affiliateRegister}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors shadow-lg"
@@ -99,7 +99,7 @@ export default function AffiliatePage() {
               Join the Program <ArrowRight size={18} />
             </a>
             <a
-              href={`${portalUrl}/affiliate/login`}
+              href={portalLinks.affiliateLogin}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-indigo-400/50 text-white font-semibold hover:bg-indigo-800/50 transition-colors"
@@ -229,7 +229,7 @@ export default function AffiliatePage() {
             Apply to join the ChitStack affiliate program. It&apos;s free and takes just a few minutes.
           </p>
           <a
-            href={`${portalUrl}/affiliate/register`}
+            href={portalLinks.affiliateRegister}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors shadow-lg"

@@ -3,7 +3,7 @@ import {
   Bell, MapPin, FileText, Wallet, BookOpen, Globe, ArrowRight
 } from 'lucide-react'
 
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 const sections = [
   {
@@ -172,7 +172,7 @@ export default function FeaturesPage() {
             member to generating year-end compliance reports.
           </p>
           <a
-            href={`${portalUrl}/register`}
+            href={portalLinks.register}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors"
@@ -222,7 +222,7 @@ export default function FeaturesPage() {
             Sign up for a free trial and explore a fully configured demo environment.
           </p>
           <a
-            href={`${portalUrl}/register`}
+            href={portalLinks.register}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors"

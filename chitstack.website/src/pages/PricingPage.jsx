@@ -1,6 +1,5 @@
 import { Check, X, ArrowRight } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 const plans = [
   { name: 'Starter', price: '₹1,999', period: '/month', highlight: false },
@@ -97,7 +96,7 @@ export default function PricingPage() {
                 </span>
               </div>
               <a
-                href={plan.name === 'Enterprise' ? 'mailto:sales@chitstack.com' : `${portalUrl}/register`}
+                href={plan.name === 'Enterprise' ? 'mailto:sales@chitstack.com' : portalLinks.register}
                 target={plan.name === 'Enterprise' ? undefined : '_blank'}
                 rel="noopener noreferrer"
                 className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${

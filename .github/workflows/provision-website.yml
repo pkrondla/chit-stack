@@ -27,6 +27,8 @@ jobs:
     outputs:
       staticWebSku: ${{ steps.resolve.outputs.staticWebSku }}
       azureResourcePrefix: ${{ steps.resolve.outputs.azureResourcePrefix }}
+      globalPortalUrl: ${{ steps.resolve.outputs.globalPortalUrl }}
+      demoTenantUrl: ${{ steps.resolve.outputs.demoTenantUrl }}
     steps:
       - uses: actions/checkout@v5
       - name: Resolve website stamp settings from manifests
@@ -47,8 +49,14 @@ jobs:
           $prefix = if ($config.defaults -and $config.defaults.azureResourcePrefix) { [string]$config.defaults.azureResourcePrefix } else { "chitstack" }
           if ([string]::IsNullOrWhiteSpace($prefix)) { throw "defaults.azureResourcePrefix must be set in tenants.json." }
           if ($prefix -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') { throw "defaults.azureResourcePrefix must be lowercase alphanumeric with hyphens (got: '$prefix')." }
+          $globalPortalUrl = if ($we.globalPortalUrl) { [string]$we.globalPortalUrl.TrimEnd('/') } else { "https://web-$prefix-$envKey-global.azurestaticapps.net" }
+          $demoTenantUrl = if ($we.demoTenantUrl) { [string]$we.demoTenantUrl.TrimEnd('/') } else { "https://web-$prefix-$envKey-demo.azurestaticapps.net" }
+          if ([string]::IsNullOrWhiteSpace($globalPortalUrl)) { throw "globalPortalUrl must be set for environment '$envKey' in website.json (under environments.$envKey)." }
+          if ([string]::IsNullOrWhiteSpace($demoTenantUrl)) { throw "demoTenantUrl must be set for environment '$envKey' in website.json (under environments.$envKey)." }
           "staticWebSku=$staticWebSku" >> $env:GITHUB_OUTPUT
           "azureResourcePrefix=$prefix" >> $env:GITHUB_OUTPUT
+          "globalPortalUrl=$globalPortalUrl" >> $env:GITHUB_OUTPUT
+          "demoTenantUrl=$demoTenantUrl" >> $env:GITHUB_OUTPUT
 
   build:
     needs: resolve-profile
@@ -62,7 +70,8 @@ jobs:
       - name: Build website
         working-directory: chitstack.website
         env:
-          VITE_GLOBAL_PORTAL_URL: https://web-${{ needs.resolve-profile.outputs.azureResourcePrefix }}-${{ inputs.environment }}-global.azurestaticapps.net
+          VITE_GLOBAL_PORTAL_URL: ${{ needs.resolve-profile.outputs.globalPortalUrl }}
+          VITE_DEMO_TENANT_URL: ${{ needs.resolve-profile.outputs.demoTenantUrl }}
         run: |
           npm ci
           npm run build

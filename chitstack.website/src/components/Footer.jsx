@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Layers } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 const links = {
   Product: [
@@ -10,9 +9,10 @@ const links = {
     { label: 'Affiliates', to: '/affiliates' },
   ],
   Portal: [
-    { label: 'Register', href: `${portalUrl}/register` },
-    { label: 'Sign In', href: `${portalUrl}/login` },
-    { label: 'Affiliate Login', href: `${portalUrl}/affiliate/login` },
+    { label: 'Register', href: portalLinks.register },
+    { label: 'Sign In', href: portalLinks.login },
+    { label: 'Try Demo', href: portalLinks.demo },
+    { label: 'Affiliate Login', href: portalLinks.affiliateLogin },
   ],
   Company: [
     { label: 'About', to: '#' },

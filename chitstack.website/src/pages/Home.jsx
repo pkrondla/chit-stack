@@ -6,8 +6,7 @@ import AffiliateProgram from '../components/AffiliateProgram'
 import Testimonials from '../components/Testimonials'
 import FAQ from '../components/FAQ'
 import { ArrowRight } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 export default function Home() {
   return (
@@ -31,7 +30,7 @@ export default function Home() {
             Start your free trial today — no credit card required.
           </p>
           <a
-            href={`${portalUrl}/register`}
+            href={portalLinks.register}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors shadow-lg"

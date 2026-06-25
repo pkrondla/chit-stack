@@ -1,6 +1,5 @@
 import { ArrowRight } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 const steps = [
   {
@@ -52,7 +51,7 @@ export default function HowItWorks() {
 
         <div className="mt-16 text-center">
           <a
-            href={`${portalUrl}/register`}
+            href={portalLinks.register}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors"

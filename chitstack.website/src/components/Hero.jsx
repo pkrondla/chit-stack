@@ -1,6 +1,5 @@
 import { ArrowRight, Play } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 export default function Hero() {
   return (
@@ -29,13 +28,21 @@ export default function Hero() {
 
           <div className="flex flex-wrap gap-4">
             <a
-              href={`${portalUrl}/register`}
+              href={portalLinks.register}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors shadow-lg"
             >
               Start Free Trial
               <ArrowRight size={18} />
+            </a>
+            <a
+              href={portalLinks.demo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-indigo-400/50 text-white font-semibold hover:bg-indigo-800/50 transition-colors"
+            >
+              Try Live Demo
             </a>
             <a
               href="#how-it-works"

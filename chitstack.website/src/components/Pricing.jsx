@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Check, ArrowRight } from 'lucide-react'
-
-const portalUrl = import.meta.env.VITE_GLOBAL_PORTAL_URL || ''
+import { portalLinks } from '../config/portalLinks'
 
 const plans = [
   {
@@ -18,7 +17,7 @@ const plans = [
       'Email support',
     ],
     cta: 'Start Free Trial',
-    ctaHref: `${portalUrl}/register`,
+    ctaHref: portalLinks.register,
     highlight: false,
   },
   {
@@ -37,7 +36,7 @@ const plans = [
       'Priority support',
     ],
     cta: 'Start Free Trial',
-    ctaHref: `${portalUrl}/register`,
+    ctaHref: portalLinks.register,
     highlight: true,
   },
   {
