@@ -27,10 +27,14 @@ ChitStack uses **GitHub Actions** for continuous integration and **manual, appro
 │    • publish DACPAC to Azure SQL                                 │
 │    • deploy API + configure app settings                         │
 │    • deploy Static Web App                                       │
+│                                                                  │
+│  workflow_dispatch  ──►  teardown-stamp.yml                      │
+│    • delete global or tenant resource group (stops SQL billing)  │
+│    • confirm=DELETE required                                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Important:** Merging to `main` does **not** deploy to Azure. CD is always an explicit workflow run with `confirm=DEPLOY`.
+**Important:** Merging to `main` does **not** deploy to Azure. CD is always an explicit workflow run with `confirm=DEPLOY` (provision) or `confirm=DELETE` (teardown).
 
 ---
 
@@ -98,6 +102,32 @@ CI artifacts are **not consumed by CD** — provision workflows rebuild from the
 - Builds tenant web with `VITE_API_URL` pointing at the tenant API hostname
 
 **Target resource group:** `rg-chitstack-{environment}-{tenantKey}`
+
+---
+
+### `teardown-stamp.yml` — CD: Teardown Stamp
+
+**Trigger:** Manual (`workflow_dispatch`) only
+
+Deletes one stamp **resource group** (SQL server/DB, App Service, Static Web App, Key Vault, App Insights). Use this to stop Azure SQL billing when a demo is idle. Redeploy later with the matching provision workflow.
+
+**Inputs:**
+
+| Input | Description |
+|-------|-------------|
+| `scope` | `global` or `tenant` |
+| `environment` | `dev`, `qa`, `uat`, `prod` |
+| `tenantKey` | Required when `scope=tenant` (e.g. `demo`) |
+| `confirm` | Must be exactly `DELETE` |
+
+**Behavior:**
+
+- Resolves `rg-{azureResourcePrefix}-{environment}-{global|tenantKey}` from `tenants.json`
+- For tenants, `tenantKey` must exist in the manifest (enabled flag is not required)
+- Idempotent if the resource group is already gone
+- Waits until Azure finishes the delete (SQL billing stops when the group is removed)
+
+**Does not** export databases — back up with a `.bacpac` first if you need the data.
 
 ---
 

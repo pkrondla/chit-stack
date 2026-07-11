@@ -1,0 +1,136 @@
+name: CD - Teardown Stamp
+
+# Deletes an entire global or tenant stamp resource group (SQL, App Service, SWA, etc.)
+# to stop Azure SQL billing. Manual only — never runs on push/merge.
+#
+# Redeploy later with provision-global.yml / provision-tenant.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Stamp to delete
+        required: true
+        type: choice
+        options:
+          - global
+          - tenant
+      environment:
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - uat
+          - dev
+          - qa
+      tenantKey:
+        description: Required when scope=tenant (e.g. demo). Leave empty for global.
+        required: false
+        type: string
+        default: ""
+      confirm:
+        description: Type DELETE to permanently remove the stamp resource group
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Confirm teardown
+        shell: bash
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "DELETE" ]; then
+            echo "Refusing teardown: set confirm to exactly DELETE (got: '$CONFIRM')."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - name: Resolve target resource group
+        id: resolve
+        shell: pwsh
+        run: |
+          $scope = "${{ inputs.scope }}".Trim().ToLowerInvariant()
+          $envKey = "${{ inputs.environment }}".Trim()
+          $tenantKey = "${{ inputs.tenantKey }}".Trim()
+
+          $config = Get-Content -Raw chitstack.azure/deployment/tenants.json | ConvertFrom-Json
+          $prefix = if ($config.defaults -and $config.defaults.azureResourcePrefix) {
+            [string]$config.defaults.azureResourcePrefix
+          } else {
+            "chitstack"
+          }
+          if ([string]::IsNullOrWhiteSpace($prefix)) {
+            throw "defaults.azureResourcePrefix must be set in tenants.json."
+          }
+          if ($prefix -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') {
+            throw "defaults.azureResourcePrefix must be lowercase alphanumeric with hyphens (got: '$prefix')."
+          }
+
+          if ($scope -eq "global") {
+            if (-not [string]::IsNullOrWhiteSpace($tenantKey) -and $tenantKey -ne "global") {
+              throw "Leave tenantKey empty when scope=global (got: '$tenantKey')."
+            }
+            $resourceGroup = "rg-$prefix-$envKey-global"
+            $label = "global stamp ($envKey)"
+          }
+          elseif ($scope -eq "tenant") {
+            if ([string]::IsNullOrWhiteSpace($tenantKey)) {
+              throw "tenantKey is required when scope=tenant."
+            }
+            if ($tenantKey -eq "global") {
+              throw "tenantKey cannot be 'global'. Use scope=global to tear down the global stamp."
+            }
+            if ($tenantKey -notmatch '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$') {
+              throw "tenantKey must be lowercase alphanumeric with hyphens (got: '$tenantKey')."
+            }
+            $tenant = $config.tenants | Where-Object { $_.tenantKey -eq $tenantKey } | Select-Object -First 1
+            if (-not $tenant) {
+              throw "Tenant '$tenantKey' not found in chitstack.azure/deployment/tenants.json."
+            }
+            $resourceGroup = "rg-$prefix-$envKey-$tenantKey"
+            $label = "tenant stamp '$tenantKey' ($envKey)"
+          }
+          else {
+            throw "Unsupported scope '$scope'. Use global or tenant."
+          }
+
+          "resourceGroup=$resourceGroup" >> $env:GITHUB_OUTPUT
+          "label=$label" >> $env:GITHUB_OUTPUT
+          "prefix=$prefix" >> $env:GITHUB_OUTPUT
+          Write-Host "Will delete resource group: $resourceGroup ($label)"
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete stamp resource group
+        shell: bash
+        env:
+          RG: ${{ steps.resolve.outputs.resourceGroup }}
+          LABEL: ${{ steps.resolve.outputs.label }}
+        run: |
+          set -euo pipefail
+          echo "Target: $LABEL"
+          echo "Resource group: $RG"
+
+          if ! az group exists --name "$RG" | grep -qi true; then
+            echo "Resource group '$RG' does not exist — nothing to delete (already torn down)."
+            exit 0
+          fi
+
+          echo "Deleting resource group '$RG' (waits until Azure finishes; stops SQL billing)..."
+          az group delete --name "$RG" --yes
+          echo "Deleted '$RG'."

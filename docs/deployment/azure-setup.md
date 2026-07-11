@@ -245,11 +245,15 @@ CD opens a temporary firewall rule for the runner IP. If publish still fails:
 
 The `nonprod-ultra-low` profile uses Free/Basic tiers suitable for demonstrations. Azure SQL Basic and App Service F1 have capacity limits — not intended for high-traffic production.
 
-Monitor costs in Azure Cost Management and tear down resource groups when not needed:
+Monitor costs in Azure Cost Management and tear down stamps when not needed.
+
+**Preferred:** run **CD - Teardown Stamp** (`teardown-stamp.yml`) from GitHub Actions with `confirm=DELETE` (once for `global`, once per tenant). That uses the same resource-group naming as provision and stops SQL billing when the group is deleted.
+
+**Manual alternative** (replace `{prefix}` with `defaults.azureResourcePrefix` from `tenants.json`):
 
 ```bash
-az group delete --name rg-chitstack-prod-global --yes --no-wait
-az group delete --name rg-chitstack-prod-tenant1 --yes --no-wait
+az group delete --name rg-{prefix}-prod-global --yes --no-wait
+az group delete --name rg-{prefix}-prod-demo --yes --no-wait
 ```
 
 ---
